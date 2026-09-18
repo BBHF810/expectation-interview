@@ -77,12 +77,12 @@
 | 環境変数名 | 必須 | デフォルト値 | 説明 |
 | :--- | :---: | :--- | :--- |
 | `GEMINI_API_KEY` | 推奨 | (なし) | Google AI Studioで取得したAPIキー。未設定の場合は自動で固定質問・振り返りフォールバックが動作します。 |
-| `GEMINI_MODEL` | 任意 | `gemini-2.5-flash-lite` | 使用するGeminiモデル。安定版Flash-LiteまたはFlashモデルを指定します。 |
+| `GEMINI_MODEL` | 任意 | `gemini-3.5-flash-lite` | 使用するGeminiモデル。安定版Flash-LiteまたはFlashモデルを指定します。 |
 | `GEMINI_MAX_OUTPUT_TOKENS` | 任意 | `200` | 生成AIの最大出力トークン数 |
 | `GEMINI_TEMPERATURE` | 任意 | `0.2` | 生成AIの温度パラメータ（0.0〜1.0） |
 
 ### モデルの変更方法
-コードの修正は不要です。環境変数 `GEMINI_MODEL` の値を変更するだけで、使用モデルを切り替えることができます（例: `gemini-2.5-flash`, `gemini-2.5-flash-lite` 等）。
+コードの修正は不要です。環境変数 `GEMINI_MODEL` の値を変更するだけで、使用モデルを切り替えることができます（例: `gemini-2.5-flash`, `gemini-3.5-flash-lite` 等）。
 
 ---
 
