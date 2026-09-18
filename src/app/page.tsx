@@ -29,8 +29,8 @@ import { PairSetupScreen } from "@/components/PairSetupScreen";
 import { PairExpectationScreen } from "@/components/PairExpectationScreen";
 import { PairInterviewScreen } from "@/components/PairInterviewScreen";
 import { PairReflectionScreen } from "@/components/PairReflectionScreen";
-import { ANIMAL_DIAGNOSES } from "@/lib/fallbacks";
-import { PAIR_ANIMAL_COMBOS } from "@/lib/pair-fallbacks";
+import { ANIMAL_DIAGNOSES, getInitialSingleQuestion } from "@/lib/fallbacks";
+import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion } from "@/lib/pair-fallbacks";
 
 export default function Home() {
   const [screen, setScreen] = useState<ScreenState>("WELCOME");
@@ -138,43 +138,20 @@ export default function Home() {
     }
   };
 
-  // 一人モード：インタビュー開始
-  const handleStartSingleInterview = async (selectedExp: ExpectationType) => {
+  // 一人モード：インタビュー開始（属性に応じた固定質問を即時セット）
+  const handleStartSingleInterview = (selectedExp: ExpectationType) => {
     setExpectationType(selectedExp);
-    setIsLoading(true);
+    const initialQ = getInitialSingleQuestion({
+      ageGroup,
+      partner,
+      isCare,
+      expectationType: selectedExp,
+    });
+    setCurrentQuestion(initialQ.question);
+    setCurrentProgress(1);
+    setFallbackUsed(false);
+    setIsLoading(false);
     setScreen("INTERVIEW");
-
-    try {
-      const res = await fetch("/api/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ageGroup,
-          partner,
-          isCare,
-          expectationType: selectedExp,
-          conversationHistory: [],
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed");
-      const data: InterviewResponseData = await res.json();
-
-      if (data.safetyAction === "stop") {
-        setScreen("SAFETY");
-        return;
-      }
-
-      setCurrentQuestion(data.nextQuestion || "どんな出来事でしたか？");
-      setCurrentProgress(data.progress || 1);
-      setFallbackUsed(Boolean(data.fallbackUsed));
-    } catch (err) {
-      setCurrentQuestion(isSimple ? "どんなことがあったか、おしえてくれる？" : "どんな出来事でしたか？");
-      setCurrentProgress(1);
-      setFallbackUsed(true);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // 一人モード：回答送信
@@ -305,52 +282,22 @@ export default function Home() {
     }
   };
 
-  // ふたりモード：インタビュー開始
-  const handleStartPairInterview = async (selectedExp: ExpectationType) => {
+  // ふたりモード：インタビュー開始（名前・関係性・期待に応じた固定質問を即時セット）
+  const handleStartPairInterview = (selectedExp: ExpectationType) => {
     setPairExpectationType(selectedExp);
-    setIsLoading(true);
+    const initialQ = getInitialPairQuestion({
+      nameA: pairNameA,
+      nameB: pairNameB,
+      relationship: pairRelationship,
+      expectationType: selectedExp,
+    });
+    setPairCurrentQuestion(initialQ.question);
+    setPairCurrentSpeaker(initialQ.nextSpeaker);
+    setPairCurrentSpeakerName(initialQ.nextSpeakerName);
+    setPairProgress(1);
+    setFallbackUsed(false);
+    setIsLoading(false);
     setScreen("PAIR_INTERVIEW");
-
-    try {
-      const res = await fetch("/api/pair-interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nameA: pairNameA,
-          nameB: pairNameB,
-          relationship: pairRelationship,
-          expectationType: selectedExp,
-          currentTurnSpeaker: "A",
-          conversationHistory: [],
-        }),
-      });
-
-      if (!res.ok) throw new Error("Pair API failed");
-      const data: PairInterviewResponseData = await res.json();
-
-      if (data.safetyAction === "stop") {
-        setScreen("SAFETY");
-        return;
-      }
-
-      setPairCurrentQuestion(
-        data.nextQuestion || `${pairNameA}さん、ふたりであった出来事について教えてください。`
-      );
-      setPairCurrentSpeaker(data.nextSpeaker || "A");
-      setPairCurrentSpeakerName(data.nextSpeakerName || pairNameA);
-      setPairProgress(data.progress || 1);
-      setFallbackUsed(Boolean(data.fallbackUsed));
-    } catch (err) {
-      setPairCurrentQuestion(
-        `${pairNameA}さん、ふたりであったどんな出来事ですか？そのとき${pairNameB}さんにどんなことを期待していましたか？`
-      );
-      setPairCurrentSpeaker("A");
-      setPairCurrentSpeakerName(pairNameA);
-      setPairProgress(1);
-      setFallbackUsed(true);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // ふたりモード：回答送信

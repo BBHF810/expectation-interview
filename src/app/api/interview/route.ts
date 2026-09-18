@@ -3,9 +3,9 @@ import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
 import { INTERVIEWER_SYSTEM_INSTRUCTION } from "@/lib/prompts/interviewer";
 import { checkSafetyLocally } from "@/lib/safety";
-import { getFallbackQuestion } from "@/lib/fallbacks";
+import { getFallbackQuestion, getInitialSingleQuestion } from "@/lib/fallbacks";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
-import { AgeGroup, ExpectationType } from "@/types";
+import { AgeGroup, CareStatus, ExpectationType } from "@/types";
 
 const InterviewRequestSchema = z.object({
   ageGroup: z.enum(["under_10", "11_30", "31_plus", "no_answer"]),
@@ -93,6 +93,32 @@ export async function POST(req: NextRequest) {
         progress: historyCount,
         isComplete: true,
         safetyAction: "stop",
+        fallbackUsed: false,
+      });
+    }
+
+    // 1問目（対話履歴なし）は属性に応じた初期固定質問を即時返却
+    if (historyCount === 0) {
+      const initialQ = getInitialSingleQuestion({
+        ageGroup: ageGroup as AgeGroup,
+        partner,
+        isCare: isCare as CareStatus,
+        expectationType: expectationType as ExpectationType,
+      });
+      logSafeRequest({
+        requestId,
+        endpoint: "/api/interview",
+        status: "success",
+        durationMs: Date.now() - startTime,
+        model: primaryModel,
+        fallbackUsed: false,
+      });
+      return NextResponse.json({
+        nextQuestion: initialQ.question,
+        questionPurpose: initialQ.purpose,
+        progress: 1,
+        isComplete: false,
+        safetyAction: "continue",
         fallbackUsed: false,
       });
     }

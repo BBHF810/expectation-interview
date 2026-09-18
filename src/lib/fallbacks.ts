@@ -1,4 +1,4 @@
-import { ExpectationType, AgeGroup, QuestionPurpose, AnimalDiagnosis } from "@/types";
+import { ExpectationType, AgeGroup, CareStatus, QuestionPurpose, AnimalDiagnosis } from "@/types";
 
 export interface FallbackQuestion {
   question: string;
@@ -120,6 +120,78 @@ export function getFallbackQuestion(
     : FALLBACK_QUESTIONS[type].standard;
   const clampedIndex = Math.min(Math.max(turnIndex, 0), 2);
   return list[clampedIndex];
+}
+
+/**
+ * 属性（年齢層、相手、介護有無、期待タイプ）に応じた最初の固定質問を選定
+ */
+export function getInitialSingleQuestion(params: {
+  ageGroup: AgeGroup;
+  partner: string;
+  isCare: CareStatus;
+  expectationType: ExpectationType;
+}): FallbackQuestion {
+  const { ageGroup, partner, isCare, expectationType } = params;
+  const isSimple = ageGroup === "under_10";
+  const partnerLabel = partner || (isSimple ? "あいて" : "相手");
+
+  // 1. 10歳以下向け（やさしいひらがな主体の表現）
+  if (isSimple) {
+    if (expectationType === "matched") {
+      return {
+        question: `「${partnerLabel}」といっしょにいて、おもったとおりになってうれしかったのはどんなことだった？`,
+        purpose: "event",
+      };
+    } else if (expectationType === "mismatched") {
+      return {
+        question: `「${partnerLabel}」とお話ししていて、ほんとうはこうしてほしかったのに、すこしちがっちゃったのはどんなことだった？`,
+        purpose: "event",
+      };
+    } else {
+      return {
+        question: `「${partnerLabel}」とすごしていて、おもったとおりだったことや、すこしちがったことはどんなことだったかな？`,
+        purpose: "event",
+      };
+    }
+  }
+
+  // 2. 介護に関する出来事（31歳以上でisCare === "yes"）
+  if (isCare === "yes") {
+    if (expectationType === "matched") {
+      return {
+        question: `「${partnerLabel}」の介護やサポートの中で、思いが通じ合ったり期待どおりに進んでよかったと感じた出来事について教えていただけますか？`,
+        purpose: "event",
+      };
+    } else if (expectationType === "mismatched") {
+      return {
+        question: `「${partnerLabel}」の介護やサポートに関わる中で、こうあってほしかったのに思い通りにいかず、すれ違いを感じた出来事について教えていただけますか？`,
+        purpose: "event",
+      };
+    } else {
+      return {
+        question: `「${partnerLabel}」の介護やサポートに関わる中で、印象に残っている出来事やそのときの関わりについて教えていただけますか？`,
+        purpose: "event",
+      };
+    }
+  }
+
+  // 3. 一般（11〜30歳、31歳以上の非介護、回答しない）
+  if (expectationType === "matched") {
+    return {
+      question: `「${partnerLabel}」に対して期待していて、そのとおりになって嬉しかったり安心したりした具体的な出来事を教えていただけますか？`,
+      purpose: "event",
+    };
+  } else if (expectationType === "mismatched") {
+    return {
+      question: `「${partnerLabel}」に対して「こうしてほしい」と期待していたのに、すれ違いや予想外の展開になった具体的な出来事を教えていただけますか？`,
+      purpose: "event",
+    };
+  } else {
+    return {
+      question: `「${partnerLabel}」に対して期待を抱いていたことと、実際に起きた出来事について具体的に教えていただけますか？`,
+      purpose: "event",
+    };
+  }
 }
 
 export function getFallbackReflection(

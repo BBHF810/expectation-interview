@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
 import { PAIR_INTERVIEWER_SYSTEM_INSTRUCTION } from "@/lib/prompts/pair-interviewer";
 import { checkSafetyLocally } from "@/lib/safety";
-import { getFallbackPairQuestion } from "@/lib/pair-fallbacks";
+import { getFallbackPairQuestion, getInitialPairQuestion } from "@/lib/pair-fallbacks";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { ExpectationType } from "@/types";
 
@@ -97,6 +97,33 @@ export async function POST(req: NextRequest) {
         progress: historyCount,
         isComplete: true,
         safetyAction: "stop",
+        fallbackUsed: false,
+      });
+    }
+
+    // 1問目（対話履歴なし）は参加者名・関係性・期待に応じた初期固定質問を即時返却
+    if (historyCount === 0) {
+      const initialQ = getInitialPairQuestion({
+        nameA,
+        nameB,
+        relationship,
+        expectationType: expectationType as ExpectationType,
+      });
+      logSafeRequest({
+        requestId,
+        endpoint: "/api/pair-interview",
+        status: "success",
+        durationMs: Date.now() - startTime,
+        model: primaryModel,
+        fallbackUsed: false,
+      });
+      return NextResponse.json({
+        nextQuestion: initialQ.question,
+        nextSpeaker: initialQ.nextSpeaker,
+        nextSpeakerName: initialQ.nextSpeakerName,
+        progress: 1,
+        isComplete: false,
+        safetyAction: "continue",
         fallbackUsed: false,
       });
     }

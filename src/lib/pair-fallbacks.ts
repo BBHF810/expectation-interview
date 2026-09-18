@@ -58,6 +58,57 @@ export function getFallbackPairQuestion(
   }
 }
 
+/**
+ * 登録情報（参加者名、相手名、関係性、期待タイプ）に応じた最初の固定質問を選定
+ */
+export function getInitialPairQuestion(params: {
+  nameA: string;
+  nameB: string;
+  relationship: string;
+  expectationType: ExpectationType;
+}): { question: string; nextSpeaker: "A"; nextSpeakerName: string } {
+  const { nameA, nameB, relationship, expectationType } = params;
+
+  // 関係性の表現の微調整
+  let relContext = "";
+  if (relationship.includes("友") || relationship.includes("同僚")) {
+    relContext = "友だちの";
+  } else if (
+    relationship.includes("家族") ||
+    relationship.includes("きょうだい") ||
+    relationship.includes("親") ||
+    relationship.includes("子")
+  ) {
+    relContext = "ご家族の";
+  } else if (
+    relationship.includes("パートナー") ||
+    relationship.includes("カップル") ||
+    relationship.includes("夫婦")
+  ) {
+    relContext = "パートナーの";
+  }
+
+  if (expectationType === "matched") {
+    return {
+      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、期待どおり気持ちが通じ合ったり嬉しかった具体的な出来事を教えていただけますか？`,
+      nextSpeaker: "A",
+      nextSpeakerName: nameA,
+    };
+  } else if (expectationType === "mismatched") {
+    return {
+      question: `${nameA}さん、まずは${relContext}${nameB}さんに対して「こうしてほしかった」と期待していたのに、少しすれ違ってしまった具体的な出来事を教えていただけますか？`,
+      nextSpeaker: "A",
+      nextSpeakerName: nameA,
+    };
+  } else {
+    return {
+      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で印象に残っている出来事や、そのとき${nameB}さんに期待していたことについて教えていただけますか？`,
+      nextSpeaker: "A",
+      nextSpeakerName: nameA,
+    };
+  }
+}
+
 export function getFallbackPairReflection(
   nameA: string,
   nameB: string,
