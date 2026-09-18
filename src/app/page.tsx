@@ -9,6 +9,7 @@ import {
   InterviewResponseData,
   ReflectionResponseData,
   ScreenState,
+  AnimalDiagnosis,
 } from "@/types";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ConsentScreen } from "@/components/ConsentScreen";
@@ -19,12 +20,12 @@ import { ExpectationScreen } from "@/components/ExpectationScreen";
 import { InterviewScreen } from "@/components/InterviewScreen";
 import { ReflectionScreen } from "@/components/ReflectionScreen";
 import { SafetyScreen } from "@/components/SafetyScreen";
+import { ANIMAL_DIAGNOSES } from "@/lib/fallbacks";
 
 export default function Home() {
-  // セッション内メモリ状態（ページリロードやリセットで破棄）
   const [screen, setScreen] = useState<ScreenState>("WELCOME");
   const [ageGroup, setAgeGroup] = useState<AgeGroup>("no_answer");
-  const [partner, setPartner] = useState<string>("相手");
+  const [partner, setPartner] = useState<string>("家族");
   const [isCare, setIsCare] = useState<CareStatus>("no");
   const [expectationType, setExpectationType] = useState<ExpectationType>("neutral");
 
@@ -40,10 +41,12 @@ export default function Home() {
     expected: string;
     actual: string;
     reflection: string;
+    animalDiagnosis: AnimalDiagnosis;
   }>({
     expected: "",
     actual: "",
     reflection: "",
+    animalDiagnosis: ANIMAL_DIAGNOSES[0],
   });
 
   const isSimple = ageGroup === "under_10";
@@ -52,7 +55,7 @@ export default function Home() {
   const handleReset = () => {
     setScreen("WELCOME");
     setAgeGroup("no_answer");
-    setPartner("相手");
+    setPartner("家族");
     setIsCare("no");
     setExpectationType("neutral");
     setTurns([]);
@@ -60,7 +63,34 @@ export default function Home() {
     setCurrentProgress(1);
     setIsLoading(false);
     setFallbackUsed(false);
-    setReflectionData({ expected: "", actual: "", reflection: "" });
+    setReflectionData({
+      expected: "",
+      actual: "",
+      reflection: "",
+      animalDiagnosis: ANIMAL_DIAGNOSES[0],
+    });
+  };
+
+  // 年齢選択時の分岐処理（介護を聞くのは31歳以上のみ）
+  const handleAgeSelect = (selectedAge: AgeGroup) => {
+    setAgeGroup(selectedAge);
+    if (selectedAge === "31_plus") {
+      // 31歳以上のみ介護確認画面へ
+      setScreen("CARE_SELECT");
+    } else {
+      // それ以外は介護をスキップして直接相手選択へ
+      setIsCare("no");
+      setScreen("PARTNER_SELECT");
+    }
+  };
+
+  // 相手選択画面からもどる処理
+  const handlePartnerBack = () => {
+    if (ageGroup === "31_plus") {
+      setScreen("CARE_SELECT");
+    } else {
+      setScreen("AGE_SELECT");
+    }
   };
 
   // 最初の質問を取得してインタビュー画面へ移行
@@ -97,7 +127,6 @@ export default function Home() {
       setCurrentProgress(data.progress || 1);
       setFallbackUsed(Boolean(data.fallbackUsed));
     } catch (err) {
-      // ネットワーク切断時などのクライアントフォールバック
       setCurrentQuestion(isSimple ? "どんなことがあったか、おしえてくれる？" : "どんな出来事でしたか？");
       setCurrentProgress(1);
       setFallbackUsed(true);
@@ -174,10 +203,9 @@ export default function Home() {
         setFallbackUsed(true);
       }
     } catch (err) {
-      // ネットワークエラー等のフォールバック
-      const fallbackIndex = nextHistory.length; // 1 or 2
+      const fallbackIndex = nextHistory.length;
       const fallbackQ = fallbackIndex === 1
-        ? (isSimple ? "あいてに、どうしてほしかった？" : "相手に、どんなことを期待していましたか？")
+        ? (isSimple ? "ほんとうは、どうしてほしかった？" : "相手に、どんなことを期待していましたか？")
         : (isSimple ? "どうおもったか、おしえてくれる？" : "そのとき、どのように受け止めましたか？");
       setCurrentQuestion(fallbackQ);
       setCurrentProgress(fallbackIndex + 1);
@@ -224,10 +252,10 @@ export default function Home() {
         expected: data.expected,
         actual: data.actual,
         reflection: data.reflection,
+        animalDiagnosis: data.animalDiagnosis || ANIMAL_DIAGNOSES[0],
       });
       setScreen("REFLECTION");
     } catch (err) {
-      // フォールバック振り返り
       const isMatched = expectationType === "matched";
       const isMismatched = expectationType === "mismatched";
       const fallbackSummary = isSimple
@@ -242,6 +270,7 @@ export default function Home() {
         expected: history[1]?.answer || history[0]?.answer || "（相手への思い）",
         actual: history[0]?.answer || "（実際の出来事）",
         reflection: fallbackSummary,
+        animalDiagnosis: ANIMAL_DIAGNOSES[0],
       });
       setScreen("REFLECTION");
     } finally {
@@ -249,7 +278,6 @@ export default function Home() {
     }
   };
 
-  // 途中終了
   const handleFinishEarly = async () => {
     await fetchReflection(turns);
   };
@@ -269,22 +297,8 @@ export default function Home() {
 
       {screen === "AGE_SELECT" && (
         <AgeScreen
-          onSelect={(age) => {
-            setAgeGroup(age);
-            setScreen("PARTNER_SELECT");
-          }}
+          onSelect={handleAgeSelect}
           onBack={() => setScreen("CONSENT")}
-        />
-      )}
-
-      {screen === "PARTNER_SELECT" && (
-        <PartnerScreen
-          onSelect={(partnerLabel) => {
-            setPartner(partnerLabel);
-            setScreen("CARE_SELECT");
-          }}
-          onBack={() => setScreen("AGE_SELECT")}
-          isSimple={isSimple}
         />
       )}
 
@@ -292,9 +306,20 @@ export default function Home() {
         <CareScreen
           onSelect={(status) => {
             setIsCare(status);
+            setScreen("PARTNER_SELECT");
+          }}
+          onBack={() => setScreen("AGE_SELECT")}
+          isSimple={isSimple}
+        />
+      )}
+
+      {screen === "PARTNER_SELECT" && (
+        <PartnerScreen
+          onSelect={(partnerLabel) => {
+            setPartner(partnerLabel);
             setScreen("EXPECTATION_SELECT");
           }}
-          onBack={() => setScreen("PARTNER_SELECT")}
+          onBack={handlePartnerBack}
           isSimple={isSimple}
         />
       )}
@@ -302,7 +327,7 @@ export default function Home() {
       {screen === "EXPECTATION_SELECT" && (
         <ExpectationScreen
           onSelect={(exp) => handleStartInterview(exp)}
-          onBack={() => setScreen("CARE_SELECT")}
+          onBack={() => setScreen("PARTNER_SELECT")}
           isSimple={isSimple}
         />
       )}
@@ -325,6 +350,7 @@ export default function Home() {
           expected={reflectionData.expected}
           actual={reflectionData.actual}
           reflection={reflectionData.reflection}
+          animalDiagnosis={reflectionData.animalDiagnosis}
           onReset={handleReset}
           isSimple={isSimple}
         />

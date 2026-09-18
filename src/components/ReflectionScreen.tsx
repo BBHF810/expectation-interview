@@ -1,10 +1,12 @@
 import React from "react";
-import { RotateCcw, Heart, CheckCircle2, MessageSquareText } from "lucide-react";
+import { RotateCcw, Heart, CheckCircle2, MessageSquareText, Sparkles, Share2 } from "lucide-react";
+import { AnimalDiagnosis } from "@/types";
 
 interface ReflectionScreenProps {
   expected: string;
   actual: string;
   reflection: string;
+  animalDiagnosis?: AnimalDiagnosis;
   onReset: () => void;
   isSimple: boolean;
 }
@@ -13,6 +15,7 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
   expected,
   actual,
   reflection,
+  animalDiagnosis,
   onReset,
   isSimple,
 }) => {
@@ -40,6 +43,93 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
             : "お話しいただきありがとうございました。お答えいただいた内容を整理したまとめです。"}
         </p>
       </div>
+
+      {/* 動物に例えるエンタメ関係性診断カード（広告・記念用） */}
+      {animalDiagnosis && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #FEF9C3 0%, #EFF6FF 100%)",
+            border: "2px solid #FDE047",
+            borderRadius: "var(--radius-lg)",
+            padding: "1.5rem",
+            boxShadow: "var(--shadow-md)",
+            textAlign: "center",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              padding: "0.25rem 0.85rem",
+              background: "#F59E0B",
+              color: "#FFFFFF",
+              borderRadius: "var(--radius-full)",
+              fontSize: "0.85rem",
+              fontWeight: 800,
+              marginBottom: "0.75rem",
+              boxShadow: "0 2px 6px rgba(245, 158, 11, 0.3)",
+            }}
+          >
+            <Sparkles size={16} />
+            工大祭お楽しみエンタメ診断
+          </div>
+
+          <div style={{ fontSize: "3.75rem", margin: "0.25rem 0", lineHeight: 1 }}>
+            {animalDiagnosis.animalEmoji}
+          </div>
+
+          <h3
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: 800,
+              color: "#1E293B",
+              marginBottom: "0.35rem",
+            }}
+          >
+            あなたの関わり方は「{animalDiagnosis.animalName}」
+          </h3>
+
+          <div
+            style={{
+              fontSize: "1rem",
+              fontWeight: 700,
+              color: "var(--color-primary)",
+              marginBottom: "0.875rem",
+            }}
+          >
+            〜 {animalDiagnosis.catchphrase} 〜
+          </div>
+
+          <p
+            style={{
+              fontSize: "1.05rem",
+              color: "#334155",
+              lineHeight: 1.6,
+              maxWidth: "540px",
+              margin: "0 auto",
+              textAlign: "left",
+              background: "rgba(255, 255, 255, 0.7)",
+              padding: "0.875rem 1.25rem",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            {animalDiagnosis.description}
+          </p>
+
+          <div
+            style={{
+              fontSize: "0.8rem",
+              color: "#64748B",
+              marginTop: "0.75rem",
+            }}
+          >
+            📸 画面を写真に撮って記念にシェアしてみてくださいね！
+          </div>
+        </div>
+      )}
 
       {/* 期待していたこと & 実際に起きたこと */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -123,10 +213,10 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
       </div>
 
       <div className="banner banner-yellow">
-        <span>※ このまとめは性格診断や評価ではありません。回答いただいた内容は終了時に破棄されます。</span>
+        <span>※ 動物診断は工大祭展示用のお楽しみエンタメコンテンツです。医学・心理学的な診断ではありません。回答内容は終了時に破棄されます。</span>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: "1rem" }}>
+      <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
         <button
           type="button"
           onClick={onReset}

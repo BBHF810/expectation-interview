@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { PartnerType } from "@/types";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Users } from "lucide-react";
 
 interface PartnerScreenProps {
   onSelect: (partnerLabel: string) => void;
@@ -12,12 +12,27 @@ export const PartnerScreen: React.FC<PartnerScreenProps> = ({ onSelect, onBack, 
   const [type, setType] = useState<PartnerType | null>(null);
   const [customName, setCustomName] = useState("");
 
-  const options: Array<{ label: string; value: PartnerType }> = [
-    { label: isSimple ? "お父さん・お母さん" : "お父さん・お母さん（両親）", value: "parents" },
-    { label: "子ども", value: "child" },
-    { label: isSimple ? "家族・パートナー" : "パートナー（夫・妻・恋人など）", value: "partner" },
-    { label: "友だち", value: "friend" },
-    { label: "その他", value: "other" },
+  const options: Array<{ label: string; value: PartnerType; hint: string }> = [
+    {
+      label: isSimple ? "かぞく" : "家族",
+      value: "family",
+      hint: isSimple ? "お父さん・お母さん・きょうだい など" : "親・子ども・兄弟姉妹 など",
+    },
+    {
+      label: isSimple ? "パートナー" : "パートナー",
+      value: "partner",
+      hint: isSimple ? "たいせつな人 など" : "配偶者・恋人 など",
+    },
+    {
+      label: "友だち",
+      value: "friend",
+      hint: isSimple ? "学校の友だち など" : "友人・知人 など",
+    },
+    {
+      label: "その他",
+      value: "other",
+      hint: "先生・同僚・先輩 など",
+    },
   ];
 
   const handleNext = () => {
@@ -50,7 +65,12 @@ export const PartnerScreen: React.FC<PartnerScreenProps> = ({ onSelect, onBack, 
               className={`option-card ${isCurrent ? "selected" : ""}`}
               style={{ justifyContent: "space-between" }}
             >
-              <span>{opt.label}</span>
+              <div>
+                <span style={{ fontSize: "1.125rem", fontWeight: 600 }}>{opt.label}</span>
+                <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", marginLeft: "0.75rem" }}>
+                  （{opt.hint}）
+                </span>
+              </div>
               {isCurrent && <Check size={22} color="var(--color-primary)" />}
             </button>
           );

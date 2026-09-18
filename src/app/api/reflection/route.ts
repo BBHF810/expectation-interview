@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
 import { REFLECTION_SYSTEM_INSTRUCTION } from "@/lib/prompts/reflection";
 import { checkSafetyLocally } from "@/lib/safety";
-import { getFallbackReflection } from "@/lib/fallbacks";
+import { getFallbackReflection, getFallbackAnimalDiagnosis } from "@/lib/fallbacks";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { AgeGroup, ExpectationType } from "@/types";
 
@@ -23,12 +23,20 @@ const ReflectionRequestSchema = z.object({
   ).max(3),
 });
 
+const AnimalDiagnosisSchema = z.object({
+  animalEmoji: z.string(),
+  animalName: z.string(),
+  catchphrase: z.string(),
+  description: z.string(),
+});
+
 const GeminiReflectionOutputSchema = z.object({
   expected: z.string(),
   actual: z.string(),
   reflection: z.string(),
   safetyAction: z.enum(["continue", "stop"]),
   missingInformation: z.array(z.string()),
+  animalDiagnosis: AnimalDiagnosisSchema.optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -73,6 +81,7 @@ export async function POST(req: NextRequest) {
           reflection: "",
           safetyAction: "stop",
           missingInformation: [],
+          animalDiagnosis: getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers),
           fallbackUsed: false,
         });
       }
@@ -98,6 +107,7 @@ export async function POST(req: NextRequest) {
         reflection: fallback.reflection,
         safetyAction: "continue",
         missingInformation: [],
+        animalDiagnosis: fallback.animalDiagnosis,
         fallbackUsed: true,
       });
     }
@@ -122,10 +132,9 @@ export async function POST(req: NextRequest) {
 ${turnsContext}
 
 【依頼】
-上記の対話から「expected」「actual」「reflection（100〜180文字の中立的まとめ）」「safetyAction」「missingInformation」をJSONスキーマに従って出力してください。
-評価や性格診断、アドバイスは絶対に含めず、客観的で温かみのある整理にとどめてください。`;
+上記の対話から「expected」「actual」「reflection（100〜180文字の中立的まとめ）」「safetyAction」「missingInformation」「animalDiagnosis（親しみやすい動物タイプ診断）」をJSONスキーマに従って出力してください。`;
 
-    const config = getGeminiConfig(300);
+    const config = getGeminiConfig(450);
 
     try {
       const response = await generateContentWithTimeout(async () => {
@@ -149,6 +158,16 @@ ${turnsContext}
                   type: "array",
                   items: { type: "string" },
                 },
+                animalDiagnosis: {
+                  type: "object",
+                  properties: {
+                    animalEmoji: { type: "string" },
+                    animalName: { type: "string" },
+                    catchphrase: { type: "string" },
+                    description: { type: "string" },
+                  },
+                  required: ["animalEmoji", "animalName", "catchphrase", "description"],
+                },
               },
               required: ["expected", "actual", "reflection", "safetyAction", "missingInformation"],
             },
@@ -156,7 +175,7 @@ ${turnsContext}
             temperature: config.temperature,
           },
         });
-      }, 8000);
+      }, 8500);
 
       const rawText = response.text || "";
       const parsedJson = JSON.parse(rawText);
@@ -168,7 +187,6 @@ ${turnsContext}
 
       const data = validatedOutput.data;
 
-      // safetyAction が stop の場合
       if (data.safetyAction === "stop") {
         logSafeRequest({
           requestId,
@@ -184,9 +202,12 @@ ${turnsContext}
           reflection: "",
           safetyAction: "stop",
           missingInformation: [],
+          animalDiagnosis: getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers),
           fallbackUsed: false,
         });
       }
+
+      const animalDiagnosis = data.animalDiagnosis || getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers);
 
       logSafeRequest({
         requestId,
@@ -203,10 +224,10 @@ ${turnsContext}
         reflection: data.reflection,
         safetyAction: "continue",
         missingInformation: data.missingInformation || [],
+        animalDiagnosis,
         fallbackUsed: false,
       });
     } catch (err: any) {
-      // フォールバック
       const fallback = getFallbackReflection(expectationType as ExpectationType, ageGroup as AgeGroup, allAnswers);
       logSafeRequest({
         requestId,
@@ -224,6 +245,7 @@ ${turnsContext}
         reflection: fallback.reflection,
         safetyAction: "continue",
         missingInformation: [],
+        animalDiagnosis: fallback.animalDiagnosis,
         fallbackUsed: true,
       });
     }

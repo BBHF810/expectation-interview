@@ -1,6 +1,6 @@
 export type AgeGroup = "under_10" | "11_30" | "31_plus" | "no_answer";
 
-export type PartnerType = "parents" | "child" | "partner" | "friend" | "other";
+export type PartnerType = "family" | "partner" | "friend" | "other";
 
 export type CareStatus = "yes" | "no" | "no_answer";
 
@@ -21,7 +21,7 @@ export interface DialogTurn {
   question: string;
   questionPurpose?: QuestionPurpose;
   answer: string;
-  isSkipped: boolean; // "思いつかない" or "答えたくない"
+  isSkipped: boolean;
   skipReason?: "dont_know" | "no_answer";
 }
 
@@ -42,10 +42,17 @@ export interface InterviewRequestBody {
 export interface InterviewResponseData {
   nextQuestion: string;
   questionPurpose: QuestionPurpose;
-  progress: number; // 1, 2, 3
+  progress: number;
   isComplete: boolean;
   safetyAction: SafetyAction;
   fallbackUsed: boolean;
+}
+
+export interface AnimalDiagnosis {
+  animalEmoji: string;
+  animalName: string;
+  catchphrase: string;
+  description: string;
 }
 
 export interface ReflectionRequestBody {
@@ -69,14 +76,15 @@ export interface ReflectionResponseData {
   safetyAction: SafetyAction;
   missingInformation: string[];
   fallbackUsed?: boolean;
+  animalDiagnosis: AnimalDiagnosis;
 }
 
 export type ScreenState =
   | "WELCOME"
   | "CONSENT"
   | "AGE_SELECT"
-  | "PARTNER_SELECT"
   | "CARE_SELECT"
+  | "PARTNER_SELECT"
   | "EXPECTATION_SELECT"
   | "INTERVIEW"
   | "REFLECTION"

@@ -1,4 +1,4 @@
-import { ExpectationType, AgeGroup, QuestionPurpose } from "@/types";
+import { ExpectationType, AgeGroup, QuestionPurpose, AnimalDiagnosis } from "@/types";
 
 export interface FallbackQuestion {
   question: string;
@@ -47,10 +47,72 @@ export const FALLBACK_QUESTIONS: Record<
   },
 };
 
+export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
+  {
+    animalEmoji: "🐶",
+    animalName: "素直なワンちゃんタイプ",
+    catchphrase: "まっすぐな信頼とピュアな心",
+    description: "相手への期待を大切にして、素直な気持ちで向き合えるタイプです。お互いの思いを言葉にし合うことで、さらに強い絆が育まれます。",
+  },
+  {
+    animalEmoji: "🐱",
+    animalName: "マイペースな猫ちゃんタイプ",
+    catchphrase: "心地よい距離感と自立した優しさ",
+    description: "相手の領域も自分のペースも尊重できるタイプです。すれ違いが起きても『そういうこともあるよね』とお互いの違いを認め合えるしなやかさがあります。",
+  },
+  {
+    animalEmoji: "🦉",
+    animalName: "見守りフクロウタイプ",
+    catchphrase: "深い洞察力と静かな包容力",
+    description: "相手の状況や気持ちを一歩引いて客観的に見つめられるタイプです。言葉にしない期待の奥にある想いに気づく優しさを持っています。",
+  },
+  {
+    animalEmoji: "🐬",
+    animalName: "共感イルカタイプ",
+    catchphrase: "気持ちのキャッチボールを楽しむ共感力",
+    description: "心と心が通じ合う温かい瞬間を何よりも愛するタイプです。楽しいこともすれ違いも、お互いを深く知るきっかけに変えていけます。",
+  },
+  {
+    animalEmoji: "🐻",
+    animalName: "ぬくもりクマさんタイプ",
+    catchphrase: "どっしり構える安心感と大きな思いやり",
+    description: "相手のどんな一面も大らかに受け止めようとする包容力タイプです。そばにいるだけで相手にホッとした安心感を届けられます。",
+  },
+  {
+    animalEmoji: "🐧",
+    animalName: "よりそいペンギンタイプ",
+    catchphrase: "力を合わせて歩む健気なチームワーク",
+    description: "相手と一緒に同じ方向を向いて協力し合いたいと願う誠実なタイプです。小さなすれ違いも、ふたりの歩幅を合わせるための大切な一歩になります。",
+  },
+];
+
+export function getFallbackAnimalDiagnosis(
+  type: ExpectationType,
+  answers: string[]
+): AnimalDiagnosis {
+  const combined = answers.join(" ");
+  if (type === "matched") {
+    if (combined.includes("嬉し") || combined.includes("楽")) {
+      return ANIMAL_DIAGNOSES[3]; // 共感イルカ
+    }
+    return ANIMAL_DIAGNOSES[0]; // 素直なワンちゃん
+  } else if (type === "mismatched") {
+    if (combined.includes("時間") || combined.includes("忙し")) {
+      return ANIMAL_DIAGNOSES[1]; // 猫ちゃん
+    }
+    return ANIMAL_DIAGNOSES[2]; // 見守りフクロウ
+  } else {
+    if (combined.includes("手伝") || combined.includes("一緒")) {
+      return ANIMAL_DIAGNOSES[5]; // よりそいペンギン
+    }
+    return ANIMAL_DIAGNOSES[4]; // ぬくもりクマ
+  }
+}
+
 export function getFallbackQuestion(
   type: ExpectationType,
   ageGroup: AgeGroup,
-  turnIndex: number // 0, 1, 2
+  turnIndex: number
 ): FallbackQuestion {
   const isSimple = ageGroup === "under_10";
   const list = isSimple
@@ -64,7 +126,12 @@ export function getFallbackReflection(
   type: ExpectationType,
   ageGroup: AgeGroup,
   answers: string[]
-): { expected: string; actual: string; reflection: string } {
+): {
+  expected: string;
+  actual: string;
+  reflection: string;
+  animalDiagnosis: AnimalDiagnosis;
+} {
   const isSimple = ageGroup === "under_10";
 
   let expected = answers[1] || answers[0] || (isSimple ? "相手への思い" : "相手への期待");
@@ -92,9 +159,12 @@ export function getFallbackReflection(
       : "期待がかなった面と、予想とは異なった面の両方があった出来事でした。状況や相手の受け止め方によって多様な側面が見えた場面です。";
   }
 
+  const animalDiagnosis = getFallbackAnimalDiagnosis(type, answers);
+
   return {
     expected,
     actual,
     reflection,
+    animalDiagnosis,
   };
 }

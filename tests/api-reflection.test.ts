@@ -3,7 +3,7 @@ import { POST } from "@/app/api/reflection/route";
 import { NextRequest } from "next/server";
 
 describe("振り返りAPI (/api/reflection)", () => {
-  it("回答履歴から振り返りを返す（APIキー未設定時は固定振り返りフォールバック）", async () => {
+  it("回答履歴から振り返りと動物診断を返す（APIキー未設定時は固定フォールバック）", async () => {
     const req = new NextRequest("http://localhost:3000/api/reflection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -28,6 +28,8 @@ describe("振り返りAPI (/api/reflection)", () => {
     expect(data.actual).toBeTruthy();
     expect(data.reflection).toBeTruthy();
     expect(data.safetyAction).toBe("continue");
+    expect(data.animalDiagnosis).toBeTruthy();
+    expect(data.animalDiagnosis.animalName).toBeTruthy();
   });
 
   it("センシティブな回答が含まれる場合は safetyAction: stop を返す", async () => {
