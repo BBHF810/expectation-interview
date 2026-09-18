@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
   const primaryModel = getGeminiModelName();
   const secondaryModel = "gemini-2.5-flash";
 
+  let parsedData: z.infer<typeof InterviewRequestSchema> | null = null;
+
   try {
     const rawBody = await req.json();
     const parsed = InterviewRequestSchema.safeParse(rawBody);
@@ -52,10 +54,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
     }
 
-    const { ageGroup, partner, isCare, expectationType, conversationHistory } = parsed.data;
+    parsedData = parsed.data;
+    const { ageGroup, partner, isCare, expectationType, conversationHistory } = parsedData;
     const historyCount = conversationHistory.length;
 
-    // 既に3問回答済みの場合は4問目を生成せず完了フラグを返す
     if (historyCount >= 3) {
       logSafeRequest({
         requestId,
@@ -75,7 +77,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 最新の回答内容に対する安全チェック（ローカル判定）
     const latestAnswer = historyCount > 0 ? conversationHistory[historyCount - 1].answer : "";
     if (latestAnswer && checkSafetyLocally(latestAnswer) === "stop") {
       logSafeRequest({
@@ -198,12 +199,11 @@ ${
     try {
       response = await callModel(primaryModel);
     } catch (err: any) {
-      // 1次モデル失敗時、2次モデル（gemini-2.5-flash）へ1回だけフォールバック試行
       try {
         usedModel = secondaryModel;
         response = await callModel(secondaryModel);
       } catch (retryErr: any) {
-        throw err; // 両方失敗した場合はcatchブロックへ
+        throw err;
       }
     }
 
@@ -259,11 +259,11 @@ ${
       fallbackUsed: false,
     });
   } catch (err: any) {
-    const fallback = getFallbackQuestion(
-      expectationType as ExpectationType,
-      ageGroup as AgeGroup,
-      nextQuestionIndex
-    );
+    const expType = parsedData?.expectationType || "neutral";
+    const ageGrp = parsedData?.ageGroup || "11_30";
+    const turnIdx = parsedData?.conversationHistory.length || 0;
+
+    const fallback = getFallbackQuestion(expType as ExpectationType, ageGrp as AgeGroup, turnIdx);
     logSafeRequest({
       requestId,
       endpoint: "/api/interview",
@@ -277,7 +277,7 @@ ${
     return NextResponse.json({
       nextQuestion: fallback.question,
       questionPurpose: fallback.purpose,
-      progress: nextProgress,
+      progress: turnIdx + 1,
       isComplete: false,
       safetyAction: "continue",
       fallbackUsed: true,

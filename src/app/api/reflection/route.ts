@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
   const primaryModel = getGeminiModelName();
   const secondaryModel = "gemini-2.5-flash";
 
+  let parsedData: z.infer<typeof ReflectionRequestSchema> | null = null;
+
   try {
     const rawBody = await req.json();
     const parsed = ReflectionRequestSchema.safeParse(rawBody);
@@ -62,7 +64,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
     }
 
-    const { ageGroup, partner, isCare, expectationType, conversationHistory } = parsed.data;
+    parsedData = parsed.data;
+    const { ageGroup, partner, isCare, expectationType, conversationHistory } = parsedData;
 
     const allAnswers = conversationHistory.map((t) => t.answer).filter(Boolean);
     for (const ans of allAnswers) {
@@ -253,10 +256,14 @@ ${turnsContext}
       fallbackUsed: false,
     });
   } catch (err: any) {
+    const expType = parsedData?.expectationType || "neutral";
+    const ageGrp = parsedData?.ageGroup || "11_30";
+    const answers = parsedData?.conversationHistory.map((t) => t.answer).filter(Boolean) || [];
+
     const fallback = getFallbackReflection(
-      expectationType as ExpectationType,
-      ageGroup as AgeGroup,
-      allAnswers
+      expType as ExpectationType,
+      ageGrp as AgeGroup,
+      answers
     );
     logSafeRequest({
       requestId,
