@@ -42,7 +42,8 @@ const GeminiReflectionOutputSchema = z.object({
 export async function POST(req: NextRequest) {
   const requestId = generateRequestId();
   const startTime = Date.now();
-  const modelName = getGeminiModelName();
+  const primaryModel = getGeminiModelName();
+  const secondaryModel = "gemini-2.5-flash";
 
   try {
     const rawBody = await req.json();
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         endpoint: "/api/reflection",
         status: "error",
         durationMs: Date.now() - startTime,
-        model: modelName,
+        model: primaryModel,
         fallbackUsed: false,
         errorType: "INVALID_REQUEST_BODY",
       });
@@ -63,8 +64,7 @@ export async function POST(req: NextRequest) {
 
     const { ageGroup, partner, isCare, expectationType, conversationHistory } = parsed.data;
 
-    // 回答群の安全性チェック（ローカル判定）
-    const allAnswers = conversationHistory.map(t => t.answer).filter(Boolean);
+    const allAnswers = conversationHistory.map((t) => t.answer).filter(Boolean);
     for (const ans of allAnswers) {
       if (checkSafetyLocally(ans) === "stop") {
         logSafeRequest({
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
           endpoint: "/api/reflection",
           status: "success",
           durationMs: Date.now() - startTime,
-          model: modelName,
+          model: primaryModel,
           fallbackUsed: false,
         });
         return NextResponse.json({
@@ -89,15 +89,18 @@ export async function POST(req: NextRequest) {
 
     const ai = getGeminiClient();
 
-    // APIキーがない場合は固定振り返りへフォールバック
     if (!ai) {
-      const fallback = getFallbackReflection(expectationType as ExpectationType, ageGroup as AgeGroup, allAnswers);
+      const fallback = getFallbackReflection(
+        expectationType as ExpectationType,
+        ageGroup as AgeGroup,
+        allAnswers
+      );
       logSafeRequest({
         requestId,
         endpoint: "/api/reflection",
         status: "fallback",
         durationMs: Date.now() - startTime,
-        model: modelName,
+        model: primaryModel,
         fallbackUsed: true,
         errorType: "NO_API_KEY",
       });
@@ -112,9 +115,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const turnsContext = conversationHistory.map((t, idx) =>
-      `質問${idx + 1}: ${t.question}\n回答${idx + 1}: ${t.isSkipped ? "(回答なし・スキップ)" : t.answer}`
-    ).join("\n\n");
+    const turnsContext = conversationHistory
+      .map(
+        (t, idx) =>
+          `質問${idx + 1}: ${t.question}\n回答${idx + 1}: ${
+            t.isSkipped ? "(回答なし・スキップ)" : t.answer
+          }`
+      )
+      .join("\n\n");
 
     const prompt = `【対話データ】
 - 年齢層: ${ageGroup === "under_10" ? "10歳以下（ひらがな多めのやさしい表現にすること）" : ageGroup}
@@ -136,10 +144,10 @@ ${turnsContext}
 
     const config = getGeminiConfig(450);
 
-    try {
-      const response = await generateContentWithTimeout(async () => {
+    const callModel = async (modelToUse: string) => {
+      return await generateContentWithTimeout(async () => {
         return await ai.models.generateContent({
-          model: modelName,
+          model: modelToUse,
           contents: prompt,
           config: {
             systemInstruction: REFLECTION_SYSTEM_INSTRUCTION,
@@ -176,89 +184,98 @@ ${turnsContext}
           },
         });
       }, 8500);
+    };
 
-      const rawText = response.text || "";
-      const parsedJson = JSON.parse(rawText);
-      const validatedOutput = GeminiReflectionOutputSchema.safeParse(parsedJson);
+    let response: any = null;
+    let usedModel = primaryModel;
 
-      if (!validatedOutput.success) {
-        throw new Error("Gemini reflection output validation failed");
+    try {
+      response = await callModel(primaryModel);
+    } catch (err: any) {
+      try {
+        usedModel = secondaryModel;
+        response = await callModel(secondaryModel);
+      } catch (retryErr: any) {
+        throw err;
       }
+    }
 
-      const data = validatedOutput.data;
+    const rawText = response.text || "";
+    const parsedJson = JSON.parse(rawText);
+    const validatedOutput = GeminiReflectionOutputSchema.safeParse(parsedJson);
 
-      if (data.safetyAction === "stop") {
-        logSafeRequest({
-          requestId,
-          endpoint: "/api/reflection",
-          status: "success",
-          durationMs: Date.now() - startTime,
-          model: modelName,
-          fallbackUsed: false,
-        });
-        return NextResponse.json({
-          expected: "",
-          actual: "",
-          reflection: "",
-          safetyAction: "stop",
-          missingInformation: [],
-          animalDiagnosis: getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers),
-          fallbackUsed: false,
-        });
-      }
+    if (!validatedOutput.success) {
+      throw new Error("Gemini reflection output validation failed");
+    }
 
-      const animalDiagnosis = data.animalDiagnosis || getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers);
+    const data = validatedOutput.data;
 
+    if (data.safetyAction === "stop") {
       logSafeRequest({
         requestId,
         endpoint: "/api/reflection",
         status: "success",
         durationMs: Date.now() - startTime,
-        model: modelName,
+        model: usedModel,
         fallbackUsed: false,
       });
-
       return NextResponse.json({
-        expected: data.expected || "（回答なし）",
-        actual: data.actual || "（回答なし）",
-        reflection: data.reflection,
-        safetyAction: "continue",
-        missingInformation: data.missingInformation || [],
-        animalDiagnosis,
-        fallbackUsed: false,
-      });
-    } catch (err: any) {
-      const fallback = getFallbackReflection(expectationType as ExpectationType, ageGroup as AgeGroup, allAnswers);
-      logSafeRequest({
-        requestId,
-        endpoint: "/api/reflection",
-        status: "fallback",
-        durationMs: Date.now() - startTime,
-        model: modelName,
-        fallbackUsed: true,
-        errorType: err?.name || "GEMINI_ERROR",
-      });
-
-      return NextResponse.json({
-        expected: fallback.expected,
-        actual: fallback.actual,
-        reflection: fallback.reflection,
-        safetyAction: "continue",
+        expected: "",
+        actual: "",
+        reflection: "",
+        safetyAction: "stop",
         missingInformation: [],
-        animalDiagnosis: fallback.animalDiagnosis,
-        fallbackUsed: true,
+        animalDiagnosis: getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers),
+        fallbackUsed: false,
       });
     }
-  } catch (error: any) {
+
+    const animalDiagnosis =
+      data.animalDiagnosis ||
+      getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers);
+
     logSafeRequest({
       requestId,
       endpoint: "/api/reflection",
-      status: "error",
+      status: "success",
       durationMs: Date.now() - startTime,
-      model: modelName,
+      model: usedModel,
       fallbackUsed: false,
-      errorType: "SERVER_ERROR",
     });
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+    return NextResponse.json({
+      expected: data.expected || "（回答なし）",
+      actual: data.actual || "（回答なし）",
+      reflection: data.reflection,
+      safetyAction: "continue",
+      missingInformation: data.missingInformation || [],
+      animalDiagnosis,
+      fallbackUsed: false,
+    });
+  } catch (err: any) {
+    const fallback = getFallbackReflection(
+      expectationType as ExpectationType,
+      ageGroup as AgeGroup,
+      allAnswers
+    );
+    logSafeRequest({
+      requestId,
+      endpoint: "/api/reflection",
+      status: "fallback",
+      durationMs: Date.now() - startTime,
+      model: primaryModel,
+      fallbackUsed: true,
+      errorType: err?.message || err?.name || "GEMINI_ERROR",
+    });
+
+    return NextResponse.json({
+      expected: fallback.expected,
+      actual: fallback.actual,
+      reflection: fallback.reflection,
+      safetyAction: "continue",
+      missingInformation: [],
+      animalDiagnosis: fallback.animalDiagnosis,
+      fallbackUsed: true,
+    });
   }
 }

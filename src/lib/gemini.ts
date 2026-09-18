@@ -1,23 +1,31 @@
 import { GoogleGenAI } from "@google/genai";
 
 const DEFAULT_PRIMARY_MODEL = "gemini-2.5-flash-lite";
-const DEFAULT_SECONDARY_MODEL = "gemini-2.5-flash";
 
 export function getGeminiModelName(): string {
-  return process.env.GEMINI_MODEL || DEFAULT_PRIMARY_MODEL;
+  const envModel = process.env.GEMINI_MODEL?.trim();
+  return envModel && envModel.length > 0 ? envModel : DEFAULT_PRIMARY_MODEL;
 }
 
 export function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey.trim() === "") {
+  const rawKey = process.env.GEMINI_API_KEY;
+  if (!rawKey) {
+    return null;
+  }
+  const apiKey = rawKey.trim();
+  if (apiKey === "") {
     return null;
   }
   return new GoogleGenAI({ apiKey });
 }
 
 export function getGeminiConfig(customTokens?: number) {
-  const maxOutputTokens = customTokens || Number(process.env.GEMINI_MAX_OUTPUT_TOKENS) || 200;
-  const temperature = Number(process.env.GEMINI_TEMPERATURE) || 0.2;
+  const maxOutputTokens =
+    customTokens ||
+    Number(process.env.GEMINI_MAX_OUTPUT_TOKENS?.trim()) ||
+    200;
+  const temperature =
+    Number(process.env.GEMINI_TEMPERATURE?.trim()) || 0.2;
 
   return {
     maxOutputTokens,
