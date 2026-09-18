@@ -354,7 +354,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                     minHeight: "44px",
                   }}
                 >
-                  💡 具体例を見る
+                  📖 マンガで例を見る
                 </button>
               )}
             </div>

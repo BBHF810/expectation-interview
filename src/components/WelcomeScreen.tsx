@@ -58,8 +58,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             transition: "all 0.15s ease",
           }}
         >
-          <span>💡</span>
-          <span>「相互期待感の一致・不一致」とは？ 具体例を見る</span>
+          <span>📖</span>
+          <span>マンガでわかる「相互期待感の一致・不一致」</span>
         </button>
       </div>
 

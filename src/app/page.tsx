@@ -711,7 +711,7 @@ export default function Home() {
               borderRadius: "0.25rem",
             }}
           >
-            💡 「相互期待感」とは？ 具体例を見る
+            📖 マンガでわかる「相互期待感」
           </button>
         </div>
 

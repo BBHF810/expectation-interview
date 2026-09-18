@@ -288,7 +288,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                     minHeight: "44px",
                   }}
                 >
-                  💡 具体例を見る
+                  📖 マンガで例を見る
                 </button>
               )}
             </div>
