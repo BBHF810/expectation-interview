@@ -29,12 +29,18 @@ import { PairSetupScreen } from "@/components/PairSetupScreen";
 import { PairExpectationScreen } from "@/components/PairExpectationScreen";
 import { PairInterviewScreen } from "@/components/PairInterviewScreen";
 import { PairReflectionScreen } from "@/components/PairReflectionScreen";
+import { ConceptExplanationModal } from "@/components/ConceptExplanationModal";
+import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
 import { ANIMAL_DIAGNOSES, getInitialSingleQuestion } from "@/lib/fallbacks";
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion } from "@/lib/pair-fallbacks";
+import { saveEpisodeLocally } from "@/lib/episode-storage";
+import { CollectedEpisode } from "@/types";
 
 export default function Home() {
   const [screen, setScreen] = useState<ScreenState>("WELCOME");
   const [mode, setMode] = useState<ExperienceMode>("single");
+  const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // 一人モード用ステート
   const [ageGroup, setAgeGroup] = useState<AgeGroup>("no_answer");
@@ -262,20 +268,74 @@ export default function Home() {
         return;
       }
 
+      const animalDiag = data.animalDiagnosis || ANIMAL_DIAGNOSES[0];
       setReflectionData({
         expected: data.expected,
         actual: data.actual,
         reflection: data.reflection,
-        animalDiagnosis: data.animalDiagnosis || ANIMAL_DIAGNOSES[0],
+        animalDiagnosis: animalDiag,
       });
+
+      // エピソードデータをローカルに自動保存
+      const episode: CollectedEpisode = {
+        id: `single_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        createdAt: new Date().toISOString(),
+        mode: "single",
+        ageGroup,
+        partner,
+        isCare,
+        expectationType,
+        turns: history.map((t, idx) => ({
+          turnNumber: idx + 1,
+          question: t.question,
+          answer: t.answer,
+        })),
+        summary: {
+          expected: data.expected,
+          actual: data.actual,
+          reflection: data.reflection,
+          diagnosisTitle: `${animalDiag.animalEmoji} ${animalDiag.animalName}`,
+        },
+      };
+      saveEpisodeLocally(episode);
+
       setScreen("REFLECTION");
     } catch (err) {
+      const fallbackDiag = ANIMAL_DIAGNOSES[0];
+      const fallbackExpected = history[1]?.answer || history[0]?.answer || "（相手への思い）";
+      const fallbackActual = history[0]?.answer || "（実際の出来事）";
+      const fallbackRef = "お互いの気持ちに気づき、温かい対話の振り返りとなりました。";
+
       setReflectionData({
-        expected: history[1]?.answer || history[0]?.answer || "（相手への思い）",
-        actual: history[0]?.answer || "（実際の出来事）",
-        reflection: "お互いの気持ちに気づき、温かい対話の振り返りとなりました。",
-        animalDiagnosis: ANIMAL_DIAGNOSES[0],
+        expected: fallbackExpected,
+        actual: fallbackActual,
+        reflection: fallbackRef,
+        animalDiagnosis: fallbackDiag,
       });
+
+      // フォールバック時もローカル保存
+      const episode: CollectedEpisode = {
+        id: `single_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        createdAt: new Date().toISOString(),
+        mode: "single",
+        ageGroup,
+        partner,
+        isCare,
+        expectationType,
+        turns: history.map((t, idx) => ({
+          turnNumber: idx + 1,
+          question: t.question,
+          answer: t.answer,
+        })),
+        summary: {
+          expected: fallbackExpected,
+          actual: fallbackActual,
+          reflection: fallbackRef,
+          diagnosisTitle: `${fallbackDiag.animalEmoji} ${fallbackDiag.animalName}`,
+        },
+      };
+      saveEpisodeLocally(episode);
+
       setScreen("REFLECTION");
     } finally {
       setIsLoading(false);
@@ -400,20 +460,76 @@ export default function Home() {
         return;
       }
 
+      const pairDiag = data.pairAnimalDiagnosis || PAIR_ANIMAL_COMBOS[0];
       setPairReflectionData({
         perspectiveA: data.perspectiveA,
         perspectiveB: data.perspectiveB,
         reflection: data.reflection,
-        pairAnimalDiagnosis: data.pairAnimalDiagnosis || PAIR_ANIMAL_COMBOS[0],
+        pairAnimalDiagnosis: pairDiag,
       });
+
+      // エピソードデータをローカルに自動保存
+      const episode: CollectedEpisode = {
+        id: `pair_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        createdAt: new Date().toISOString(),
+        mode: "pair",
+        nameA: pairNameA,
+        nameB: pairNameB,
+        relationship: pairRelationship,
+        expectationType: pairExpectationType,
+        turns: history.map((t) => ({
+          turnNumber: t.questionNumber,
+          speaker: t.speakerName || t.speaker,
+          question: t.question,
+          answer: t.answer,
+        })),
+        summary: {
+          perspectiveA: data.perspectiveA,
+          perspectiveB: data.perspectiveB,
+          reflection: data.reflection,
+          diagnosisTitle: pairDiag.pairTitle,
+        },
+      };
+      saveEpisodeLocally(episode);
+
       setScreen("PAIR_REFLECTION");
     } catch (err) {
+      const fallbackDiag = PAIR_ANIMAL_COMBOS[0];
+      const fallbackPerspA = history[0]?.answer || "（思い）";
+      const fallbackPerspB = history[1]?.answer || "（受け止め）";
+      const fallbackRef = `${pairNameA}さんと${pairNameB}さんの素直な気持ちが通い合った、温かい対話の記録です。`;
+
       setPairReflectionData({
-        perspectiveA: history[0]?.answer || "（思い）",
-        perspectiveB: history[1]?.answer || "（受け止め）",
-        reflection: `${pairNameA}さんと${pairNameB}さんの素直な気持ちが通い合った、温かい対話の記録です。`,
-        pairAnimalDiagnosis: PAIR_ANIMAL_COMBOS[0],
+        perspectiveA: fallbackPerspA,
+        perspectiveB: fallbackPerspB,
+        reflection: fallbackRef,
+        pairAnimalDiagnosis: fallbackDiag,
       });
+
+      // フォールバック時もローカル保存
+      const episode: CollectedEpisode = {
+        id: `pair_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        createdAt: new Date().toISOString(),
+        mode: "pair",
+        nameA: pairNameA,
+        nameB: pairNameB,
+        relationship: pairRelationship,
+        expectationType: pairExpectationType,
+        turns: history.map((t) => ({
+          turnNumber: t.questionNumber,
+          speaker: t.speakerName || t.speaker,
+          question: t.question,
+          answer: t.answer,
+        })),
+        summary: {
+          perspectiveA: fallbackPerspA,
+          perspectiveB: fallbackPerspB,
+          reflection: fallbackRef,
+          diagnosisTitle: fallbackDiag.pairTitle,
+        },
+      };
+      saveEpisodeLocally(episode);
+
       setScreen("PAIR_REFLECTION");
     } finally {
       setIsLoading(false);
@@ -432,6 +548,7 @@ export default function Home() {
             setMode("pair");
             setScreen("CONSENT");
           }}
+          onOpenConceptExplanation={() => setIsConceptModalOpen(true)}
         />
       )}
 
@@ -493,6 +610,7 @@ export default function Home() {
           onFinishEarly={() => fetchSingleReflection(turns)}
           onReset={handleReset}
           isSimple={isSimple}
+          onOpenConceptExplanation={() => setIsConceptModalOpen(true)}
         />
       )}
 
@@ -540,6 +658,7 @@ export default function Home() {
           onSubmitAnswer={handlePairAnswerSubmit}
           onFinishEarly={() => fetchPairReflection(pairTurns)}
           onReset={handleReset}
+          onOpenConceptExplanation={() => setIsConceptModalOpen(true)}
         />
       )}
 
@@ -559,6 +678,77 @@ export default function Home() {
       {screen === "SAFETY" && (
         <SafetyScreen onReset={handleReset} isSimple={isSimple} />
       )}
+
+      {/* 共通フッターツールバー（具体例解説＆スタッフ用データ管理） */}
+      <footer
+        style={{
+          marginTop: "2rem",
+          paddingTop: "1rem",
+          borderTop: "1px solid var(--border-color)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.75rem",
+          fontSize: "0.825rem",
+          color: "var(--text-muted)",
+        }}
+      >
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => setIsConceptModalOpen(true)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--primary-color)",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              fontSize: "0.825rem",
+              padding: "0.2rem 0.4rem",
+              borderRadius: "0.25rem",
+            }}
+          >
+            💡 「相互期待感」とは？ 具体例を見る
+          </button>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsAdminModalOpen(true)}
+            style={{
+              background: "rgba(241, 245, 249, 0.8)",
+              border: "1px solid var(--border-color)",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              fontSize: "0.775rem",
+              padding: "0.3rem 0.6rem",
+              borderRadius: "0.375rem",
+              transition: "all 0.15s ease",
+            }}
+            title="端末に蓄積されたエピソードの閲覧・CSVエクスポート"
+          >
+            📊 エピソードデータ管理（スタッフ用）
+          </button>
+        </div>
+      </footer>
+
+      {/* モーダル群 */}
+      <ConceptExplanationModal
+        isOpen={isConceptModalOpen}
+        onClose={() => setIsConceptModalOpen(false)}
+      />
+
+      <AdminEpisodeManagerModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
     </>
   );
 }

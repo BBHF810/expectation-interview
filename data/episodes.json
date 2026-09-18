@@ -1,0 +1,23 @@
+[
+  {
+    "id": "api_test_1",
+    "createdAt": "2026-09-18T07:26:37.848Z",
+    "mode": "single",
+    "ageGroup": "11_30",
+    "partner": "家族",
+    "isCare": "no",
+    "expectationType": "matched",
+    "turns": [
+      {
+        "turnNumber": 1,
+        "question": "Q1",
+        "answer": "A1"
+      }
+    ],
+    "summary": {
+      "expected": "期待",
+      "actual": "結果",
+      "reflection": "振り返り"
+    }
+  }
+]

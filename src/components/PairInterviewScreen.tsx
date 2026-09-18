@@ -15,6 +15,7 @@ interface PairInterviewScreenProps {
   onSubmitAnswer: (answer: string, isSkipped: boolean) => void;
   onFinishEarly: () => void;
   onReset: () => void;
+  onOpenConceptExplanation?: () => void;
 }
 
 export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
@@ -27,6 +28,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   onSubmitAnswer,
   onFinishEarly,
   onReset,
+  onOpenConceptExplanation,
 }) => {
   const [answer, setAnswer] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -256,16 +258,40 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
-            <button
-              type="button"
-              onClick={handleSkip}
-              disabled={isLoading}
-              className="btn btn-secondary"
-              style={{ fontSize: "0.95rem", minHeight: "44px" }}
-            >
-              スキップ
-            </button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={isLoading}
+                className="btn btn-secondary"
+                style={{ fontSize: "0.95rem", minHeight: "44px" }}
+              >
+                スキップ
+              </button>
+              {onOpenConceptExplanation && (
+                <button
+                  type="button"
+                  onClick={onOpenConceptExplanation}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                    backgroundColor: "transparent",
+                    color: "var(--color-primary)",
+                    border: "1px dashed var(--color-primary-border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "0.5rem 0.75rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    minHeight: "44px",
+                  }}
+                >
+                  💡 具体例を見る
+                </button>
+              )}
+            </div>
 
             <button
               type="submit"

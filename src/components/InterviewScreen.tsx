@@ -14,6 +14,7 @@ interface InterviewScreenProps {
   onFinishEarly: () => void;
   onReset: () => void;
   isSimple: boolean;
+  onOpenConceptExplanation?: () => void;
 }
 
 export const InterviewScreen: React.FC<InterviewScreenProps> = ({
@@ -25,6 +26,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   onFinishEarly,
   onReset,
   isSimple,
+  onOpenConceptExplanation,
 }) => {
   const [answer, setAnswer] = useState("");
   const [longWait, setLongWait] = useState(false);
@@ -314,7 +316,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
               gap: "0.75rem",
             }}
           >
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 onClick={() => handleSkip("dont_know")}
@@ -333,6 +335,28 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
               >
                 答えたくない
               </button>
+              {onOpenConceptExplanation && (
+                <button
+                  type="button"
+                  onClick={onOpenConceptExplanation}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                    backgroundColor: "transparent",
+                    color: "var(--color-primary)",
+                    border: "1px dashed var(--color-primary-border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "0.5rem 0.75rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    minHeight: "44px",
+                  }}
+                >
+                  💡 具体例を見る
+                </button>
+              )}
             </div>
 
             <button

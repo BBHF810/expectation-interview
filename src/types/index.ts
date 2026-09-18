@@ -149,3 +149,30 @@ export type ScreenState =
   | "PAIR_EXPECTATION"
   | "PAIR_INTERVIEW"
   | "PAIR_REFLECTION";
+
+export interface CollectedEpisode {
+  id: string;
+  createdAt: string;
+  mode: ExperienceMode;
+  ageGroup?: AgeGroup;
+  partner?: string;
+  isCare?: CareStatus;
+  nameA?: string;
+  nameB?: string;
+  relationship?: string;
+  expectationType: ExpectationType;
+  turns: Array<{
+    turnNumber: number;
+    speaker?: string;
+    question: string;
+    answer: string;
+  }>;
+  summary: {
+    expected?: string;
+    actual?: string;
+    perspectiveA?: string;
+    perspectiveB?: string;
+    reflection: string;
+    diagnosisTitle?: string;
+  };
+}

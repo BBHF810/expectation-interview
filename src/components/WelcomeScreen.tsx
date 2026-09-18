@@ -4,11 +4,13 @@ import { User, Users, Info } from "lucide-react";
 interface WelcomeScreenProps {
   onStartSingle: () => void;
   onStartPair: () => void;
+  onOpenConceptExplanation: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onStartSingle,
   onStartPair,
+  onOpenConceptExplanation,
 }) => {
   return (
     <div className="card" style={{ textAlign: "center", padding: "2.5rem 2rem" }}>
@@ -25,19 +27,43 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <span style={{ fontSize: "2rem" }}>🌱</span>
       </div>
 
-      <h1 className="title" style={{ fontSize: "1.875rem", marginBottom: "1rem" }}>
+      <h1 className="title" style={{ fontSize: "1.875rem", marginBottom: "0.75rem" }}>
         きたいのすれちがい、
         <br />
         AIと話してみよう
       </h1>
 
-      <p className="subtitle" style={{ fontSize: "1.125rem", maxWidth: "540px", margin: "0 auto 2rem" }}>
-        家族や友だちに「こうしてほしい」と思ったことを、
-        <br />
-        AIといっしょに振り返る体験です。
+      <p className="subtitle" style={{ fontSize: "1.05rem", maxWidth: "540px", margin: "0 auto 1.5rem" }}>
+        身近な人に対して「こうしてほしかった」「きっとこうしてくれるだろう」と思ったことを、
+        AIといっしょに振り返る工大祭の体験型エピソード収集ブースです。
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "420px", margin: "0 auto 2rem" }}>
+      {/* 相互期待感とは？の解説ボタン */}
+      <div style={{ marginBottom: "1.75rem" }}>
+        <button
+          type="button"
+          onClick={onOpenConceptExplanation}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            backgroundColor: "rgba(14, 165, 233, 0.08)",
+            color: "#0284c7",
+            border: "1px solid #bae6fd",
+            borderRadius: "2rem",
+            padding: "0.45rem 1rem",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          <span>💡</span>
+          <span>「相互期待感の一致・不一致」とは？ 具体例を見る</span>
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", maxWidth: "420px", margin: "0 auto 2rem" }}>
         <button
           type="button"
           onClick={onStartSingle}
@@ -64,7 +90,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           aria-label="ふたりで体験するを開始"
         >
           <Users size={22} />
-          ふたりで体験する（新登場！）
+          ふたりで体験する
         </button>
       </div>
 
