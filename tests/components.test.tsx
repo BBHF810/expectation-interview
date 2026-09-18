@@ -25,17 +25,20 @@ describe("UIコンポーネントテスト", () => {
     expect(handleConsent).toHaveBeenCalledTimes(1);
   });
 
-  it("開始画面: 「ふたりで体験する」ボタンは無効（準備中）である", () => {
-    const handleStart = vi.fn();
-    render(<WelcomeScreen onStartSingle={handleStart} />);
+  it("開始画面: 「ひとりで体験する」「ふたりで体験する」両方のボタンが有効である", () => {
+    const handleStartSingle = vi.fn();
+    const handleStartPair = vi.fn();
+    render(<WelcomeScreen onStartSingle={handleStartSingle} onStartPair={handleStartPair} />);
 
-    const pairBtn = screen.getByRole("button", { name: /ふたりで体験する（準備中）/i });
-    expect(pairBtn).toBeDisabled();
+    const pairBtn = screen.getByRole("button", { name: /ふたりで体験する/i });
+    expect(pairBtn).toBeEnabled();
+    fireEvent.click(pairBtn);
+    expect(handleStartPair).toHaveBeenCalledTimes(1);
 
     const singleBtn = screen.getByRole("button", { name: /ひとりで体験する/i });
     expect(singleBtn).toBeEnabled();
     fireEvent.click(singleBtn);
-    expect(handleStart).toHaveBeenCalledTimes(1);
+    expect(handleStartSingle).toHaveBeenCalledTimes(1);
   });
 
   it("相手選択画面: 親・子・兄弟が「家族」にまとめられている", () => {

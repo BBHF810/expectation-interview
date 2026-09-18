@@ -1,3 +1,5 @@
+export type ExperienceMode = "single" | "pair";
+
 export type AgeGroup = "under_10" | "11_30" | "31_plus" | "no_answer";
 
 export type PartnerType = "family" | "partner" | "friend" | "other";
@@ -21,7 +23,7 @@ export interface DialogTurn {
   question: string;
   questionPurpose?: QuestionPurpose;
   answer: string;
-  isSkipped: boolean;
+  isSkipped?: boolean;
   skipReason?: "dont_know" | "no_answer";
 }
 
@@ -79,6 +81,60 @@ export interface ReflectionResponseData {
   animalDiagnosis: AnimalDiagnosis;
 }
 
+// ふたりで体験するモード用
+export interface PairTurn {
+  questionNumber: number;
+  speaker: "A" | "B";
+  speakerName: string;
+  question: string;
+  answer: string;
+  isSkipped?: boolean;
+}
+
+export interface PairInterviewRequestBody {
+  nameA: string;
+  nameB: string;
+  relationship: string;
+  expectationType: ExpectationType;
+  currentTurnSpeaker: "A" | "B";
+  conversationHistory: PairTurn[];
+}
+
+export interface PairInterviewResponseData {
+  nextQuestion: string;
+  nextSpeaker: "A" | "B";
+  nextSpeakerName: string;
+  progress: number; // 1, 2, 3
+  isComplete: boolean;
+  safetyAction: SafetyAction;
+  fallbackUsed: boolean;
+}
+
+export interface PairAnimalDiagnosis {
+  animalA: { emoji: string; name: string };
+  animalB: { emoji: string; name: string };
+  pairTitle: string;
+  pairCatchphrase: string;
+  pairDescription: string;
+}
+
+export interface PairReflectionRequestBody {
+  nameA: string;
+  nameB: string;
+  relationship: string;
+  expectationType: ExpectationType;
+  conversationHistory: PairTurn[];
+}
+
+export interface PairReflectionResponseData {
+  perspectiveA: string;
+  perspectiveB: string;
+  reflection: string;
+  pairAnimalDiagnosis: PairAnimalDiagnosis;
+  safetyAction: SafetyAction;
+  fallbackUsed?: boolean;
+}
+
 export type ScreenState =
   | "WELCOME"
   | "CONSENT"
@@ -88,4 +144,8 @@ export type ScreenState =
   | "EXPECTATION_SELECT"
   | "INTERVIEW"
   | "REFLECTION"
-  | "SAFETY";
+  | "SAFETY"
+  | "PAIR_SETUP"
+  | "PAIR_EXPECTATION"
+  | "PAIR_INTERVIEW"
+  | "PAIR_REFLECTION";

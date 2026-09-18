@@ -3,9 +3,13 @@ import { User, Users, Info } from "lucide-react";
 
 interface WelcomeScreenProps {
   onStartSingle: () => void;
+  onStartPair: () => void;
 }
 
-export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStartSingle }) => {
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
+  onStartSingle,
+  onStartPair,
+}) => {
   return (
     <div className="card" style={{ textAlign: "center", padding: "2.5rem 2rem" }}>
       <div
@@ -47,13 +51,20 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStartSingle }) =
 
         <button
           type="button"
-          disabled
+          onClick={onStartPair}
           className="btn btn-secondary"
-          style={{ width: "100%", padding: "1rem", opacity: 0.6 }}
-          aria-disabled="true"
+          style={{
+            width: "100%",
+            padding: "1rem",
+            border: "2px solid var(--color-primary-border)",
+            backgroundColor: "#EFF6FF",
+            color: "var(--color-primary)",
+            fontWeight: 700,
+          }}
+          aria-label="ふたりで体験するを開始"
         >
           <Users size={22} />
-          ふたりで体験する（準備中）
+          ふたりで体験する（新登場！）
         </button>
       </div>
 
