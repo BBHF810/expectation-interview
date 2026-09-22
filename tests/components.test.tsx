@@ -52,8 +52,8 @@ describe("UIコンポーネントテスト", () => {
     expect(screen.getByText("夫婦")).toBeInTheDocument();
     expect(screen.getByText("恋人")).toBeInTheDocument();
     expect(screen.getByText("その他")).toBeInTheDocument();
-    expect(screen.getByText(/親・子ども など/i)).toBeInTheDocument();
-    expect(screen.getByText(/兄弟姉妹 など/i)).toBeInTheDocument();
+    expect(screen.getByText(/先生・同僚・先輩 など/i)).toBeInTheDocument();
+    expect(screen.queryByText(/友人・知人 など/i)).not.toBeInTheDocument();
   });
 
   it("アバター: 正しいARIAラベルで描画される", () => {
