@@ -208,6 +208,39 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
         </p>
       </div>
 
+      {/* 診断のエンタメ性 & 研究活用の明示 */}
+      <div
+        style={{
+          background: "#F8FAFC",
+          border: "1px solid #CBD5E1",
+          borderRadius: "var(--radius-md)",
+          padding: "1.1rem 1.25rem",
+          fontSize: "0.875rem",
+          color: "#334155",
+          lineHeight: 1.6,
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.6rem",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+          <span style={{ fontWeight: 700, color: "#D97706", flexShrink: 0 }}>
+            【診断について】
+          </span>
+          <span>
+            ふたりの動物ペア診断は本展示企画用のお楽しみエンタメコンテンツです。医学・心理学・相性の厳密な診断ではありません。
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+          <span style={{ fontWeight: 700, color: "var(--color-primary)", flexShrink: 0 }}>
+            【研究への活用】
+          </span>
+          <span>
+            本体験で収集された対話・エピソードデータは、個人を特定できない統計・分析データとして「相互期待感の一致・不一致」に関する学術研究に活用させていただきます。
+          </span>
+        </div>
+      </div>
+
       <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
         <button
           type="button"
