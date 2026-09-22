@@ -22,7 +22,7 @@ const PairInterviewRequestSchema = z.object({
   relationship: z.string().max(50),
   expectationType: z.enum(["matched", "mismatched", "neutral"]),
   currentTurnSpeaker: z.enum(["A", "B"]),
-  conversationHistory: z.array(PairTurnSchema).max(3),
+  conversationHistory: z.array(PairTurnSchema).max(4),
 });
 
 const GeminiPairInterviewOutputSchema = z.object({
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const { nameA, nameB, relationship, expectationType, currentTurnSpeaker, conversationHistory } = parsedData;
     const historyCount = conversationHistory.length;
 
-    if (historyCount >= 3) {
+    if (historyCount >= 4) {
       logSafeRequest({
         requestId,
         endpoint: "/api/pair-interview",
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         nextQuestion: "",
         nextSpeaker: "A",
         nextSpeakerName: nameA,
-        progress: 3,
+        progress: 2,
         isComplete: true,
         safetyAction: "continue",
         fallbackUsed: false,
@@ -128,7 +128,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const nextProgress = historyCount + 1;
+    const questionNumber = Math.floor(historyCount / 2) + 1; // Q1 or Q2
+    const nextProgress = questionNumber;
     const ai = getGeminiClient();
 
     if (!ai) {
@@ -156,18 +157,19 @@ export async function POST(req: NextRequest) {
     const turnsContext = conversationHistory
       .map(
         (t, idx) =>
-          `質問${idx + 1}（${t.speakerName}さんへ）: ${t.question}\n回答${idx + 1}: ${
+          `質問${Math.floor(idx / 2) + 1}-${t.speaker}（${t.speakerName}さんへ）: ${t.question}\n回答: ${
             t.isSkipped ? "(スキップ)" : t.answer
           }`
       )
       .join("\n\n");
 
-    const expectedNextSpeaker = historyCount === 0 ? "A" : historyCount === 1 ? "B" : "A";
-    const expectedSpeakerName = expectedNextSpeaker === "A" ? nameA : nameB;
+    // Q2生成時（historyCount===2）はAが先に回答するのでnextSpeakerはA
+    const expectedNextSpeaker = "A";
+    const expectedSpeakerName = nameA;
 
     const userPrompt = `【参加ペア情報】
-- 参加者Aのお名前: ${nameA}
-- 参加者Bのお名前: ${nameB}
+- 参加者Aのニックネーム: ${nameA}
+- 参加者Bのニックネーム: ${nameB}
 - ふたりの関係性: ${relationship}
 - 事前選択した期待と結果: ${
       expectationType === "matched"
@@ -181,15 +183,14 @@ export async function POST(req: NextRequest) {
 ${turnsContext ? turnsContext : "(まだ対話はありません)"}
 
 【指示】
-現在は ${nextProgress} 問目の質問を作成してください（全3問中）。
+これは全2問のインタビューです。各質問に対してAとBの二人がそれぞれ回答します。
+現在は ${questionNumber} 問目の質問を作成してください。
 ${
-  historyCount === 0
-    ? `まずは【${nameA}さん】に対して、ふたりであった出来事や、そのとき【${nameB}さん】に期待していたことについて尋ねてください。`
-    : historyCount === 1
-    ? `直前の【${nameA}さん】のお話を受けて、次は【${nameB}さん】に対して、そのときどう思っていたか、または実際どうだったかをやさしく尋ねてください。`
-    : `ふたりの対話を受けて、出来事を通してお互いの気持ちについてどう感じたか、まとめの問いかけを行ってください。`
+  historyCount === 2
+    ? `質問1で${nameA}さんと${nameB}さんが同じ質問に答えました。次は質問2として、ふたりの対話を踏まえ、出来事を通してお互いの気持ちや関わり方について掘り下げる質問を作ってください。`
+    : `${nameA}さんと${nameB}さんに対して、ふたりであった出来事や、そのとき相手に期待していたことについて尋ねてください。`
 }
-質問文の冒頭には「${expectedSpeakerName}さん、」と呼びかけを入れてください。
+質問文の冒頭には「${expectedSpeakerName}さん、」と呼びかけを入れてください（AとBの両方がこの質問に回答します）。
 質問は80文字以内、1つの疑問文で簡潔にしてください。
 必ず指定されたJSONスキーマに従って出力してください。`;
 
@@ -274,8 +275,8 @@ ${
       cleanQuestion = cleanQuestion.substring(0, 77) + "？";
     }
 
-    const nextSpeaker = data.nextSpeaker || expectedNextSpeaker;
-    const nextSpeakerName = nextSpeaker === "A" ? nameA : nameB;
+    const nextSpeaker = "A" as const;
+    const nextSpeakerName = nameA;
 
     logSafeRequest({
       requestId,

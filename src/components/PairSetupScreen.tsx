@@ -15,9 +15,10 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
 
   const relationshipOptions = [
     "友だち",
-    "家族・親子・兄弟",
-    "パートナー（恋人・配偶者）",
-    "同僚・先輩後輩",
+    "親子",
+    "兄弟",
+    "夫婦",
+    "恋人",
     "その他",
   ];
 
@@ -47,7 +48,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
           ふたりのことを教えてください
         </h2>
         <p className="subtitle" style={{ margin: 0 }}>
-          AIインタビュアーがふたりに呼びかけるお名前と、ふたりの関係性を設定します。
+          AIインタビュアーがふたりに呼びかけるニックネームと、ふたりの関係性を設定します。
         </p>
       </div>
 
@@ -72,14 +73,14 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
                 fontSize: "0.95rem",
               }}
             >
-              👤 ひとりめのお名前
+              👤 ひとりめのニックネーム
             </label>
             <input
               id="name-a"
               type="text"
               value={nameA}
               onChange={(e) => setNameA(e.target.value.slice(0, 20))}
-              placeholder="例: たろう、Aさん"
+              placeholder="例: たろう、あーちゃん"
               required
               style={{
                 width: "100%",
@@ -110,14 +111,14 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
                 fontSize: "0.95rem",
               }}
             >
-              👤 ふたりめのお名前
+              👤 ふたりめのニックネーム
             </label>
             <input
               id="name-b"
               type="text"
               value={nameB}
               onChange={(e) => setNameB(e.target.value.slice(0, 20))}
-              placeholder="例: はなこ、Bさん"
+              placeholder="例: はなこ、はーちゃん"
               required
               style={{
                 width: "100%",

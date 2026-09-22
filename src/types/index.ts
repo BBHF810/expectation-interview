@@ -2,7 +2,7 @@ export type ExperienceMode = "single" | "pair";
 
 export type AgeGroup = "under_10" | "11_30" | "31_plus" | "no_answer";
 
-export type PartnerType = "family" | "partner" | "friend" | "other";
+export type PartnerType = "friend" | "parent_child" | "sibling" | "spouse" | "lover" | "other";
 
 export type CareStatus = "yes" | "no" | "no_answer";
 

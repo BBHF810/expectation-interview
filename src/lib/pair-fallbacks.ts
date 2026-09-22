@@ -34,26 +34,26 @@ export const PAIR_ANIMAL_COMBOS: PairAnimalDiagnosis[] = [
 export function getFallbackPairQuestion(
   nameA: string,
   nameB: string,
-  turnIndex: number, // 0: Aへ, 1: Bへ, 2: ふたりへ
+  turnIndex: number, // 0: Q1-A, 1: Q1-B, 2: Q2-A, 3: Q2-B
   expectationType: ExpectationType
 ): { question: string; nextSpeaker: "A" | "B"; nextSpeakerName: string } {
-  if (turnIndex === 0) {
+  if (turnIndex <= 1) {
+    // Q1: ふたりであった出来事について
+    const q = `${turnIndex === 0 ? nameA : nameB}さん、ふたりであったどんな出来事ですか？そのとき${turnIndex === 0 ? nameB : nameA}さんにどんなことを期待していましたか？`;
     return {
-      question: `${nameA}さん、ふたりであったどんな出来事ですか？そのとき${nameB}さんにどんなことを期待していましたか？`,
-      nextSpeaker: "A",
-      nextSpeakerName: nameA,
-    };
-  } else if (turnIndex === 1) {
-    return {
-      question: `${nameB}さん、${nameA}さんのお話を聞いて、そのとき実際にはどう思っていたり、どうなったりしましたか？`,
-      nextSpeaker: "B",
-      nextSpeakerName: nameB,
+      question: q,
+      nextSpeaker: turnIndex === 0 ? "A" : "B",
+      nextSpeakerName: turnIndex === 0 ? nameA : nameB,
     };
   } else {
+    // Q2: そのときの気持ちについて
+    const q = turnIndex === 2
+      ? `${nameA}さん、その出来事を振り返って、${nameB}さんとのお互いの気持ちについてどう感じましたか？`
+      : `${nameB}さん、同じ出来事を振り返って、${nameA}さんとのお互いの気持ちについてどう感じましたか？`;
     return {
-      question: `その出来事を通してお互いの気持ちや関わり方について、どう思いましたか？（${nameA}さん・${nameB}さんどちらでもどうぞ）`,
-      nextSpeaker: "A",
-      nextSpeakerName: `${nameA}さん・${nameB}さん`,
+      question: q,
+      nextSpeaker: turnIndex === 2 ? "A" : "B",
+      nextSpeakerName: turnIndex === 2 ? nameA : nameB,
     };
   }
 }
@@ -71,21 +71,20 @@ export function getInitialPairQuestion(params: {
 
   // 関係性の表現の微調整
   let relContext = "";
-  if (relationship.includes("友") || relationship.includes("同僚")) {
+  if (relationship.includes("友")) {
     relContext = "友だちの";
-  } else if (
-    relationship.includes("家族") ||
-    relationship.includes("きょうだい") ||
-    relationship.includes("親") ||
-    relationship.includes("子")
-  ) {
-    relContext = "ご家族の";
-  } else if (
-    relationship.includes("パートナー") ||
-    relationship.includes("カップル") ||
-    relationship.includes("夫婦")
-  ) {
+  } else if (relationship.includes("親子")) {
+    relContext = "親子の";
+  } else if (relationship.includes("兄弟") || relationship.includes("きょうだい")) {
+    relContext = "きょうだいの";
+  } else if (relationship.includes("夫婦")) {
+    relContext = "ご夫婦の";
+  } else if (relationship.includes("恋人")) {
+    relContext = "恋人の";
+  } else if (relationship.includes("パートナー")) {
     relContext = "パートナーの";
+  } else if (relationship.includes("家族")) {
+    relContext = "ご家族の";
   }
 
   if (expectationType === "matched") {

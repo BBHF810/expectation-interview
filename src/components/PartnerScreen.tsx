@@ -14,19 +14,29 @@ export const PartnerScreen: React.FC<PartnerScreenProps> = ({ onSelect, onBack, 
 
   const options: Array<{ label: string; value: PartnerType; hint: string }> = [
     {
-      label: isSimple ? "かぞく" : "家族",
-      value: "family",
-      hint: isSimple ? "お父さん・お母さん・きょうだい など" : "親・子ども・兄弟姉妹 など",
-    },
-    {
-      label: isSimple ? "パートナー" : "パートナー",
-      value: "partner",
-      hint: isSimple ? "たいせつな人 など" : "配偶者・恋人 など",
-    },
-    {
       label: "友だち",
       value: "friend",
       hint: isSimple ? "学校の友だち など" : "友人・知人 など",
+    },
+    {
+      label: isSimple ? "おやこ" : "親子",
+      value: "parent_child",
+      hint: isSimple ? "お父さん・お母さん など" : "親・子ども など",
+    },
+    {
+      label: isSimple ? "きょうだい" : "兄弟",
+      value: "sibling",
+      hint: isSimple ? "お兄ちゃん・妹 など" : "兄弟姉妹 など",
+    },
+    {
+      label: "夫婦",
+      value: "spouse",
+      hint: "夫・妻 など",
+    },
+    {
+      label: "恋人",
+      value: "lover",
+      hint: isSimple ? "たいせつな人 など" : "お付き合いしている方 など",
     },
     {
       label: "その他",

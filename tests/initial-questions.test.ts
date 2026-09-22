@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getInitialSingleQuestion } from "@/lib/fallbacks";
 import { getInitialPairQuestion } from "@/lib/pair-fallbacks";
 
@@ -88,23 +88,31 @@ describe("初期固定質問の選定ロジック", () => {
       expect(q.nextSpeakerName).toBe("たろう");
     });
 
-    it("関係性（家族、パートナー）に応じた表現が付与される", () => {
-      const qFamily = getInitialPairQuestion({
+    it("関係性（親子、夫婦、恋人、兄弟）に応じた表現が付与される", () => {
+      const qParent = getInitialPairQuestion({
         nameA: "ケン",
         nameB: "ユウ",
-        relationship: "家族・きょうだい",
+        relationship: "親子",
         expectationType: "mismatched",
       });
-      expect(qFamily.question).toContain("ケンさん、まずはご家族のユウさんに対して");
-      expect(qFamily.question).toContain("すれ違ってしまった");
+      expect(qParent.question).toContain("ケンさん、まずは親子のユウさんに対して");
+      expect(qParent.question).toContain("すれ違ってしまった");
 
-      const qPartner = getInitialPairQuestion({
+      const qSpouse = getInitialPairQuestion({
         nameA: "ソラ",
         nameB: "ウミ",
-        relationship: "パートナー",
+        relationship: "夫婦",
         expectationType: "neutral",
       });
-      expect(qPartner.question).toContain("ソラさん、まずはパートナーのウミさんとの間で");
+      expect(qSpouse.question).toContain("ソラさん、まずはご夫婦のウミさんとの間で");
+
+      const qLover = getInitialPairQuestion({
+        nameA: "レン",
+        nameB: "リン",
+        relationship: "恋人",
+        expectationType: "matched",
+      });
+      expect(qLover.question).toContain("レンさん、まずは恋人のリンさんとの間で");
     });
   });
 });

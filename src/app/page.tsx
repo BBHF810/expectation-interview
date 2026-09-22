@@ -32,7 +32,7 @@ import { PairReflectionScreen } from "@/components/PairReflectionScreen";
 import { ConceptExplanationModal } from "@/components/ConceptExplanationModal";
 import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
 import { ANIMAL_DIAGNOSES, getInitialSingleQuestion } from "@/lib/fallbacks";
-import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion } from "@/lib/pair-fallbacks";
+import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
 import { saveEpisodeLocally } from "@/lib/episode-storage";
 import { CollectedEpisode } from "@/types";
 
@@ -360,7 +360,8 @@ export default function Home() {
     setScreen("PAIR_INTERVIEW");
   };
 
-  // ふたりモード：回答送信
+  // ふたりモード：回答送信（2問×2人 = 4ターン構成）
+  // Q1: A回答 → B回答(同じ質問) → Q2: A回答 → B回答(同じ質問)
   const handlePairAnswerSubmit = async (answerText: string, isSkipped: boolean) => {
     if (isLoading) return;
 
@@ -376,63 +377,69 @@ export default function Home() {
     const nextHistory = [...pairTurns, newTurn];
     setPairTurns(nextHistory);
 
-    if (nextHistory.length >= 3) {
+    const turnCount = nextHistory.length;
+
+    // 4ターン完了 → 振り返りへ
+    if (turnCount >= 4) {
       await fetchPairReflection(nextHistory);
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/pair-interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nameA: pairNameA,
-          nameB: pairNameB,
-          relationship: pairRelationship,
-          expectationType: pairExpectationType,
-          currentTurnSpeaker: pairCurrentSpeaker === "A" ? "B" : "A",
-          conversationHistory: nextHistory,
-        }),
-      });
+    // 同じ質問内で A→B の切り替え（ターン1→2、ターン3→4）
+    if (turnCount === 1 || turnCount === 3) {
+      // 同じ質問を B に渡す（API 呼ばない）
+      setPairCurrentSpeaker("B");
+      setPairCurrentSpeakerName(pairNameB);
+      // pairCurrentQuestion は同じまま、progress も同じまま
+      return;
+    }
 
-      if (!res.ok) throw new Error("API failed");
-      const data: PairInterviewResponseData = await res.json();
+    // Q1 完了（ターン2終了）→ API から Q2 を取得
+    if (turnCount === 2) {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/pair-interview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nameA: pairNameA,
+            nameB: pairNameB,
+            relationship: pairRelationship,
+            expectationType: pairExpectationType,
+            currentTurnSpeaker: "A",
+            conversationHistory: nextHistory,
+          }),
+        });
 
-      if (data.safetyAction === "stop") {
-        setScreen("SAFETY");
-        return;
-      }
+        if (!res.ok) throw new Error("API failed");
+        const data: PairInterviewResponseData = await res.json();
 
-      if (data.isComplete) {
-        await fetchPairReflection(nextHistory);
-        return;
-      }
+        if (data.safetyAction === "stop") {
+          setScreen("SAFETY");
+          return;
+        }
 
-      setPairCurrentQuestion(data.nextQuestion);
-      setPairCurrentSpeaker(data.nextSpeaker);
-      setPairCurrentSpeakerName(data.nextSpeakerName);
-      setPairProgress(data.progress);
-      if (data.fallbackUsed) setFallbackUsed(true);
-    } catch (err) {
-      const fallbackIdx = nextHistory.length;
-      if (fallbackIdx === 1) {
-        setPairCurrentQuestion(
-          `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき実際にはどう思っていましたか？`
-        );
-        setPairCurrentSpeaker("B");
-        setPairCurrentSpeakerName(pairNameB);
-      } else {
-        setPairCurrentQuestion(
-          `その出来事を通してお互いにどう感じましたか？`
-        );
+        if (data.isComplete) {
+          await fetchPairReflection(nextHistory);
+          return;
+        }
+
+        setPairCurrentQuestion(data.nextQuestion);
         setPairCurrentSpeaker("A");
-        setPairCurrentSpeakerName(`${pairNameA}さん・${pairNameB}さん`);
+        setPairCurrentSpeakerName(pairNameA);
+        setPairProgress(2);
+        if (data.fallbackUsed) setFallbackUsed(true);
+      } catch (err) {
+        // フォールバック: Q2 の固定質問
+        const fallback = getFallbackPairQuestion(pairNameA, pairNameB, 2, pairExpectationType);
+        setPairCurrentQuestion(fallback.question);
+        setPairCurrentSpeaker("A");
+        setPairCurrentSpeakerName(pairNameA);
+        setPairProgress(2);
+        setFallbackUsed(true);
+      } finally {
+        setIsLoading(false);
       }
-      setPairProgress(fallbackIdx + 1);
-      setFallbackUsed(true);
-    } finally {
-      setIsLoading(false);
     }
   };
 

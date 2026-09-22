@@ -112,7 +112,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
               fontSize: "0.95rem",
             }}
           >
-            ふたりで体験中（質問 {progress} / 3）
+            ふたりで体験中（質問 {progress} / 2）
           </span>
           {fallbackUsed && (
             <span style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>

@@ -41,14 +41,19 @@ describe("UIコンポーネントテスト", () => {
     expect(handleStartSingle).toHaveBeenCalledTimes(1);
   });
 
-  it("相手選択画面: 親・子・兄弟が「家族」にまとめられている", () => {
+  it("相手選択画面: 友だち、親子、兄弟、夫婦、恋人、その他が表示される", () => {
     const handleSelect = vi.fn();
     const handleBack = vi.fn();
     render(<PartnerScreen onSelect={handleSelect} onBack={handleBack} isSimple={false} />);
 
-    const familyOption = screen.getByText("家族");
-    expect(familyOption).toBeInTheDocument();
-    expect(screen.getByText(/親・子ども・兄弟姉妹 など/i)).toBeInTheDocument();
+    expect(screen.getByText("友だち")).toBeInTheDocument();
+    expect(screen.getByText("親子")).toBeInTheDocument();
+    expect(screen.getByText("兄弟")).toBeInTheDocument();
+    expect(screen.getByText("夫婦")).toBeInTheDocument();
+    expect(screen.getByText("恋人")).toBeInTheDocument();
+    expect(screen.getByText("その他")).toBeInTheDocument();
+    expect(screen.getByText(/親・子ども など/i)).toBeInTheDocument();
+    expect(screen.getByText(/兄弟姉妹 など/i)).toBeInTheDocument();
   });
 
   it("アバター: 正しいARIAラベルで描画される", () => {
