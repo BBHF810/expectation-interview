@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Mic, MicOff, AlertCircle, Volume2 } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Mic, MicOff, AlertCircle } from "lucide-react";
 
 interface VoiceInputProps {
   onTranscriptChange: (text: string) => void;
@@ -19,10 +19,56 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
 
+  const recognitionRef = useRef<any>(null);
+  const isManuallyStoppedRef = useRef(false);
+  const baseTextRef = useRef("");
+  const sessionFinalRef = useRef("");
+
+  // 最新の props / state を ref で保持し、非同期イベントリスナー内で安全に参照
+  const currentTextRef = useRef(currentText);
+  currentTextRef.current = currentText;
+
+  const onTranscriptChangeRef = useRef(onTranscriptChange);
+  onTranscriptChangeRef.current = onTranscriptChange;
+
+  const onListeningStateChangeRef = useRef(onListeningStateChange);
+  onListeningStateChangeRef.current = onListeningStateChange;
+
+  // ブラウザの Web Speech API サポート判定（初回マウント時のみ）
   useEffect(() => {
-    // Web Speech API の有無を確認
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setIsSupported(false);
+    }
+
+    return () => {
+      // コンポーネント破棄時のみ認識を中止
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (_) {}
+      }
+    };
+  }, []);
+
+  const stopListening = useCallback(() => {
+    isManuallyStoppedRef.current = true;
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+    }
+    setIsListening(false);
+    onListeningStateChangeRef.current(false);
+  }, []);
+
+  const startListening = useCallback(() => {
+    if (disabled || typeof window === "undefined") return;
+
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -31,82 +77,100 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = "ja-JP";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event: any) => {
-      let finalTranscript = "";
-      let interimTranscript = "";
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      const speechChunk = finalTranscript || interimTranscript;
-      if (speechChunk) {
-        // 現在のテキストの末尾に自然に追加
-        const newFullText = currentText
-          ? `${currentText.trim()} ${speechChunk.trim()}`
-          : speechChunk.trim();
-        onTranscriptChange(newFullText.slice(0, 500));
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      console.warn("Speech recognition error:", event.error);
-      if (event.error === "not-allowed") {
-        setErrorMessage("マイクの使用が許可されていません。キーボードで入力するか、ブラウザの設定をご確認ください。");
-      } else if (event.error === "no-speech") {
-        // 声が聞こえなかっただけなので何もしない
-      } else {
-        setErrorMessage("音声認識に一時的なエラーが発生しました。もう一度お話しいただくか、手動で入力してください。");
-      }
-      stopListening();
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      onListeningStateChange(false);
-    };
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.abort();
-        } catch (_) {}
-      }
-    };
-  }, [currentText, onTranscriptChange, onListeningStateChange]);
-
-  const startListening = () => {
-    if (!recognitionRef.current || disabled) return;
-    setErrorMessage(null);
-    try {
-      recognitionRef.current.start();
-      setIsListening(true);
-      onListeningStateChange(true);
-    } catch (e) {
-      console.error(e);
+    // 既存のインスタンスがあれば停止・破棄
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (_) {}
+      recognitionRef.current = null;
     }
-  };
 
-  const stopListening = () => {
-    if (!recognitionRef.current) return;
+    setErrorMessage(null);
+    isManuallyStoppedRef.current = false;
+
+    // 録音開始時のテキストをベースとして退避
+    baseTextRef.current = currentTextRef.current.trim();
+    sessionFinalRef.current = "";
+
     try {
-      recognitionRef.current.stop();
-    } catch (_) {}
-    setIsListening(false);
-    onListeningStateChange(false);
-  };
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ja-JP";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        onListeningStateChangeRef.current(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const result = event.results[i];
+          const transcript = result[0]?.transcript || "";
+          if (result.isFinal) {
+            sessionFinalRef.current += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        const sessionSpoken = sessionFinalRef.current + interimTranscript;
+        if (sessionSpoken) {
+          const base = baseTextRef.current;
+          // ベーステキストがある場合は自然に接続
+          const combined = base
+            ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${sessionSpoken.trim()}`
+            : sessionSpoken.trim();
+
+          onTranscriptChangeRef.current(combined.slice(0, 500));
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        const error = event.error;
+        console.warn("Speech recognition error:", error);
+
+        if (error === "not-allowed" || error === "service-not-allowed") {
+          setErrorMessage(
+            "マイクの使用が許可されていません。ブラウザのアドレスバーの鍵アイコン等からマイクの使用を許可してください。"
+          );
+        } else if (error === "no-speech") {
+          // 無音時はエラー扱いせず自然に継続
+          return;
+        } else if (error === "aborted") {
+          // 手動停止や画面遷移時は何もしない
+          return;
+        } else if (error === "network") {
+          setErrorMessage(
+            "音声認識ネットワークに一時的に接続できませんでした。通信環境をご確認いただくか、直接キーボードでご入力ください。"
+          );
+        } else {
+          setErrorMessage(
+            "音声の聞き取りに一時的な問題が発生しました。もう一度お話しいただくか、手動で入力してください。"
+          );
+        }
+
+        setIsListening(false);
+        onListeningStateChangeRef.current(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        onListeningStateChangeRef.current(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e: any) {
+      console.error("Failed to start speech recognition:", e);
+      setErrorMessage("マイクを起動できませんでした。キーボードでの入力をお試しください。");
+      setIsListening(false);
+      onListeningStateChangeRef.current(false);
+    }
+  }, [disabled]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -145,6 +209,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
             fontWeight: 700,
             boxShadow: isListening ? "0 0 15px rgba(220, 38, 38, 0.45)" : "var(--shadow-sm)",
             transition: "all 0.2s ease",
+            cursor: disabled ? "not-allowed" : "pointer",
           }}
           aria-pressed={isListening}
           aria-label={isListening ? "音声入力を停止する" : "音声で回答する（マイクを開始）"}
