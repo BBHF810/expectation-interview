@@ -159,6 +159,8 @@ export interface CollectedEpisode {
   isCare?: CareStatus;
   nameA?: string;
   nameB?: string;
+  ageA?: AgeGroup;
+  ageB?: AgeGroup;
   relationship?: string;
   expectationType: ExpectationType;
   turns: Array<{

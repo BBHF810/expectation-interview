@@ -123,6 +123,21 @@ export function getFallbackQuestion(
 }
 
 /**
+ * 相手の選択肢（関係性）を質問文で自然に呼びかける名詞に変換
+ */
+export function formatPartnerReferral(partner: string, isSimple: boolean = false): string {
+  if (!partner) return isSimple ? "あいての人" : "相手の方";
+  if (partner === "友だち" || partner === "友達") return isSimple ? "お友だち" : "お友だち";
+  if (partner === "親子" || partner === "おやこ") return isSimple ? "お父さんやお母さん、お子さん" : "親御さん・お子さん";
+  if (partner === "兄弟" || partner === "きょうだい") return isSimple ? "きょうだい" : "ご兄弟・ご姉妹";
+  if (partner === "夫婦") return isSimple ? "パートナー" : "夫・妻（配偶者）の方";
+  if (partner === "恋人") return isSimple ? "たいせつな人" : "恋人（パートナー）の方";
+  if (partner === "家族") return isSimple ? "かぞく" : "ご家族";
+  if (partner === "その他") return isSimple ? "あいての人" : "お相手の方";
+  return partner;
+}
+
+/**
  * 属性（年齢層、相手、介護有無、期待タイプ）に応じた最初の固定質問を選定
  */
 export function getInitialSingleQuestion(params: {
@@ -133,23 +148,23 @@ export function getInitialSingleQuestion(params: {
 }): FallbackQuestion {
   const { ageGroup, partner, isCare, expectationType } = params;
   const isSimple = ageGroup === "under_10";
-  const partnerLabel = partner || (isSimple ? "あいて" : "相手");
+  const partnerLabel = formatPartnerReferral(partner, isSimple);
 
   // 1. 10歳以下向け（やさしいひらがな主体の表現）
   if (isSimple) {
     if (expectationType === "matched") {
       return {
-        question: `「${partnerLabel}」といっしょにいて、おもったとおりになってうれしかったのはどんなことだった？`,
+        question: `${partnerLabel}といっしょにいて、おもったとおりになって「うれしい！」とおもったのは、どんなことがあったときだった？`,
         purpose: "event",
       };
     } else if (expectationType === "mismatched") {
       return {
-        question: `「${partnerLabel}」とお話ししていて、ほんとうはこうしてほしかったのに、すこしちがっちゃったのはどんなことだった？`,
+        question: `${partnerLabel}とお話ししていて、ほんとうはこうしてほしかったのに、すこしちがっちゃったのは、どんなことがあったときだった？`,
         purpose: "event",
       };
     } else {
       return {
-        question: `「${partnerLabel}」とすごしていて、おもったとおりだったことや、すこしちがったことはどんなことだったかな？`,
+        question: `${partnerLabel}といっしょにいて、心にのこっていることや、そのときおもっていたことをおしえてくれる？`,
         purpose: "event",
       };
     }
@@ -159,17 +174,17 @@ export function getInitialSingleQuestion(params: {
   if (isCare === "yes") {
     if (expectationType === "matched") {
       return {
-        question: `「${partnerLabel}」の介護やサポートの中で、思いが通じ合ったり期待どおりに進んでよかったと感じた出来事について教えていただけますか？`,
+        question: `${partnerLabel}のサポートや介護の中で、思いが通じ合ったり期待どおりに進んでよかったと感じた具体的な出来事を教えていただけますか？`,
         purpose: "event",
       };
     } else if (expectationType === "mismatched") {
       return {
-        question: `「${partnerLabel}」の介護やサポートに関わる中で、こうあってほしかったのに思い通りにいかず、すれ違いを感じた出来事について教えていただけますか？`,
+        question: `${partnerLabel}のサポートや介護に関わる中で、「本当はこうしてほしかった」と思い通りにならず、すれ違いを感じた具体的な出来事を教えていただけますか？`,
         purpose: "event",
       };
     } else {
       return {
-        question: `「${partnerLabel}」の介護やサポートに関わる中で、印象に残っている出来事やそのときの関わりについて教えていただけますか？`,
+        question: `${partnerLabel}のサポートや介護に関わる中で、印象に残っている出来事やそのときの関わりについて教えていただけますか？`,
         purpose: "event",
       };
     }
@@ -178,17 +193,17 @@ export function getInitialSingleQuestion(params: {
   // 3. 一般（11〜30歳、31歳以上の非介護、回答しない）
   if (expectationType === "matched") {
     return {
-      question: `「${partnerLabel}」に対して期待していて、そのとおりになって嬉しかったり安心したりした具体的な出来事を教えていただけますか？`,
+      question: `${partnerLabel}との間で、思い描いていたとおりに気持ちが通じ合ったり、嬉しかったり安心した具体的な出来事を教えていただけますか？`,
       purpose: "event",
     };
   } else if (expectationType === "mismatched") {
     return {
-      question: `「${partnerLabel}」に対して「こうしてほしい」と期待していたのに、すれ違いや予想外の展開になった具体的な出来事を教えていただけますか？`,
+      question: `${partnerLabel}に対して「本当はこうしてほしかった」と思っていたのに、思い通りにならなかったり、すれ違ってしまった具体的な出来事を教えていただけますか？`,
       purpose: "event",
     };
   } else {
     return {
-      question: `「${partnerLabel}」に対して期待を抱いていたことと、実際に起きた出来事について具体的に教えていただけますか？`,
+      question: `${partnerLabel}との間で、そのとき相手に期待していたことと、実際に起きた出来事について具体的に教えていただけますか？`,
       purpose: "event",
     };
   }

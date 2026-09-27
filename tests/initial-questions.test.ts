@@ -11,8 +11,8 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "no",
         expectationType: "matched",
       });
-      expect(qMatched.question).toContain("「家族」といっしょにいて");
-      expect(qMatched.question).toContain("うれしかった");
+      expect(qMatched.question).toContain("かぞくといっしょにいて");
+      expect(qMatched.question).toContain("うれしい！");
 
       const qMismatched = getInitialSingleQuestion({
         ageGroup: "under_10",
@@ -20,7 +20,7 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "no",
         expectationType: "mismatched",
       });
-      expect(qMismatched.question).toContain("「友だち」とお話ししていて");
+      expect(qMismatched.question).toContain("お友だちとお話ししていて");
       expect(qMismatched.question).toContain("すこしちがっちゃった");
     });
 
@@ -31,7 +31,7 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "yes",
         expectationType: "matched",
       });
-      expect(qCareMatched.question).toContain("介護やサポート");
+      expect(qCareMatched.question).toContain("サポートや介護");
       expect(qCareMatched.question).toContain("思いが通じ合ったり");
 
       const qCareMismatched = getInitialSingleQuestion({
@@ -40,7 +40,7 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "yes",
         expectationType: "mismatched",
       });
-      expect(qCareMismatched.question).toContain("介護やサポート");
+      expect(qCareMismatched.question).toContain("サポートや介護");
       expect(qCareMismatched.question).toContain("すれ違いを感じた");
     });
 
@@ -51,8 +51,8 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "no",
         expectationType: "matched",
       });
-      expect(qMatched.question).toContain("「パートナー」に対して期待していて");
-      expect(qMatched.question).toContain("嬉しかったり安心したり");
+      expect(qMatched.question).toContain("パートナーとの間で");
+      expect(qMatched.question).toContain("嬉しかったり安心");
 
       const qMismatched = getInitialSingleQuestion({
         ageGroup: "11_30",
@@ -60,8 +60,8 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "no",
         expectationType: "mismatched",
       });
-      expect(qMismatched.question).toContain("「友人」に対して「こうしてほしい」と期待していたのに");
-      expect(qMismatched.question).toContain("すれ違い");
+      expect(qMismatched.question).toContain("友人に対して「本当はこうしてほしかった」");
+      expect(qMismatched.question).toContain("すれ違ってしまった");
 
       const qNeutral = getInitialSingleQuestion({
         ageGroup: "11_30",
@@ -69,7 +69,7 @@ describe("初期固定質問の選定ロジック", () => {
         isCare: "no",
         expectationType: "neutral",
       });
-      expect(qNeutral.question).toContain("「職場の人」に対して期待を抱いていたことと");
+      expect(qNeutral.question).toContain("職場の人との間で");
     });
   });
 

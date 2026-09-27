@@ -67,6 +67,8 @@ export default function Home() {
   // ふたりモード用ステート
   const [pairNameA, setPairNameA] = useState("Aさん");
   const [pairNameB, setPairNameB] = useState("Bさん");
+  const [pairAgeA, setPairAgeA] = useState<AgeGroup>("11_30");
+  const [pairAgeB, setPairAgeB] = useState<AgeGroup>("11_30");
   const [pairRelationship, setPairRelationship] = useState("友だち");
   const [pairExpectationType, setPairExpectationType] = useState<ExpectationType>("neutral");
   const [pairTurns, setPairTurns] = useState<PairTurn[]>([]);
@@ -386,11 +388,23 @@ export default function Home() {
     }
 
     // 同じ質問内で A→B の切り替え（ターン1→2、ターン3→4）
-    if (turnCount === 1 || turnCount === 3) {
-      // 同じ質問を B に渡す（API 呼ばない）
+    if (turnCount === 1) {
+      // Q1のBさん向け文面に自然に変更
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
-      // pairCurrentQuestion は同じまま、progress も同じまま
+      setPairCurrentQuestion(
+        `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき実際にはどう思っていたり、どんな状況でしたか？`
+      );
+      return;
+    }
+
+    if (turnCount === 3) {
+      // Q2のBさん向け文面に自然に変更
+      setPairCurrentSpeaker("B");
+      setPairCurrentSpeakerName(pairNameB);
+      setPairCurrentQuestion(
+        `${pairNameB}さん、同じ出来事を振り返って、${pairNameA}さんとのお互いの気持ちについてどう感じましたか？`
+      );
       return;
     }
 
@@ -482,6 +496,8 @@ export default function Home() {
         mode: "pair",
         nameA: pairNameA,
         nameB: pairNameB,
+        ageA: pairAgeA,
+        ageB: pairAgeB,
         relationship: pairRelationship,
         expectationType: pairExpectationType,
         turns: history.map((t) => ({
@@ -520,6 +536,8 @@ export default function Home() {
         mode: "pair",
         nameA: pairNameA,
         nameB: pairNameB,
+        ageA: pairAgeA,
+        ageB: pairAgeB,
         relationship: pairRelationship,
         expectationType: pairExpectationType,
         turns: history.map((t) => ({
@@ -635,10 +653,12 @@ export default function Home() {
       {/* --- ふたりモード用画面 --- */}
       {screen === "PAIR_SETUP" && (
         <PairSetupScreen
-          onNext={(nA, nB, rel) => {
+          onNext={(nA, nB, rel, aA, aB) => {
             setPairNameA(nA);
             setPairNameB(nB);
             setPairRelationship(rel);
+            setPairAgeA(aA);
+            setPairAgeB(aB);
             setScreen("PAIR_EXPECTATION");
           }}
           onBack={() => setScreen("CONSENT")}

@@ -219,17 +219,45 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           {/* 音声入力コンポーネント */}
           <div
             style={{
-              background: isSpeakerA ? "#F8FAFC" : "#FFFBEB",
-              border: "1px solid var(--color-border)",
+              background: isSpeaking
+                ? "#FEF3C7"
+                : isSpeakerA
+                ? "#EFF6FF"
+                : "#FEF3C7",
+              border: isSpeaking
+                ? "2px solid #FCD34D"
+                : isSpeakerA
+                ? "2px solid #93C5FD"
+                : "2px solid #FCD34D",
               borderRadius: "var(--radius-md)",
               padding: "1rem 1.25rem",
               display: "flex",
               flexDirection: "column",
               gap: "0.75rem",
+              transition: "all 0.2s ease",
             }}
           >
-            <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>
-              🎙️ {currentSpeakerName}、声でお話しください
+            <div
+              style={{
+                fontSize: "1rem",
+                fontWeight: 700,
+                color: isSpeaking ? "#92400E" : isSpeakerA ? "#1E40AF" : "#92400E",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              {isSpeaking ? (
+                <>
+                  <span style={{ fontSize: "1.2rem" }}>🔊</span>
+                  <span>AIがお話し中です。聞き終わったらボタンを押してください</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: "1.2rem" }}>🎙️</span>
+                  <span>{currentSpeakerName}、👇 下のボタンを押して声でお話しください</span>
+                </>
+              )}
             </div>
             <VoiceInput
               currentText={answer}

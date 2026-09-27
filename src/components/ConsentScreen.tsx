@@ -60,8 +60,8 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({ onConsent, onBack 
         <div style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
-            <strong>回答は保存されません：</strong>
-            このプロトタイプ展示では、お話しいただいた内容をデータベース等へ長期保存しません。セッション終了時やリセット時に破棄されます。
+            <strong>研究へのデータ活用について：</strong>
+            お話しいただいたエピソードは、お名前や住所などの個人が特定されない形で、「相互期待感（人と人との気持ちや期待の通い合い）」に関する学術研究・分析に大切に活用させていただきます。
           </span>
         </div>
 
@@ -69,15 +69,15 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({ onConsent, onBack 
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
             <strong>いつでも終了できます：</strong>
-            体験の途中でも、いつでもボタンひとつで終了や最初からのやり直しが可能です。
+            体験の途中でも、いつでも「終了」や「やり直す」ボタンを押してやめることができます。
           </span>
         </div>
 
         <div style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start" }}>
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
-            <strong>診断ではありません：</strong>
-            これは医療診断、心理診断、性格診断、相性判定ではありません。
+            <strong>診断結果はお楽しみコンテンツです：</strong>
+            最後の動物診断などは工大祭展示用のお楽しみエンタメコンテンツです。医学・心理学的な厳密な診断ではありません。
           </span>
         </div>
       </div>
