@@ -29,9 +29,10 @@ export interface DialogTurn {
 
 export interface InterviewRequestBody {
   ageGroup: AgeGroup;
-  partner: string;
-  isCare: CareStatus;
-  expectationType: ExpectationType;
+  age?: number;
+  partner?: string;
+  isCare?: CareStatus;
+  expectationType?: ExpectationType;
   conversationHistory: Array<{
     question: string;
     answer: string;
@@ -48,6 +49,9 @@ export interface InterviewResponseData {
   isComplete: boolean;
   safetyAction: SafetyAction;
   fallbackUsed: boolean;
+  detectedPartner?: string;
+  detectedExpectationType?: ExpectationType;
+  detectedIsCare?: CareStatus;
 }
 
 export interface AnimalDiagnosis {
@@ -59,9 +63,10 @@ export interface AnimalDiagnosis {
 
 export interface ReflectionRequestBody {
   ageGroup: AgeGroup;
-  partner: string;
-  isCare: CareStatus;
-  expectationType: ExpectationType;
+  age?: number;
+  partner?: string;
+  isCare?: CareStatus;
+  expectationType?: ExpectationType;
   conversationHistory: Array<{
     question: string;
     answer: string;
@@ -94,6 +99,8 @@ export interface PairTurn {
 export interface PairInterviewRequestBody {
   nameA: string;
   nameB: string;
+  ageA?: number;
+  ageB?: number;
   relationship: string;
   expectationType: ExpectationType;
   currentTurnSpeaker: "A" | "B";
@@ -139,9 +146,6 @@ export type ScreenState =
   | "WELCOME"
   | "CONSENT"
   | "AGE_SELECT"
-  | "CARE_SELECT"
-  | "PARTNER_SELECT"
-  | "EXPECTATION_SELECT"
   | "INTERVIEW"
   | "REFLECTION"
   | "SAFETY"
@@ -150,19 +154,28 @@ export type ScreenState =
   | "PAIR_INTERVIEW"
   | "PAIR_REFLECTION";
 
+/** 数値年齢からAgeGroupを算出するユーティリティ */
+export function ageToAgeGroup(age: number | null): AgeGroup {
+  if (age === null) return "no_answer";
+  if (age <= 10) return "under_10";
+  if (age <= 30) return "11_30";
+  return "31_plus";
+}
+
 export interface CollectedEpisode {
   id: string;
   createdAt: string;
   mode: ExperienceMode;
+  age?: number;
   ageGroup?: AgeGroup;
   partner?: string;
   isCare?: CareStatus;
   nameA?: string;
   nameB?: string;
-  ageA?: AgeGroup;
-  ageB?: AgeGroup;
+  ageA?: number;
+  ageB?: number;
   relationship?: string;
-  expectationType: ExpectationType;
+  expectationType?: ExpectationType;
   turns: Array<{
     turnNumber: number;
     speaker?: string;

@@ -1,55 +1,172 @@
 import React, { useState } from "react";
-import { AgeGroup } from "@/types";
-import { ArrowLeft, ArrowRight, AlertCircle, Check } from "lucide-react";
+import { AgeGroup, ageToAgeGroup } from "@/types";
+import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 
 interface AgeScreenProps {
-  onSelect: (age: AgeGroup) => void;
+  onSelect: (age: number | null, ageGroup: AgeGroup) => void;
   onBack: () => void;
 }
 
 export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
-  const [selected, setSelected] = useState<AgeGroup | null>(null);
+  const [age, setAge] = useState<number | null>(null);
+  const [noAnswer, setNoAnswer] = useState(false);
 
-  const options: Array<{ label: string; value: AgeGroup; desc?: string }> = [
-    { label: "10歳以下", value: "under_10", desc: "小学生以下の方" },
-    { label: "11〜30歳", value: "11_30", desc: "中高生・大学生・若者" },
-    { label: "31歳以上", value: "31_plus", desc: "大人・シニアの方" },
-    { label: "答えたくない", value: "no_answer", desc: "" },
-  ];
+  const handleAgeChange = (value: string) => {
+    setNoAnswer(false);
+    const num = parseInt(value, 10);
+    if (isNaN(num)) {
+      setAge(null);
+    } else {
+      setAge(Math.min(Math.max(num, 1), 120));
+    }
+  };
+
+  const handleNoAnswer = () => {
+    setNoAnswer(true);
+    setAge(null);
+  };
+
+  const handleNext = () => {
+    if (noAnswer) {
+      onSelect(null, "no_answer");
+    } else if (age !== null) {
+      onSelect(age, ageToAgeGroup(age));
+    }
+  };
+
+  const canProceed = noAnswer || age !== null;
+  const currentAgeGroup = noAnswer ? "no_answer" : ageToAgeGroup(age);
 
   return (
     <div className="card">
-      <h2 className="title">あなたの年齢層を教えてください</h2>
+      <h2 className="title">あなたの年齢を教えてください</h2>
       <p className="subtitle">
         あなたに合わせた、話しやすい言葉づかいで質問するために使用します。
       </p>
 
-      <div className="option-grid">
-        {options.map((opt) => {
-          const isCurrent = selected === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setSelected(opt.value)}
-              className={`option-card ${isCurrent ? "selected" : ""}`}
-              style={{ justifyContent: "space-between" }}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1.5rem",
+          margin: "1.5rem 0",
+        }}
+      >
+        {/* 年齢数値入力 */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setNoAnswer(false);
+              setAge((prev) => Math.max((prev ?? 20) - 1, 1));
+            }}
+            className="btn btn-secondary"
+            style={{
+              width: "52px",
+              height: "52px",
+              padding: 0,
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              borderRadius: "var(--radius-full)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-label="年齢を1歳減らす"
+          >
+            −
+          </button>
+
+          <div style={{ position: "relative" }}>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={120}
+              value={noAnswer ? "" : (age ?? "")}
+              onChange={(e) => handleAgeChange(e.target.value)}
+              onFocus={() => setNoAnswer(false)}
+              placeholder="--"
+              style={{
+                width: "100px",
+                height: "64px",
+                textAlign: "center",
+                fontSize: "2rem",
+                fontWeight: 700,
+                borderRadius: "var(--radius-md)",
+                border: `2px solid ${
+                  noAnswer ? "var(--color-border)" : age !== null ? "var(--color-primary)" : "var(--color-border)"
+                }`,
+                outline: "none",
+                color: noAnswer ? "var(--color-text-muted)" : "var(--color-text)",
+                background: noAnswer ? "var(--color-surface-subtle)" : "#fff",
+                transition: "all 0.15s ease",
+                MozAppearance: "textfield",
+              }}
+              aria-label="年齢を入力"
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: "-32px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: "1.25rem",
+                fontWeight: 600,
+                color: "var(--color-text-muted)",
+              }}
             >
-              <div>
-                <span style={{ fontSize: "1.125rem" }}>{opt.label}</span>
-                {opt.desc && (
-                  <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", marginLeft: "0.75rem" }}>
-                    {opt.desc}
-                  </span>
-                )}
-              </div>
-              {isCurrent && <Check size={22} color="var(--color-primary)" />}
-            </button>
-          );
-        })}
+              歳
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setNoAnswer(false);
+              setAge((prev) => Math.min((prev ?? 20) + 1, 120));
+            }}
+            className="btn btn-secondary"
+            style={{
+              width: "52px",
+              height: "52px",
+              padding: 0,
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              borderRadius: "var(--radius-full)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            aria-label="年齢を1歳増やす"
+          >
+            ＋
+          </button>
+        </div>
+
+        {/* 答えないオプション */}
+        <button
+          type="button"
+          onClick={handleNoAnswer}
+          className={`option-card ${noAnswer ? "selected" : ""}`}
+          style={{
+            maxWidth: "280px",
+            padding: "0.75rem 1.5rem",
+            textAlign: "center",
+          }}
+        >
+          答えたくない
+        </button>
       </div>
 
-      {selected === "under_10" && (
+      {age !== null && !noAnswer && currentAgeGroup === "under_10" && (
         <div className="banner banner-yellow" style={{ marginBottom: "1.5rem" }}>
           <AlertCircle size={22} style={{ flexShrink: 0, marginTop: "2px" }} />
           <div>
@@ -68,15 +185,27 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
 
         <button
           type="button"
-          onClick={() => selected && onSelect(selected)}
-          disabled={!selected}
+          onClick={handleNext}
+          disabled={!canProceed}
           className="btn btn-primary"
           style={{ minWidth: "160px" }}
         >
-          次へ
+          インタビューへ
           <ArrowRight size={20} />
         </button>
       </div>
+
+      {/* number input spinnerを非表示にするCSS */}
+      <style>{`
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
     </div>
   );
 };

@@ -15,13 +15,11 @@ import {
   PairInterviewResponseData,
   PairReflectionResponseData,
   PairAnimalDiagnosis,
+  ageToAgeGroup,
 } from "@/types";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { AgeScreen } from "@/components/AgeScreen";
-import { PartnerScreen } from "@/components/PartnerScreen";
-import { CareScreen } from "@/components/CareScreen";
-import { ExpectationScreen } from "@/components/ExpectationScreen";
 import { InterviewScreen } from "@/components/InterviewScreen";
 import { ReflectionScreen } from "@/components/ReflectionScreen";
 import { SafetyScreen } from "@/components/SafetyScreen";
@@ -43,8 +41,9 @@ export default function Home() {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // 一人モード用ステート
+  const [age, setAge] = useState<number | null>(null);
   const [ageGroup, setAgeGroup] = useState<AgeGroup>("no_answer");
-  const [partner, setPartner] = useState<string>("家族");
+  const [partner, setPartner] = useState<string>("");
   const [isCare, setIsCare] = useState<CareStatus>("no");
   const [expectationType, setExpectationType] = useState<ExpectationType>("neutral");
   const [turns, setTurns] = useState<DialogTurn[]>([]);
@@ -67,8 +66,8 @@ export default function Home() {
   // ふたりモード用ステート
   const [pairNameA, setPairNameA] = useState("Aさん");
   const [pairNameB, setPairNameB] = useState("Bさん");
-  const [pairAgeA, setPairAgeA] = useState<AgeGroup>("11_30");
-  const [pairAgeB, setPairAgeB] = useState<AgeGroup>("11_30");
+  const [pairAgeA, setPairAgeA] = useState<number | null>(null);
+  const [pairAgeB, setPairAgeB] = useState<number | null>(null);
   const [pairRelationship, setPairRelationship] = useState("友だち");
   const [pairExpectationType, setPairExpectationType] = useState<ExpectationType>("neutral");
   const [pairTurns, setPairTurns] = useState<PairTurn[]>([]);
@@ -94,8 +93,9 @@ export default function Home() {
   const handleReset = () => {
     setScreen("WELCOME");
     setMode("single");
+    setAge(null);
     setAgeGroup("no_answer");
-    setPartner("家族");
+    setPartner("");
     setIsCare("no");
     setExpectationType("neutral");
     setTurns([]);
@@ -112,6 +112,8 @@ export default function Home() {
 
     setPairNameA("Aさん");
     setPairNameB("Bさん");
+    setPairAgeA(null);
+    setPairAgeB(null);
     setPairRelationship("友だち");
     setPairExpectationType("neutral");
     setPairTurns([]);
@@ -127,34 +129,12 @@ export default function Home() {
     });
   };
 
-  // 年齢選択時の分岐処理
-  const handleAgeSelect = (selectedAge: AgeGroup) => {
-    setAgeGroup(selectedAge);
-    if (selectedAge === "31_plus") {
-      setScreen("CARE_SELECT");
-    } else {
-      setIsCare("no");
-      setScreen("PARTNER_SELECT");
-    }
-  };
-
-  const handlePartnerBack = () => {
-    if (ageGroup === "31_plus") {
-      setScreen("CARE_SELECT");
-    } else {
-      setScreen("AGE_SELECT");
-    }
-  };
-
-  // 一人モード：インタビュー開始（属性に応じた固定質問を即時セット）
-  const handleStartSingleInterview = (selectedExp: ExpectationType) => {
-    setExpectationType(selectedExp);
-    const initialQ = getInitialSingleQuestion({
-      ageGroup,
-      partner,
-      isCare,
-      expectationType: selectedExp,
-    });
+  // 年齢選択 → 直接インタビューへ
+  const handleAgeSelect = (selectedAge: number | null, selectedAgeGroup: AgeGroup) => {
+    setAge(selectedAge);
+    setAgeGroup(selectedAgeGroup);
+    // 基本情報はAIが対話の中で聞き出すので、直接インタビューへ
+    const initialQ = getInitialSingleQuestion({ ageGroup: selectedAgeGroup });
     setCurrentQuestion(initialQ.question);
     setCurrentProgress(1);
     setFallbackUsed(false);
@@ -193,9 +173,10 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ageGroup,
-          partner,
-          isCare,
-          expectationType,
+          age,
+          partner: partner || undefined,
+          isCare: isCare !== "no" ? isCare : undefined,
+          expectationType: expectationType !== "neutral" ? expectationType : undefined,
           conversationHistory: nextHistory.map((t) => ({
             question: t.question,
             answer: t.answer,
@@ -212,6 +193,17 @@ export default function Home() {
       if (data.safetyAction === "stop") {
         setScreen("SAFETY");
         return;
+      }
+
+      // AIが検出した基本情報を更新
+      if (data.detectedPartner && !partner) {
+        setPartner(data.detectedPartner);
+      }
+      if (data.detectedExpectationType) {
+        setExpectationType(data.detectedExpectationType);
+      }
+      if (data.detectedIsCare) {
+        setIsCare(data.detectedIsCare);
       }
 
       if (data.isComplete) {
@@ -249,7 +241,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ageGroup,
-          partner,
+          age,
+          partner: partner || "相手",
           isCare,
           expectationType,
           conversationHistory: history.map((t) => ({
@@ -283,8 +276,9 @@ export default function Home() {
         id: `single_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
         mode: "single",
+        age: age ?? undefined,
         ageGroup,
-        partner,
+        partner: partner || undefined,
         isCare,
         expectationType,
         turns: history.map((t, idx) => ({
@@ -320,8 +314,9 @@ export default function Home() {
         id: `single_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
         mode: "single",
+        age: age ?? undefined,
         ageGroup,
-        partner,
+        partner: partner || undefined,
         isCare,
         expectationType,
         turns: history.map((t, idx) => ({
@@ -363,7 +358,6 @@ export default function Home() {
   };
 
   // ふたりモード：回答送信（2問×2人 = 4ターン構成）
-  // Q1: A回答 → B回答(同じ質問) → Q2: A回答 → B回答(同じ質問)
   const handlePairAnswerSubmit = async (answerText: string, isSkipped: boolean) => {
     if (isLoading) return;
 
@@ -389,7 +383,6 @@ export default function Home() {
 
     // 同じ質問内で A→B の切り替え（ターン1→2、ターン3→4）
     if (turnCount === 1) {
-      // Q1のBさん向け文面に自然に変更
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
       setPairCurrentQuestion(
@@ -399,7 +392,6 @@ export default function Home() {
     }
 
     if (turnCount === 3) {
-      // Q2のBさん向け文面に自然に変更
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
       setPairCurrentQuestion(
@@ -418,6 +410,8 @@ export default function Home() {
           body: JSON.stringify({
             nameA: pairNameA,
             nameB: pairNameB,
+            ageA: pairAgeA,
+            ageB: pairAgeB,
             relationship: pairRelationship,
             expectationType: pairExpectationType,
             currentTurnSpeaker: "A",
@@ -444,7 +438,6 @@ export default function Home() {
         setPairProgress(2);
         if (data.fallbackUsed) setFallbackUsed(true);
       } catch (err) {
-        // フォールバック: Q2 の固定質問
         const fallback = getFallbackPairQuestion(pairNameA, pairNameB, 2, pairExpectationType);
         setPairCurrentQuestion(fallback.question);
         setPairCurrentSpeaker("A");
@@ -496,8 +489,8 @@ export default function Home() {
         mode: "pair",
         nameA: pairNameA,
         nameB: pairNameB,
-        ageA: pairAgeA,
-        ageB: pairAgeB,
+        ageA: pairAgeA ?? undefined,
+        ageB: pairAgeB ?? undefined,
         relationship: pairRelationship,
         expectationType: pairExpectationType,
         turns: history.map((t) => ({
@@ -536,8 +529,8 @@ export default function Home() {
         mode: "pair",
         nameA: pairNameA,
         nameB: pairNameB,
-        ageA: pairAgeA,
-        ageB: pairAgeB,
+        ageA: pairAgeA ?? undefined,
+        ageB: pairAgeB ?? undefined,
         relationship: pairRelationship,
         expectationType: pairExpectationType,
         turns: history.map((t) => ({
@@ -593,36 +586,6 @@ export default function Home() {
       {/* --- 一人モード用画面 --- */}
       {screen === "AGE_SELECT" && (
         <AgeScreen onSelect={handleAgeSelect} onBack={() => setScreen("CONSENT")} />
-      )}
-
-      {screen === "CARE_SELECT" && (
-        <CareScreen
-          onSelect={(status) => {
-            setIsCare(status);
-            setScreen("PARTNER_SELECT");
-          }}
-          onBack={() => setScreen("AGE_SELECT")}
-          isSimple={isSimple}
-        />
-      )}
-
-      {screen === "PARTNER_SELECT" && (
-        <PartnerScreen
-          onSelect={(partnerLabel) => {
-            setPartner(partnerLabel);
-            setScreen("EXPECTATION_SELECT");
-          }}
-          onBack={handlePartnerBack}
-          isSimple={isSimple}
-        />
-      )}
-
-      {screen === "EXPECTATION_SELECT" && (
-        <ExpectationScreen
-          onSelect={(exp) => handleStartSingleInterview(exp)}
-          onBack={() => setScreen("PARTNER_SELECT")}
-          isSimple={isSimple}
-        />
       )}
 
       {screen === "INTERVIEW" && (
@@ -706,7 +669,7 @@ export default function Home() {
         <SafetyScreen onReset={handleReset} isSimple={isSimple} />
       )}
 
-      {/* 共通フッターツールバー（具体例解説＆スタッフ用データ管理） */}
+      {/* 共通フッターツールバー */}
       <footer
         style={{
           marginTop: "2rem",

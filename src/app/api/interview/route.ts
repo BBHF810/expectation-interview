@@ -9,9 +9,10 @@ import { AgeGroup, CareStatus, ExpectationType } from "@/types";
 
 const InterviewRequestSchema = z.object({
   ageGroup: z.enum(["under_10", "11_30", "31_plus", "no_answer"]),
-  partner: z.string().max(50),
-  isCare: z.enum(["yes", "no", "no_answer"]),
-  expectationType: z.enum(["matched", "mismatched", "neutral"]),
+  age: z.number().min(1).max(120).optional(),
+  partner: z.string().max(50).optional(),
+  isCare: z.enum(["yes", "no", "no_answer"]).optional(),
+  expectationType: z.enum(["matched", "mismatched", "neutral"]).optional(),
   conversationHistory: z.array(
     z.object({
       question: z.string().max(300),
@@ -27,6 +28,9 @@ const GeminiInterviewOutputSchema = z.object({
   nextQuestion: z.string().min(1).max(80),
   questionPurpose: z.enum(["event", "expectation", "outcome", "reason", "communication", "feeling"]),
   safetyAction: z.enum(["continue", "stop"]),
+  detectedPartner: z.string().optional(),
+  detectedExpectationType: z.enum(["matched", "mismatched", "neutral"]).optional(),
+  detectedIsCare: z.enum(["yes", "no"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -97,13 +101,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 1問目（対話履歴なし）は属性に応じた初期固定質問を即時返却
+    // 1問目（対話履歴なし）は年齢に応じた初期汎用質問を即時返却
     if (historyCount === 0) {
       const initialQ = getInitialSingleQuestion({
         ageGroup: ageGroup as AgeGroup,
-        partner,
-        isCare: isCare as CareStatus,
-        expectationType: expectationType as ExpectationType,
       });
       logSafeRequest({
         requestId,
@@ -162,14 +163,16 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = `【参加者情報】
 - 年齢層: ${ageGroup === "under_10" ? "10歳以下（やさしいひらがな主体の表現にすること）" : ageGroup}
-- 話す相手: ${partner}
-- 介護に関する出来事か: ${isCare}
+- 話す相手: ${partner || "（未特定 — 回答から推察してください）"}
+- 介護に関する出来事か: ${isCare || "（未特定 — 回答から推察してください）"}
 - 期待と結果の認識: ${
       expectationType === "matched"
         ? "期待どおりだった"
         : expectationType === "mismatched"
         ? "すれちがった"
-        : "どちらともいえない"
+        : expectationType === "neutral"
+        ? "どちらともいえない"
+        : "（未特定 — 回答から推察してください）"
     }
 
 【これまでの対話履歴】
@@ -208,6 +211,15 @@ ${
                 safetyAction: {
                   type: "string",
                   enum: ["continue", "stop"],
+                },
+                detectedPartner: { type: "string" },
+                detectedExpectationType: {
+                  type: "string",
+                  enum: ["matched", "mismatched", "neutral"],
+                },
+                detectedIsCare: {
+                  type: "string",
+                  enum: ["yes", "no"],
                 },
               },
               required: ["nextQuestion", "questionPurpose", "safetyAction"],
@@ -259,6 +271,9 @@ ${
         isComplete: true,
         safetyAction: "stop",
         fallbackUsed: false,
+        detectedPartner: data.detectedPartner,
+        detectedExpectationType: data.detectedExpectationType,
+        detectedIsCare: data.detectedIsCare,
       });
     }
 
@@ -283,6 +298,9 @@ ${
       isComplete: false,
       safetyAction: "continue",
       fallbackUsed: false,
+      detectedPartner: data.detectedPartner,
+      detectedExpectationType: data.detectedExpectationType,
+      detectedIsCare: data.detectedIsCare,
     });
   } catch (err: any) {
     const expType = parsedData?.expectationType || "neutral";

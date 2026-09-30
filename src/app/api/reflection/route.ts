@@ -9,9 +9,10 @@ import { AgeGroup, ExpectationType } from "@/types";
 
 const ReflectionRequestSchema = z.object({
   ageGroup: z.enum(["under_10", "11_30", "31_plus", "no_answer"]),
-  partner: z.string().max(50),
-  isCare: z.enum(["yes", "no", "no_answer"]),
-  expectationType: z.enum(["matched", "mismatched", "neutral"]),
+  age: z.number().min(1).max(120).optional(),
+  partner: z.string().max(50).optional().default("相手"),
+  isCare: z.enum(["yes", "no", "no_answer"]).optional().default("no"),
+  expectationType: z.enum(["matched", "mismatched", "neutral"]).optional().default("neutral"),
   conversationHistory: z.array(
     z.object({
       question: z.string().max(300),

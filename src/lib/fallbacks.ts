@@ -138,75 +138,25 @@ export function formatPartnerReferral(partner: string, isSimple: boolean = false
 }
 
 /**
- * 属性（年齢層、相手、介護有無、期待タイプ）に応じた最初の固定質問を選定
+ * 年齢グループに応じた汎用的オープナー質問を返す
  */
 export function getInitialSingleQuestion(params: {
   ageGroup: AgeGroup;
-  partner: string;
-  isCare: CareStatus;
-  expectationType: ExpectationType;
 }): FallbackQuestion {
-  const { ageGroup, partner, isCare, expectationType } = params;
-  const isSimple = ageGroup === "under_10";
-  const partnerLabel = formatPartnerReferral(partner, isSimple);
+  const { ageGroup } = params;
 
-  // 1. 10歳以下向け（やさしいひらがな主体の表現）
-  if (isSimple) {
-    if (expectationType === "matched") {
-      return {
-        question: `${partnerLabel}といっしょにいて、おもったとおりになって「うれしい！」とおもったのは、どんなことがあったときだった？`,
-        purpose: "event",
-      };
-    } else if (expectationType === "mismatched") {
-      return {
-        question: `${partnerLabel}とお話ししていて、ほんとうはこうしてほしかったのに、すこしちがっちゃったのは、どんなことがあったときだった？`,
-        purpose: "event",
-      };
-    } else {
-      return {
-        question: `${partnerLabel}といっしょにいて、心にのこっていることや、そのときおもっていたことをおしえてくれる？`,
-        purpose: "event",
-      };
-    }
-  }
-
-  // 2. 介護に関する出来事（31歳以上でisCare === "yes"）
-  if (isCare === "yes") {
-    if (expectationType === "matched") {
-      return {
-        question: `${partnerLabel}のサポートや介護の中で、思いが通じ合ったり期待どおりに進んでよかったと感じた具体的な出来事を教えていただけますか？`,
-        purpose: "event",
-      };
-    } else if (expectationType === "mismatched") {
-      return {
-        question: `${partnerLabel}のサポートや介護に関わる中で、「本当はこうしてほしかった」と思い通りにならず、すれ違いを感じた具体的な出来事を教えていただけますか？`,
-        purpose: "event",
-      };
-    } else {
-      return {
-        question: `${partnerLabel}のサポートや介護に関わる中で、印象に残っている出来事やそのときの関わりについて教えていただけますか？`,
-        purpose: "event",
-      };
-    }
-  }
-
-  // 3. 一般（11〜30歳、31歳以上の非介護、回答しない）
-  if (expectationType === "matched") {
+  if (ageGroup === "under_10") {
     return {
-      question: `${partnerLabel}との間で、思い描いていたとおりに気持ちが通じ合ったり、嬉しかったり安心した具体的な出来事を教えていただけますか？`,
-      purpose: "event",
-    };
-  } else if (expectationType === "mismatched") {
-    return {
-      question: `${partnerLabel}に対して「本当はこうしてほしかった」と思っていたのに、思い通りにならなかったり、すれ違ってしまった具体的な出来事を教えていただけますか？`,
-      purpose: "event",
-    };
-  } else {
-    return {
-      question: `${partnerLabel}との間で、そのとき相手に期待していたことと、実際に起きた出来事について具体的に教えていただけますか？`,
+      question: "おともだちやかぞくとのあいだで、心にのこっていることをおしえてくれる？ だれとの、どんな出来事だったかな？",
       purpose: "event",
     };
   }
+
+  // 11_30, 31_plus, no_answer は共通
+  return {
+    question: "身近な人との間で、印象に残っている出来事を教えてください。誰との出来事で、どんなことがありましたか？",
+    purpose: "event",
+  };
 }
 
 export function getFallbackReflection(

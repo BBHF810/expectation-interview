@@ -3,18 +3,18 @@
 import React, { useState } from "react";
 import { ArrowLeft, ArrowRight, Users, Sparkles } from "lucide-react";
 
-import { AgeGroup } from "@/types";
+import { ageToAgeGroup } from "@/types";
 
 interface PairSetupScreenProps {
-  onNext: (nameA: string, nameB: string, relationship: string, ageA: AgeGroup, ageB: AgeGroup) => void;
+  onNext: (nameA: string, nameB: string, relationship: string, ageA: number | null, ageB: number | null) => void;
   onBack: () => void;
 }
 
 export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack }) => {
   const [nameA, setNameA] = useState("Aさん");
   const [nameB, setNameB] = useState("Bさん");
-  const [ageA, setAgeA] = useState<AgeGroup>("11_30");
-  const [ageB, setAgeB] = useState<AgeGroup>("11_30");
+  const [ageA, setAgeA] = useState<number | null>(null);
+  const [ageB, setAgeB] = useState<number | null>(null);
   const [relationship, setRelationship] = useState("友だち");
 
   const relationshipOptions = [
@@ -106,26 +106,48 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
                 fontSize: "0.85rem",
               }}
             >
-              年代（任意）
+              年齢（任意）
             </label>
-            <select
-              id="age-a"
-              value={ageA}
-              onChange={(e) => setAgeA(e.target.value as AgeGroup)}
-              style={{
-                width: "100%",
-                padding: "0.45rem 0.6rem",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--color-border)",
-                fontSize: "0.9rem",
-                backgroundColor: "#FFFFFF",
-              }}
-            >
-              <option value="under_10">10歳以下</option>
-              <option value="11_30">11〜30歳</option>
-              <option value="31_plus">31歳以上</option>
-              <option value="no_answer">答えない</option>
-            </select>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <input
+                id="age-a"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={120}
+                value={ageA ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAgeA(v === "" ? null : Number(v));
+                }}
+                placeholder="例: 25"
+                style={{
+                  flex: 1,
+                  padding: "0.45rem 0.6rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--color-border)",
+                  fontSize: "0.9rem",
+                  backgroundColor: "#FFFFFF",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setAgeA(null)}
+                style={{
+                  padding: "0.45rem 0.6rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: ageA === null ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                  fontSize: "0.8rem",
+                  backgroundColor: ageA === null ? "var(--color-primary-light)" : "#FFFFFF",
+                  color: ageA === null ? "var(--color-primary)" : "var(--color-text-main)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontWeight: ageA === null ? 700 : 400,
+                }}
+              >
+                答えない
+              </button>
+            </div>
           </div>
 
           <div
@@ -175,26 +197,48 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
                 fontSize: "0.85rem",
               }}
             >
-              年代（任意）
+              年齢（任意）
             </label>
-            <select
-              id="age-b"
-              value={ageB}
-              onChange={(e) => setAgeB(e.target.value as AgeGroup)}
-              style={{
-                width: "100%",
-                padding: "0.45rem 0.6rem",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--color-border)",
-                fontSize: "0.9rem",
-                backgroundColor: "#FFFFFF",
-              }}
-            >
-              <option value="under_10">10歳以下</option>
-              <option value="11_30">11〜30歳</option>
-              <option value="31_plus">31歳以上</option>
-              <option value="no_answer">答えない</option>
-            </select>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <input
+                id="age-b"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={120}
+                value={ageB ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setAgeB(v === "" ? null : Number(v));
+                }}
+                placeholder="例: 25"
+                style={{
+                  flex: 1,
+                  padding: "0.45rem 0.6rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--color-border)",
+                  fontSize: "0.9rem",
+                  backgroundColor: "#FFFFFF",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setAgeB(null)}
+                style={{
+                  padding: "0.45rem 0.6rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: ageB === null ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                  fontSize: "0.8rem",
+                  backgroundColor: ageB === null ? "var(--color-primary-light)" : "#FFFFFF",
+                  color: ageB === null ? "var(--color-primary)" : "var(--color-text-main)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  fontWeight: ageB === null ? 700 : 400,
+                }}
+              >
+                答えない
+              </button>
+            </div>
           </div>
         </div>
 

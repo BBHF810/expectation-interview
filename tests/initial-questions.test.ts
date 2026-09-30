@@ -4,72 +4,30 @@ import { getInitialPairQuestion } from "@/lib/pair-fallbacks";
 
 describe("初期固定質問の選定ロジック", () => {
   describe("一人用モード (getInitialSingleQuestion)", () => {
-    it("10歳以下向けにはやさしいひらがな主体の質問が選ばれる", () => {
-      const qMatched = getInitialSingleQuestion({
-        ageGroup: "under_10",
-        partner: "家族",
-        isCare: "no",
-        expectationType: "matched",
-      });
-      expect(qMatched.question).toContain("かぞくといっしょにいて");
-      expect(qMatched.question).toContain("うれしい！");
-
-      const qMismatched = getInitialSingleQuestion({
-        ageGroup: "under_10",
-        partner: "友だち",
-        isCare: "no",
-        expectationType: "mismatched",
-      });
-      expect(qMismatched.question).toContain("お友だちとお話ししていて");
-      expect(qMismatched.question).toContain("すこしちがっちゃった");
+    it("10歳以下向けにはやさしいひらがな主体の汎用オープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "under_10" });
+      expect(q.question).toContain("おともだちやかぞく");
+      expect(q.question).toContain("心にのこっている");
+      expect(q.purpose).toBe("event");
     });
 
-    it("31歳以上で介護ありの場合は介護サポートに関する質問が選ばれる", () => {
-      const qCareMatched = getInitialSingleQuestion({
-        ageGroup: "31_plus",
-        partner: "家族",
-        isCare: "yes",
-        expectationType: "matched",
-      });
-      expect(qCareMatched.question).toContain("サポートや介護");
-      expect(qCareMatched.question).toContain("思いが通じ合ったり");
-
-      const qCareMismatched = getInitialSingleQuestion({
-        ageGroup: "31_plus",
-        partner: "家族",
-        isCare: "yes",
-        expectationType: "mismatched",
-      });
-      expect(qCareMismatched.question).toContain("サポートや介護");
-      expect(qCareMismatched.question).toContain("すれ違いを感じた");
+    it("一般（11〜30歳）向けには汎用的なオープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "11_30" });
+      expect(q.question).toContain("身近な人との間で");
+      expect(q.question).toContain("印象に残っている");
+      expect(q.purpose).toBe("event");
     });
 
-    it("一般成人・若年層で期待タイプに応じた質問が選ばれる", () => {
-      const qMatched = getInitialSingleQuestion({
-        ageGroup: "11_30",
-        partner: "パートナー",
-        isCare: "no",
-        expectationType: "matched",
-      });
-      expect(qMatched.question).toContain("パートナーとの間で");
-      expect(qMatched.question).toContain("嬉しかったり安心");
+    it("31歳以上でも同じ汎用オープナーが選ばれる（介護は対話内で聞き出す）", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "31_plus" });
+      expect(q.question).toContain("身近な人との間で");
+      expect(q.purpose).toBe("event");
+    });
 
-      const qMismatched = getInitialSingleQuestion({
-        ageGroup: "11_30",
-        partner: "友人",
-        isCare: "no",
-        expectationType: "mismatched",
-      });
-      expect(qMismatched.question).toContain("友人に対して「本当はこうしてほしかった」");
-      expect(qMismatched.question).toContain("すれ違ってしまった");
-
-      const qNeutral = getInitialSingleQuestion({
-        ageGroup: "11_30",
-        partner: "職場の人",
-        isCare: "no",
-        expectationType: "neutral",
-      });
-      expect(qNeutral.question).toContain("職場の人との間で");
+    it("答えたくない場合も一般用オープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "no_answer" });
+      expect(q.question).toContain("身近な人との間で");
+      expect(q.purpose).toBe("event");
     });
   });
 
