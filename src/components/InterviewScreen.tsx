@@ -1,20 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { ArrowRight, RotateCcw, XCircle, Bot, Loader2, AlertCircle, Volume2, VolumeX } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowRight, RotateCcw, XCircle, Loader2, AlertCircle, Volume2, VolumeX, Edit3 } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
+import { InputMethod } from "@/types";
 
 interface InterviewScreenProps {
   currentQuestion: string;
   progress: number; // 1, 2, 3
   isLoading: boolean;
   fallbackUsed: boolean;
+  inputMethod: InputMethod;
   onSubmitAnswer: (answer: string, isSkipped: boolean, skipReason?: "dont_know" | "no_answer") => void;
   onFinishEarly: () => void;
   onReset: () => void;
   isSimple: boolean;
-  onOpenConceptExplanation?: () => void;
 }
 
 export const InterviewScreen: React.FC<InterviewScreenProps> = ({
@@ -22,17 +23,18 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   progress,
   isLoading,
   fallbackUsed,
+  inputMethod,
   onSubmitAnswer,
   onFinishEarly,
   onReset,
   isSimple,
-  onOpenConceptExplanation,
 }) => {
   const [answer, setAnswer] = useState("");
   const [longWait, setLongWait] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [showManualEdit, setShowManualEdit] = useState(false);
 
   // 10秒以上の待機メッセージ用タイマー
   useEffect(() => {
@@ -45,6 +47,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     } else {
       setLongWait(false);
       setAnswer("");
+      setShowManualEdit(false);
     }
     return () => clearTimeout(timer);
   }, [isLoading]);
@@ -246,147 +249,217 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
           )}
         </div>
       ) : (
-        /* 回答入力エリア（音声入力優先＋テキストエリア併用） */
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* 音声入力コンポーネント */}
-          <div
-            style={{
-              background: isSpeaking ? "#FEF3C7" : "#F0FDF4",
-              border: isSpeaking ? "2px solid #FCD34D" : "2px solid #86EFAC",
-              borderRadius: "var(--radius-md)",
-              padding: "1rem 1.25rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "1rem",
-                fontWeight: 700,
-                color: isSpeaking ? "#92400E" : "#166534",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              {isSpeaking ? (
-                <>
-                  <span style={{ fontSize: "1.2rem" }}>🔊</span>
-                  <span>AIがお話し中です。聞き終わったらボタンを押してください</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: "1.2rem" }}>🎙️</span>
-                  <span>👇 下のボタンを押して、声でお話しください</span>
-                </>
-              )}
-            </div>
-            <VoiceInput
-              currentText={answer}
-              onTranscriptChange={(newText) => setAnswer(newText)}
-              onListeningStateChange={(active) => setIsListening(active)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="user-answer"
-              style={{
-                display: "block",
-                marginBottom: "0.4rem",
-                fontWeight: 600,
-                fontSize: "0.95rem",
-                color: "var(--color-text-muted)",
-              }}
-            >
-              {isSimple ? "文字で直す・確認する（キーボード入力もできます）" : "文字で修正・入力も可能です（最大500文字）"}
-            </label>
-            <textarea
-              id="user-answer"
-              rows={3}
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
-              placeholder={isSimple ? "声で話した内容がここに入ります。キーボードで書いてもOK！" : "マイクで話した内容がここに文字起こしされます。直接入力・修正も可能です。"}
-              disabled={isLoading}
-              style={{
-                width: "100%",
-                padding: "0.875rem 1rem",
-                borderRadius: "var(--radius-md)",
-                border: "2px solid var(--color-border)",
-                resize: "vertical",
-                minHeight: "80px",
-                lineHeight: 1.5,
-              }}
-            />
-            <div style={{ textAlign: "right", fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: "0.25rem" }}>
-              {answer.length} / 500 文字
-            </div>
-          </div>
-
-          {/* ボタン群：「思いつかない」「答えたくない」「次へ」 */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "0.75rem",
-            }}
-          >
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={() => handleSkip("dont_know")}
-                disabled={isLoading}
-                className="btn btn-secondary"
-                style={{ fontSize: "0.95rem", padding: "0.6rem 1rem", minHeight: "44px" }}
+        /* 回答入力エリア（選んだモードに応じた専用UI） */
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {inputMethod === "voice" ? (
+            /* --- 音声入力専用UI --- */
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div
+                style={{
+                  background: isSpeaking ? "#FEF3C7" : "#F0FDF4",
+                  border: isSpeaking ? "2px solid #FCD34D" : "2px solid #86EFAC",
+                  borderRadius: "var(--radius-md)",
+                  padding: "1.25rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                  transition: "all 0.2s ease",
+                }}
               >
-                思いつかない
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSkip("no_answer")}
-                disabled={isLoading}
-                className="btn btn-secondary"
-                style={{ fontSize: "0.95rem", padding: "0.6rem 1rem", minHeight: "44px" }}
-              >
-                答えたくない
-              </button>
-              {onOpenConceptExplanation && (
-                <button
-                  type="button"
-                  onClick={onOpenConceptExplanation}
+                <div
                   style={{
-                    display: "inline-flex",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    color: isSpeaking ? "#92400E" : "#166534",
+                    display: "flex",
                     alignItems: "center",
-                    gap: "0.25rem",
-                    backgroundColor: "transparent",
-                    color: "var(--color-primary)",
-                    border: "1px dashed var(--color-primary-border)",
-                    borderRadius: "var(--radius-md)",
-                    padding: "0.5rem 0.75rem",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    minHeight: "44px",
+                    gap: "0.5rem",
                   }}
                 >
-                  📖 マンガで例を見る
-                </button>
+                  {isSpeaking ? (
+                    <>
+                      <span style={{ fontSize: "1.2rem" }}>🔊</span>
+                      <span>AIがお話し中です。聞き終わったらボタンを押してください</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: "1.2rem" }}>🎙️</span>
+                      <span>下のボタンを押して、声でお話しください</span>
+                    </>
+                  )}
+                </div>
+                <VoiceInput
+                  currentText={answer}
+                  onTranscriptChange={(newText) => setAnswer(newText)}
+                  onListeningStateChange={(active) => setIsListening(active)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* 音声で入力されたテキストの確認表示 */}
+              {answer ? (
+                <div
+                  style={{
+                    background: "#FFFFFF",
+                    border: "2px solid var(--color-primary-border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "1rem 1.25rem",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-primary)" }}>
+                      聞き取った内容：
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowManualEdit(!showManualEdit)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--color-text-muted)",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                      }}
+                    >
+                      <Edit3 size={14} />
+                      {showManualEdit ? "手直しを閉じる" : "文字を手直しする"}
+                    </button>
+                  </div>
+                  {showManualEdit ? (
+                    <textarea
+                      rows={3}
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "1rem",
+                        lineHeight: 1.5,
+                      }}
+                    />
+                  ) : (
+                    <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600, color: "var(--color-text-main)", lineHeight: 1.5 }}>
+                      「{answer}」
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+                  （マイクボタンを押してお話しすると、ここに言葉が表示されます）
+                </div>
               )}
             </div>
+          ) : (
+            /* --- キーボード・文字入力専用UI --- */
+            <div>
+              <label
+                htmlFor="user-answer"
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  color: "var(--color-text-main)",
+                }}
+              >
+                {isSimple ? "ここにお返事を書いてね" : "回答を入力してください（最大500文字）"}
+              </label>
+              <textarea
+                id="user-answer"
+                rows={4}
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
+                placeholder={
+                  isSimple
+                    ? "キーボードで文字を打ち込んでね"
+                    : "出来事やそのときの様子をキーボードで入力してください"
+                }
+                disabled={isLoading}
+                autoFocus
+                style={{
+                  width: "100%",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  border: "2px solid var(--color-border)",
+                  fontSize: "1.05rem",
+                  resize: "vertical",
+                  minHeight: "100px",
+                  lineHeight: 1.5,
+                }}
+              />
+              <div style={{ textAlign: "right", fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: "0.25rem" }}>
+                {answer.length} / 500 文字
+              </div>
+            </div>
+          )}
 
+          {/* メインアクション：回答して次へ（大きく目立つ配置） */}
+          <div style={{ marginTop: "0.5rem" }}>
             <button
               type="submit"
               disabled={!answer.trim() || isLoading}
               className="btn btn-primary"
-              style={{ minWidth: "150px" }}
+              style={{
+                width: "100%",
+                padding: "1rem",
+                fontSize: "1.15rem",
+                fontWeight: 700,
+                borderRadius: "var(--radius-md)",
+                boxShadow: answer.trim() ? "0 4px 12px rgba(2, 132, 199, 0.25)" : "none",
+              }}
             >
               回答して次へ
-              <ArrowRight size={20} />
+              <ArrowRight size={22} />
+            </button>
+          </div>
+
+          {/* サブアクション：「思いつかない」「答えたくない」（下部に控えめに配置） */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "1rem",
+              paddingTop: "0.5rem",
+              borderTop: "1px dashed var(--color-border)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleSkip("dont_know")}
+              disabled={isLoading}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--color-text-muted)",
+                fontSize: "0.875rem",
+                cursor: "pointer",
+                padding: "0.4rem 0.6rem",
+                textDecoration: "underline",
+              }}
+            >
+              思いつかない
+            </button>
+            <span style={{ color: "var(--color-border)" }}>|</span>
+            <button
+              type="button"
+              onClick={() => handleSkip("no_answer")}
+              disabled={isLoading}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--color-text-muted)",
+                fontSize: "0.875rem",
+                cursor: "pointer",
+                padding: "0.4rem 0.6rem",
+                textDecoration: "underline",
+              }}
+            >
+              答えたくない
             </button>
           </div>
         </form>

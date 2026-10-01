@@ -11,6 +11,7 @@ import {
   ScreenState,
   AnimalDiagnosis,
   ExperienceMode,
+  InputMethod,
   PairTurn,
   PairInterviewResponseData,
   PairReflectionResponseData,
@@ -20,6 +21,7 @@ import {
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { AgeScreen } from "@/components/AgeScreen";
+import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewScreen } from "@/components/InterviewScreen";
 import { ReflectionScreen } from "@/components/ReflectionScreen";
 import { SafetyScreen } from "@/components/SafetyScreen";
@@ -27,9 +29,8 @@ import { PairSetupScreen } from "@/components/PairSetupScreen";
 import { PairExpectationScreen } from "@/components/PairExpectationScreen";
 import { PairInterviewScreen } from "@/components/PairInterviewScreen";
 import { PairReflectionScreen } from "@/components/PairReflectionScreen";
-import { ConceptExplanationModal } from "@/components/ConceptExplanationModal";
 import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
-import { ANIMAL_DIAGNOSES, getInitialSingleQuestion } from "@/lib/fallbacks";
+import { ANIMAL_DIAGNOSES, getInitialSingleQuestion, getSmartFallbackQuestion } from "@/lib/fallbacks";
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
 import { saveEpisodeLocally } from "@/lib/episode-storage";
 import { CollectedEpisode } from "@/types";
@@ -37,7 +38,7 @@ import { CollectedEpisode } from "@/types";
 export default function Home() {
   const [screen, setScreen] = useState<ScreenState>("WELCOME");
   const [mode, setMode] = useState<ExperienceMode>("single");
-  const [isConceptModalOpen, setIsConceptModalOpen] = useState(false);
+  const [inputMethod, setInputMethod] = useState<InputMethod>("voice");
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   // 一人モード用ステート
@@ -93,6 +94,7 @@ export default function Home() {
   const handleReset = () => {
     setScreen("WELCOME");
     setMode("single");
+    setInputMethod("voice");
     setAge(null);
     setAgeGroup("no_answer");
     setPartner("");
@@ -129,12 +131,17 @@ export default function Home() {
     });
   };
 
-  // 年齢選択 → 直接インタビューへ
+  // 年齢選択 → 入力方式選択へ遷移
   const handleAgeSelect = (selectedAge: number | null, selectedAgeGroup: AgeGroup) => {
     setAge(selectedAge);
     setAgeGroup(selectedAgeGroup);
-    // 基本情報はAIが対話の中で聞き出すので、直接インタビューへ
-    const initialQ = getInitialSingleQuestion({ ageGroup: selectedAgeGroup });
+    setScreen("INPUT_METHOD_SELECT");
+  };
+
+  // 入力方式選択 → インタビュー開始
+  const handleInputMethodSelect = (method: InputMethod) => {
+    setInputMethod(method);
+    const initialQ = getInitialSingleQuestion({ ageGroup });
     setCurrentQuestion(initialQ.question);
     setCurrentProgress(1);
     setFallbackUsed(false);
@@ -215,17 +222,11 @@ export default function Home() {
       setCurrentProgress(data.progress);
       if (data.fallbackUsed) setFallbackUsed(true);
     } catch (err) {
-      const fallbackIndex = nextHistory.length;
-      const fallbackQ =
-        fallbackIndex === 1
-          ? isSimple
-            ? "ほんとうは、どうしてほしかった？"
-            : "相手に、どんなことを期待していましたか？"
-          : isSimple
-          ? "どうおもったか、おしえてくれる？"
-          : "そのとき、どのように受け止めましたか？";
+      // エラー時は直前の回答がポジティブかネガティブかを判定して自然な質問を生成
+      const prevAnswers = nextHistory.map((t) => t.answer).filter(Boolean);
+      const fallbackQ = getSmartFallbackQuestion(prevAnswers, isSimple);
       setCurrentQuestion(fallbackQ);
-      setCurrentProgress(fallbackIndex + 1);
+      setCurrentProgress(nextHistory.length + 1);
       setFallbackUsed(true);
     } finally {
       setIsLoading(false);
@@ -276,6 +277,7 @@ export default function Home() {
         id: `single_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
         mode: "single",
+        inputMethod,
         age: age ?? undefined,
         ageGroup,
         partner: partner || undefined,
@@ -314,6 +316,7 @@ export default function Home() {
         id: `single_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
         mode: "single",
+        inputMethod,
         age: age ?? undefined,
         ageGroup,
         partner: partner || undefined,
@@ -339,7 +342,7 @@ export default function Home() {
     }
   };
 
-  // ふたりモード：インタビュー開始（名前・関係性・期待に応じた固定質問を即時セット）
+  // ふたりモード：インタビュー開始
   const handleStartPairInterview = (selectedExp: ExpectationType) => {
     setPairExpectationType(selectedExp);
     const initialQ = getInitialPairQuestion({
@@ -487,6 +490,7 @@ export default function Home() {
         id: `pair_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
         mode: "pair",
+        inputMethod,
         nameA: pairNameA,
         nameB: pairNameB,
         ageA: pairAgeA ?? undefined,
@@ -527,6 +531,7 @@ export default function Home() {
         id: `pair_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
         mode: "pair",
+        inputMethod,
         nameA: pairNameA,
         nameB: pairNameB,
         ageA: pairAgeA ?? undefined,
@@ -566,7 +571,6 @@ export default function Home() {
             setMode("pair");
             setScreen("CONSENT");
           }}
-          onOpenConceptExplanation={() => setIsConceptModalOpen(true)}
         />
       )}
 
@@ -588,17 +592,24 @@ export default function Home() {
         <AgeScreen onSelect={handleAgeSelect} onBack={() => setScreen("CONSENT")} />
       )}
 
+      {screen === "INPUT_METHOD_SELECT" && (
+        <InputMethodScreen
+          onSelect={handleInputMethodSelect}
+          onBack={() => setScreen("AGE_SELECT")}
+        />
+      )}
+
       {screen === "INTERVIEW" && (
         <InterviewScreen
           currentQuestion={currentQuestion}
           progress={currentProgress}
           isLoading={isLoading}
           fallbackUsed={fallbackUsed}
+          inputMethod={inputMethod}
           onSubmitAnswer={handleSingleAnswerSubmit}
           onFinishEarly={() => fetchSingleReflection(turns)}
           onReset={handleReset}
           isSimple={isSimple}
-          onOpenConceptExplanation={() => setIsConceptModalOpen(true)}
         />
       )}
 
@@ -645,10 +656,10 @@ export default function Home() {
           progress={pairProgress}
           isLoading={isLoading}
           fallbackUsed={fallbackUsed}
+          inputMethod={inputMethod}
           onSubmitAnswer={handlePairAnswerSubmit}
           onFinishEarly={() => fetchPairReflection(pairTurns)}
           onReset={handleReset}
-          onOpenConceptExplanation={() => setIsConceptModalOpen(true)}
         />
       )}
 
@@ -669,42 +680,20 @@ export default function Home() {
         <SafetyScreen onReset={handleReset} isSimple={isSimple} />
       )}
 
-      {/* 共通フッターツールバー */}
+      {/* 共通フッターツールバー（スタッフ専用データ管理） */}
       <footer
         style={{
           marginTop: "2rem",
           paddingTop: "1rem",
           borderTop: "1px solid var(--border-color)",
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
-          flexWrap: "wrap",
           gap: "0.75rem",
           fontSize: "0.825rem",
           color: "var(--text-muted)",
         }}
       >
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <button
-            type="button"
-            onClick={() => setIsConceptModalOpen(true)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--primary-color)",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.3rem",
-              fontSize: "0.825rem",
-              padding: "0.2rem 0.4rem",
-              borderRadius: "0.25rem",
-            }}
-          >
-            📖 マンガでわかる「相互期待感」
-          </button>
-        </div>
-
         <div>
           <button
             type="button"
@@ -712,29 +701,25 @@ export default function Home() {
             style={{
               background: "rgba(241, 245, 249, 0.8)",
               border: "1px solid var(--border-color)",
-              color: "var(--text-muted)",
+              color: "var(--color-text-muted)",
               cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
-              gap: "0.3rem",
+              gap: "0.35rem",
               fontSize: "0.775rem",
-              padding: "0.3rem 0.6rem",
+              padding: "0.35rem 0.65rem",
               borderRadius: "0.375rem",
               transition: "all 0.15s ease",
             }}
-            title="端末に蓄積されたエピソードの閲覧・CSVエクスポート"
+            title="ブース担当者用データ閲覧（暗証番号が必要です）"
           >
-            📊 エピソードデータ管理（スタッフ用）
+            <span>🔒</span>
+            <span>スタッフ専用管理</span>
           </button>
         </div>
       </footer>
 
-      {/* モーダル群 */}
-      <ConceptExplanationModal
-        isOpen={isConceptModalOpen}
-        onClose={() => setIsConceptModalOpen(false)}
-      />
-
+      {/* スタッフ専用モーダル */}
       <AdminEpisodeManagerModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}

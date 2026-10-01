@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { X, Download, Trash2, Database, Users, User, FileSpreadsheet, FileCode, CheckCircle, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
@@ -23,6 +23,9 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "single" | "pair">("all");
   const [filterExp, setFilterExp] = useState<"all" | "matched" | "mismatched" | "neutral">("all");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
 
   const refreshData = () => {
     const list = getStoredEpisodes();
@@ -31,11 +34,114 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
 
   useEffect(() => {
     if (isOpen) {
-      refreshData();
+      setPinInput("");
+      setPinError(false);
+      if (isAuthenticated) {
+        refreshData();
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isAuthenticated]);
 
   if (!isOpen) return null;
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinInput === "2026") {
+      setIsAuthenticated(true);
+      setPinError(false);
+      refreshData();
+    } else {
+      setPinError(true);
+    }
+  };
+
+  // 未認証時はPIN入力画面を表示
+  if (!isAuthenticated) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: "1rem",
+        }}
+      >
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "var(--radius-lg)",
+            padding: "2rem",
+            maxWidth: "400px",
+            width: "100%",
+            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🔒</div>
+          <h2 style={{ fontSize: "1.35rem", fontWeight: 700, margin: "0 0 0.5rem" }}>スタッフ専用認証</h2>
+          <p style={{ fontSize: "0.9rem", color: "var(--color-text-muted)", margin: "0 0 1.5rem" }}>
+            エピソードデータの閲覧・管理には暗証番号が必要です。
+          </p>
+
+          <form onSubmit={handlePinSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div>
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value);
+                  setPinError(false);
+                }}
+                placeholder="暗証番号を入力"
+                autoFocus
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  fontSize: "1.5rem",
+                  letterSpacing: "0.25em",
+                  textAlign: "center",
+                  borderRadius: "var(--radius-md)",
+                  border: pinError ? "2px solid #EF4444" : "2px solid var(--color-border)",
+                  outline: "none",
+                }}
+              />
+              {pinError && (
+                <div style={{ color: "#EF4444", fontSize: "0.85rem", marginTop: "0.4rem" }}>
+                  暗証番号が正しくありません
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+              >
+                キャンセル
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+              >
+                ロック解除
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   // 統計集計
   const totalCount = episodes.length;

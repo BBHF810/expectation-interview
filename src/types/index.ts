@@ -142,10 +142,13 @@ export interface PairReflectionResponseData {
   fallbackUsed?: boolean;
 }
 
+export type InputMethod = "voice" | "text";
+
 export type ScreenState =
   | "WELCOME"
   | "CONSENT"
   | "AGE_SELECT"
+  | "INPUT_METHOD_SELECT"
   | "INTERVIEW"
   | "REFLECTION"
   | "SAFETY"
@@ -166,6 +169,7 @@ export interface CollectedEpisode {
   id: string;
   createdAt: string;
   mode: ExperienceMode;
+  inputMethod?: InputMethod;
   age?: number;
   ageGroup?: AgeGroup;
   partner?: string;

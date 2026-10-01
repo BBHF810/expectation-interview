@@ -1,19 +1,17 @@
 import React from "react";
-import { User, Users, Info } from "lucide-react";
+import { User, Users, Sparkles } from "lucide-react";
 
 interface WelcomeScreenProps {
   onStartSingle: () => void;
   onStartPair: () => void;
-  onOpenConceptExplanation: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onStartSingle,
   onStartPair,
-  onOpenConceptExplanation,
 }) => {
   return (
-    <div className="card" style={{ textAlign: "center", padding: "2.5rem 2rem" }}>
+    <div className="card" style={{ textAlign: "center", padding: "2.5rem 1.75rem" }}>
       <div
         style={{
           display: "inline-flex",
@@ -24,54 +22,33 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           marginBottom: "1.25rem",
         }}
       >
-        <span style={{ fontSize: "2rem" }}>🌱</span>
+        <span style={{ fontSize: "2.25rem" }}>🌱</span>
       </div>
 
-      <h1 className="title" style={{ fontSize: "1.875rem", marginBottom: "0.75rem" }}>
-        きたいのすれちがい、
+      <h1 className="title" style={{ fontSize: "1.875rem", marginBottom: "0.75rem", lineHeight: 1.35 }}>
+        AIと楽しくおしゃべり！
         <br />
-        AIと話してみよう
+        <span style={{ color: "var(--color-primary)" }}>あなたのコミュニケーション診断</span>
       </h1>
 
-      <p className="subtitle" style={{ fontSize: "1.05rem", maxWidth: "540px", margin: "0 auto 1.5rem" }}>
-        身近な人に対して「こうしてほしかった」「きっとこうしてくれるだろう」と思ったことを、
-        AIといっしょに振り返る工大祭の体験型エピソード収集ブースです。
+      <p className="subtitle" style={{ fontSize: "1.05rem", maxWidth: "520px", margin: "0 auto 2rem", lineHeight: 1.6 }}>
+        身近な人との最近の出来事をAIとお話ししてみませんか？
+        <br />
+        対話の最後にお互いの気持ちの通い合い方を<strong>【かわいい動物タイプ】</strong>で楽しく診断します！
+        <span style={{ display: "block", marginTop: "0.5rem", fontSize: "0.9rem", color: "var(--color-text-muted)" }}>
+          ⏱️ 所要時間：約3分（質問は3つだけ）
+        </span>
       </p>
 
-      {/* 相互期待感とは？の解説ボタン */}
-      <div style={{ marginBottom: "1.75rem" }}>
-        <button
-          type="button"
-          onClick={onOpenConceptExplanation}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.4rem",
-            backgroundColor: "rgba(14, 165, 233, 0.08)",
-            color: "#0284c7",
-            border: "1px solid #bae6fd",
-            borderRadius: "2rem",
-            padding: "0.45rem 1rem",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "all 0.15s ease",
-          }}
-        >
-          <span>📖</span>
-          <span>マンガでわかる「相互期待感の一致・不一致」</span>
-        </button>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", maxWidth: "420px", margin: "0 auto 2rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "400px", margin: "0 auto 2rem" }}>
         <button
           type="button"
           onClick={onStartSingle}
           className="btn btn-primary"
-          style={{ width: "100%", padding: "1rem" }}
+          style={{ width: "100%", padding: "1.1rem 1rem", fontSize: "1.15rem", borderRadius: "var(--radius-md)" }}
           aria-label="ひとりで体験するを開始"
         >
-          <User size={22} />
+          <User size={24} />
           ひとりで体験する
         </button>
 
@@ -81,22 +58,35 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           className="btn btn-secondary"
           style={{
             width: "100%",
-            padding: "1rem",
+            padding: "1.1rem 1rem",
+            fontSize: "1.15rem",
             border: "2px solid var(--color-primary-border)",
             backgroundColor: "#EFF6FF",
             color: "var(--color-primary)",
             fontWeight: 700,
+            borderRadius: "var(--radius-md)",
           }}
           aria-label="ふたりで体験するを開始"
         >
-          <Users size={22} />
+          <Users size={24} />
           ふたりで体験する
         </button>
       </div>
 
-      <div className="banner banner-yellow" style={{ justifyContent: "center", textAlign: "left" }}>
-        <Info size={20} style={{ flexShrink: 0, marginTop: "2px" }} />
-        <span>※ これは性格や人間関係を診断するものではありません。</span>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.4rem",
+          fontSize: "0.85rem",
+          color: "var(--color-text-muted)",
+          background: "var(--color-surface-subtle)",
+          padding: "0.4rem 0.85rem",
+          borderRadius: "var(--radius-full)",
+        }}
+      >
+        <Sparkles size={16} color="var(--color-primary)" />
+        <span>工大祭特別企画・体験型ブース</span>
       </div>
     </div>
   );

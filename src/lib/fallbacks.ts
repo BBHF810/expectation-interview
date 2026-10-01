@@ -147,16 +147,54 @@ export function getInitialSingleQuestion(params: {
 
   if (ageGroup === "under_10") {
     return {
-      question: "おともだちやかぞくとのあいだで、心にのこっていることをおしえてくれる？ だれとの、どんな出来事だったかな？",
+      question: "おともだちやかぞく（お父さん・お母さんなど）とのあいだで、心にのこっていることをおしえてくれる？ だれとの、どんな出来事だったかな？",
       purpose: "event",
     };
   }
 
-  // 11_30, 31_plus, no_answer は共通
+  // 11_30, 31_plus, no_answer は共通（身近な人の具体例入り）
   return {
-    question: "身近な人との間で、印象に残っている出来事を教えてください。誰との出来事で、どんなことがありましたか？",
+    question: "身近な人（友だち・家族・恋人・職場の仲間など）との間で、最近印象に残っている出来事を教えてください。誰との出来事で、どんなことがありましたか？",
     purpose: "event",
   };
+}
+
+/**
+ * 回答内容からポジティブ/一致（嬉しかったこと）か、ネガティブ/不一致（すれ違い）かを判定して
+ * 適切なフォールバック質問を返す
+ */
+export function getSmartFallbackQuestion(
+  previousAnswers: string[],
+  isSimple: boolean
+): string {
+  const lastAns = previousAnswers[previousAnswers.length - 1] || "";
+  const turnIndex = previousAnswers.length; // 1: Q2, 2: Q3
+
+  // 一致・ポジティブの判定キーワード
+  const isPositive = /嬉し|うれし|楽|よかっ|良かっ|助かっ|ありがと|感謝|プレゼント|祝|笑顔|優し|やさし|安心|成功|褒め|ほめ/.test(lastAns);
+
+  if (turnIndex === 1) {
+    if (isPositive) {
+      return isSimple
+        ? "あいての人の、どんなことばや行動がうれしかった？"
+        : "相手の方の、どんな言葉や行動が特に嬉しかったですか？";
+    } else {
+      return isSimple
+        ? "ほんとうは、どうしてほしかった？"
+        : "そのとき、相手の方にはどんな風にしてほしかったですか？";
+    }
+  }
+
+  // turnIndex === 2
+  if (isPositive) {
+    return isSimple
+      ? "そのあと、あいての人とどんなお話をした？"
+      : "その出来事のあと、相手の方とはどのようなやり取りがありましたか？";
+  } else {
+    return isSimple
+      ? "どうおもったか、おしえてくれる？"
+      : "その出来事を通じて、どんなお気持ちになりましたか？";
+  }
 }
 
 export function getFallbackReflection(

@@ -4,6 +4,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { PartnerScreen } from "@/components/PartnerScreen";
+import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewerAvatar } from "@/components/InterviewerAvatar";
 import "@testing-library/jest-dom";
 
@@ -62,5 +63,19 @@ describe("UIコンポーネントテスト", () => {
 
     rerender(<InterviewerAvatar status="listening" />);
     expect(screen.getByLabelText("AIインタビュアーの状態: お話を聞いています")).toBeInTheDocument();
+  });
+
+  it("入力方式選択画面: 声でお話しすると文字で入力するの選択ができる", () => {
+    const handleSelect = vi.fn();
+    const handleBack = vi.fn();
+    render(<InputMethodScreen onSelect={handleSelect} onBack={handleBack} />);
+
+    expect(screen.getByText("声でお話しする")).toBeInTheDocument();
+    expect(screen.getByText("文字で入力する")).toBeInTheDocument();
+
+    const startBtn = screen.getByRole("button", { name: /インタビュー開始/i });
+    expect(startBtn).toBeEnabled();
+    fireEvent.click(startBtn);
+    expect(handleSelect).toHaveBeenCalledWith("voice");
   });
 });

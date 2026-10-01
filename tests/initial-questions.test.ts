@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getInitialSingleQuestion } from "@/lib/fallbacks";
+import { getInitialSingleQuestion, getSmartFallbackQuestion } from "@/lib/fallbacks";
 import { getInitialPairQuestion } from "@/lib/pair-fallbacks";
 
 describe("初期固定質問の選定ロジック", () => {
@@ -13,20 +13,23 @@ describe("初期固定質問の選定ロジック", () => {
 
     it("一般（11〜30歳）向けには汎用的なオープナーが選ばれる", () => {
       const q = getInitialSingleQuestion({ ageGroup: "11_30" });
-      expect(q.question).toContain("身近な人との間で");
+      expect(q.question).toContain("身近な人");
+      expect(q.question).toContain("友だち・家族・恋人");
       expect(q.question).toContain("印象に残っている");
       expect(q.purpose).toBe("event");
     });
 
     it("31歳以上でも同じ汎用オープナーが選ばれる（介護は対話内で聞き出す）", () => {
       const q = getInitialSingleQuestion({ ageGroup: "31_plus" });
-      expect(q.question).toContain("身近な人との間で");
+      expect(q.question).toContain("身近な人");
+      expect(q.question).toContain("友だち・家族・恋人");
       expect(q.purpose).toBe("event");
     });
 
     it("答えたくない場合も一般用オープナーが選ばれる", () => {
       const q = getInitialSingleQuestion({ ageGroup: "no_answer" });
-      expect(q.question).toContain("身近な人との間で");
+      expect(q.question).toContain("身近な人");
+      expect(q.question).toContain("友だち・家族・恋人");
       expect(q.purpose).toBe("event");
     });
   });
@@ -71,6 +74,27 @@ describe("初期固定質問の選定ロジック", () => {
         expectationType: "matched",
       });
       expect(qLover.question).toContain("レンさん、まずは恋人のリンさんとの間で");
+    });
+  });
+
+  describe("動的フォールバック質問 (getSmartFallbackQuestion)", () => {
+    it("1問目で嬉しいエピソードを答えた場合、2問目で嬉しい場面を深掘りする質問が選ばれる", () => {
+      const q = getSmartFallbackQuestion(["プレゼントをもらってすごく嬉しかった！"], false);
+      expect(q).toContain("どんな言葉や行動が特に嬉しかったですか？");
+      expect(q).not.toContain("本当はどうしてほしかった");
+    });
+
+    it("1問目で不一致・すれ違いを答えた場合、2問目で本当はどうしてほしかったかを聞く質問が選ばれる", () => {
+      const q = getSmartFallbackQuestion(["約束をドタキャンされて悲しかった"], false);
+      expect(q).toContain("どんな風にしてほしかったですか？");
+    });
+
+    it("子ども向け(isSimple: true)ではやさしいひらがな主体の質問が選ばれる", () => {
+      const qPos = getSmartFallbackQuestion(["みんなで遊んですごく楽しかった"], true);
+      expect(qPos).toContain("うれしかった？");
+
+      const qNeg = getSmartFallbackQuestion(["おもちゃをとられて怒った"], true);
+      expect(qNeg).toContain("ほんとうは、どうしてほしかった？");
     });
   });
 });

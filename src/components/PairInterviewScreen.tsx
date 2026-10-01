@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowRight, RotateCcw, XCircle, Loader2, AlertCircle, Volume2, VolumeX, User } from "lucide-react";
+import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3 } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
+import { InputMethod } from "@/types";
 
 interface PairInterviewScreenProps {
   currentQuestion: string;
@@ -12,10 +13,10 @@ interface PairInterviewScreenProps {
   progress: number;
   isLoading: boolean;
   fallbackUsed: boolean;
+  inputMethod?: InputMethod;
   onSubmitAnswer: (answer: string, isSkipped: boolean) => void;
   onFinishEarly: () => void;
   onReset: () => void;
-  onOpenConceptExplanation?: () => void;
 }
 
 export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
@@ -25,18 +26,20 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   progress,
   isLoading,
   fallbackUsed,
+  inputMethod = "voice",
   onSubmitAnswer,
   onFinishEarly,
   onReset,
-  onOpenConceptExplanation,
 }) => {
   const [answer, setAnswer] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [showManualEdit, setShowManualEdit] = useState(false);
 
   useEffect(() => {
     setAnswer("");
+    setShowManualEdit(false);
   }, [currentQuestion, currentSpeaker]);
 
   // 新しい質問の音声読み上げ
@@ -215,120 +218,194 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           </span>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* 音声入力コンポーネント */}
-          <div
-            style={{
-              background: isSpeaking
-                ? "#FEF3C7"
-                : isSpeakerA
-                ? "#EFF6FF"
-                : "#FEF3C7",
-              border: isSpeaking
-                ? "2px solid #FCD34D"
-                : isSpeakerA
-                ? "2px solid #93C5FD"
-                : "2px solid #FCD34D",
-              borderRadius: "var(--radius-md)",
-              padding: "1rem 1.25rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.75rem",
-              transition: "all 0.2s ease",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "1rem",
-                fontWeight: 700,
-                color: isSpeaking ? "#92400E" : isSpeakerA ? "#1E40AF" : "#92400E",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              {isSpeaking ? (
-                <>
-                  <span style={{ fontSize: "1.2rem" }}>🔊</span>
-                  <span>AIがお話し中です。聞き終わったらボタンを押してください</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: "1.2rem" }}>🎙️</span>
-                  <span>{currentSpeakerName}、👇 下のボタンを押して声でお話しください</span>
-                </>
-              )}
-            </div>
-            <VoiceInput
-              currentText={answer}
-              onTranscriptChange={(newText) => setAnswer(newText)}
-              onListeningStateChange={(active) => setIsListening(active)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <textarea
-              rows={3}
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
-              placeholder={`${currentSpeakerName}の声がここに文字起こしされます。キーボード入力や修正もOKです。`}
-              disabled={isLoading}
-              style={{
-                width: "100%",
-                padding: "0.875rem 1rem",
-                borderRadius: "var(--radius-md)",
-                border: "2px solid var(--color-border)",
-                resize: "vertical",
-                minHeight: "75px",
-                lineHeight: 1.5,
-              }}
-            />
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={handleSkip}
-                disabled={isLoading}
-                className="btn btn-secondary"
-                style={{ fontSize: "0.95rem", minHeight: "44px" }}
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {inputMethod === "voice" ? (
+            /* 音声入力専用 */
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div
+                style={{
+                  background: isSpeaking
+                    ? "#FEF3C7"
+                    : isSpeakerA
+                    ? "#EFF6FF"
+                    : "#FEF3C7",
+                  border: isSpeaking
+                    ? "2px solid #FCD34D"
+                    : isSpeakerA
+                    ? "2px solid #93C5FD"
+                    : "2px solid #FCD34D",
+                  borderRadius: "var(--radius-md)",
+                  padding: "1.25rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                  transition: "all 0.2s ease",
+                }}
               >
-                スキップ
-              </button>
-              {onOpenConceptExplanation && (
-                <button
-                  type="button"
-                  onClick={onOpenConceptExplanation}
+                <div
                   style={{
-                    display: "inline-flex",
+                    fontSize: "1rem",
+                    fontWeight: 700,
+                    color: isSpeaking ? "#92400E" : isSpeakerA ? "#1E40AF" : "#92400E",
+                    display: "flex",
                     alignItems: "center",
-                    gap: "0.25rem",
-                    backgroundColor: "transparent",
-                    color: "var(--color-primary)",
-                    border: "1px dashed var(--color-primary-border)",
-                    borderRadius: "var(--radius-md)",
-                    padding: "0.5rem 0.75rem",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    minHeight: "44px",
+                    gap: "0.5rem",
                   }}
                 >
-                  📖 マンガで例を見る
-                </button>
+                  {isSpeaking ? (
+                    <>
+                      <span style={{ fontSize: "1.2rem" }}>🔊</span>
+                      <span>AIがお話し中です。聞き終わったらボタンを押してください</span>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: "1.2rem" }}>🎙️</span>
+                      <span>{currentSpeakerName}、下のボタンを押して声でお話しください</span>
+                    </>
+                  )}
+                </div>
+                <VoiceInput
+                  currentText={answer}
+                  onTranscriptChange={(newText) => setAnswer(newText)}
+                  onListeningStateChange={(active) => setIsListening(active)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {answer ? (
+                <div
+                  style={{
+                    background: "#FFFFFF",
+                    border: "2px solid var(--color-primary-border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "1rem 1.25rem",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-primary)" }}>
+                      聞き取った内容：
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowManualEdit(!showManualEdit)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--color-text-muted)",
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                      }}
+                    >
+                      <Edit3 size={14} />
+                      {showManualEdit ? "手直しを閉じる" : "文字を手直しする"}
+                    </button>
+                  </div>
+                  {showManualEdit ? (
+                    <textarea
+                      rows={3}
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
+                      style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "1rem",
+                        lineHeight: 1.5,
+                      }}
+                    />
+                  ) : (
+                    <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600, color: "var(--color-text-main)", lineHeight: 1.5 }}>
+                      「{answer}」
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+                  （マイクボタンを押してお話しすると、ここに言葉が表示されます）
+                </div>
               )}
             </div>
+          ) : (
+            /* キーボード入力専用 */
+            <div>
+              <label
+                htmlFor="user-answer"
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  color: isSpeakerA ? "#1D4ED8" : "#B45309",
+                }}
+              >
+                {currentSpeakerName}の回答を入力してください（最大500文字）
+              </label>
+              <textarea
+                id="user-answer"
+                rows={4}
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
+                placeholder={`${currentSpeakerName}のお返事をキーボードで入力してください`}
+                disabled={isLoading}
+                autoFocus
+                style={{
+                  width: "100%",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  border: isSpeakerA ? "2px solid #93C5FD" : "2px solid #FCD34D",
+                  fontSize: "1.05rem",
+                  resize: "vertical",
+                  minHeight: "100px",
+                  lineHeight: 1.5,
+                }}
+              />
+              <div style={{ textAlign: "right", fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: "0.25rem" }}>
+                {answer.length} / 500 文字
+              </div>
+            </div>
+          )}
 
+          {/* メインアクション：回答ボタン */}
+          <div>
             <button
               type="submit"
               disabled={!answer.trim() || isLoading}
               className="btn btn-primary"
-              style={{ minWidth: "160px" }}
+              style={{
+                width: "100%",
+                padding: "1rem",
+                fontSize: "1.15rem",
+                fontWeight: 700,
+                borderRadius: "var(--radius-md)",
+                boxShadow: answer.trim() ? "0 4px 12px rgba(2, 132, 199, 0.25)" : "none",
+              }}
             >
-              {currentSpeakerName}のお返事を送信
-              <ArrowRight size={20} />
+              回答してお返事完了
+              <ArrowRight size={22} />
+            </button>
+          </div>
+
+          {/* スキップ */}
+          <div style={{ textAlign: "center", paddingTop: "0.5rem", borderTop: "1px dashed var(--color-border)" }}>
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={isLoading}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--color-text-muted)",
+                fontSize: "0.875rem",
+                cursor: "pointer",
+                padding: "0.4rem 0.6rem",
+                textDecoration: "underline",
+              }}
+            >
+              この質問をスキップする
             </button>
           </div>
         </form>
