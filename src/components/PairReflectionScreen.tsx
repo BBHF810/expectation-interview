@@ -1,7 +1,10 @@
-import React, { useState } from "react";
-import { RotateCcw, CheckCircle2, Sparkles, Heart, MessageSquareText, Smartphone } from "lucide-react";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import QRCode from "qrcode";
+import { RotateCcw, CheckCircle2, Sparkles, Camera, Copy, Check, Lock, Users } from "lucide-react";
 import { PairAnimalDiagnosis } from "@/types";
-import { ShareQrModal } from "./ShareQrModal";
+import { createPairShareUrl } from "@/lib/share-code";
 
 interface PairReflectionScreenProps {
   nameA: string;
@@ -22,263 +25,181 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
   pairAnimalDiagnosis,
   onReset,
 }) => {
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [shareUrl, setShareUrl] = useState<string>("");
+  const [isCopied, setIsCopied] = useState(false);
 
-  const getShareUrl = () => {
-    if (typeof window === "undefined") return "";
-    const shareData = {
-      mode: "pair",
+  useEffect(() => {
+    const url = createPairShareUrl({
+      pairAnimalDiagnosis,
       nameA,
       nameB,
-      animalA: pairAnimalDiagnosis.animalA,
-      animalB: pairAnimalDiagnosis.animalB,
-      pairTitle: pairAnimalDiagnosis.pairTitle,
-      pairCatchphrase: pairAnimalDiagnosis.pairCatchphrase,
-      pairDescription: pairAnimalDiagnosis.pairDescription,
       perspectiveA,
       perspectiveB,
       reflection,
-    };
-    try {
-      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(shareData))));
-      return `${window.location.origin}/share?d=${encoded}`;
-    } catch (e) {
-      return window.location.href;
+    });
+    setShareUrl(url);
+
+    // ドットが大きく粗く、スマホカメラで一瞬で読み取れる設定
+    QRCode.toDataURL(url, {
+      width: 280,
+      margin: 1,
+      errorCorrectionLevel: "L", // 誤り訂正レベルLにすることで最もシンプルなQRコードになる
+      color: {
+        dark: "#0F172A",
+        light: "#FFFFFF",
+      },
+    })
+      .then((dataUrl) => setQrDataUrl(dataUrl))
+      .catch((err) => console.error("QR creation failed", err));
+  }, [pairAnimalDiagnosis, nameA, nameB, perspectiveA, perspectiveB, reflection]);
+
+  const handleCopy = () => {
+    if (navigator.clipboard && shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
     }
   };
 
   return (
-    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      <div style={{ textAlign: "center", borderBottom: "1px solid var(--color-border)", paddingBottom: "1.25rem" }}>
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.25rem", textAlign: "center" }}>
+      {/* 完了ヘッダー */}
+      <div style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1rem" }}>
         <div
           style={{
             display: "inline-flex",
             padding: "0.5rem",
-            background: "var(--color-primary-light)",
+            background: "#EFF6FF",
             borderRadius: "var(--radius-full)",
-            color: "var(--color-primary)",
-            marginBottom: "0.75rem",
+            color: "#1D4ED8",
+            marginBottom: "0.5rem",
           }}
         >
           <CheckCircle2 size={32} />
         </div>
-        <h2 className="title" style={{ marginBottom: "0.4rem" }}>
-          ふたりの対話の振り返り
+        <h2 className="title" style={{ marginBottom: "0.35rem", fontSize: "1.5rem" }}>
+          ふたりでお話ししてくれてありがとう！🎉
         </h2>
-        <p className="subtitle" style={{ margin: 0 }}>
-          {nameA}さん、{nameB}さん、ふたりでお話ししてくれてありがとうございました！
+        <p className="subtitle" style={{ margin: 0, fontSize: "0.95rem" }}>
+          {nameA}さん、{nameB}さん、ふたりの診断結果ができました！スマートフォンのカメラでQRコードを読み取ってご覧ください。
         </p>
       </div>
 
-      {/* 🎪 ふたりの動物ペアエンタメ診断カード */}
+      {/* メイン：QRコード提示カード */}
       <div
         style={{
           background: "linear-gradient(135deg, #FEF9C3 0%, #EFF6FF 50%, #FCE7F3 100%)",
           border: "2px solid #FDE047",
           borderRadius: "var(--radius-lg)",
-          padding: "1.75rem 1.5rem",
-          boxShadow: "var(--shadow-md)",
-          textAlign: "center",
+          padding: "1.5rem 1rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1rem",
+          boxShadow: "0 4px 15px rgba(245, 158, 11, 0.12)",
         }}
       >
+        {/* チラ見せバッジ */}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            padding: "0.35rem 1rem",
+            background: "#FFFFFF",
+            border: "1px solid #FCD34D",
+            borderRadius: "var(--radius-full)",
+            fontSize: "0.95rem",
+            fontWeight: 800,
+            color: "#B45309",
+            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.05)",
+          }}
+        >
+          <Sparkles size={16} color="#F59E0B" />
+          <span>
+            ふたりのペア：【{pairAnimalDiagnosis.animalA.emoji} × {pairAnimalDiagnosis.animalB.emoji} {pairAnimalDiagnosis.pairTitle}】
+          </span>
+        </div>
+
+        {/* QRコード表示枠 */}
+        <div
+          style={{
+            background: "#FFFFFF",
+            padding: "0.75rem",
+            borderRadius: "var(--radius-md)",
+            border: "2px solid var(--color-border)",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: "260px",
+            minHeight: "260px",
+          }}
+        >
+          {qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt="ふたりの診断結果スマホ持ち帰り用QRコード"
+              style={{ width: "260px", height: "260px", display: "block" }}
+            />
+          ) : (
+            <div style={{ padding: "3rem 1rem", color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
+              QRコード生成中…
+            </div>
+          )}
+        </div>
+
+        {/* 読み取り案内 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", alignItems: "center" }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              fontSize: "1.05rem",
+              fontWeight: 800,
+              color: "#0F172A",
+            }}
+          >
+            <Camera size={20} color="#2563eb" />
+            <span>ふたりのスマホでカメラをかざして読み取ってね！</span>
+          </div>
+          <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+            ふたりの相性タイプやお互いの受け止め、AIからのメッセージをお手元のスマホで確認・スクショ保存できます📸
+          </p>
+        </div>
+
+        {/* プライバシー＆混雑緩和バッジ */}
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "0.35rem",
-            padding: "0.3rem 1rem",
-            background: "#F59E0B",
-            color: "#FFFFFF",
-            borderRadius: "var(--radius-full)",
-            fontSize: "0.9rem",
-            fontWeight: 800,
-            marginBottom: "1rem",
-            boxShadow: "0 2px 6px rgba(245, 158, 11, 0.3)",
-          }}
-        >
-          <Sparkles size={18} />
-          工大祭名物！ふたりの動物ペア診断
-        </div>
-
-        {/* 2匹の動物並び */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "1.5rem",
-            margin: "0.5rem 0 1rem",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "3.5rem", lineHeight: 1 }}>{pairAnimalDiagnosis.animalA.emoji}</div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#1D4ED8", marginTop: "0.25rem" }}>
-              {nameA}さん
-              <br />
-              <span style={{ fontSize: "0.8rem", color: "#64748B" }}>({pairAnimalDiagnosis.animalA.name})</span>
-            </div>
-          </div>
-
-          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#F59E0B" }}>×</div>
-
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "3.5rem", lineHeight: 1 }}>{pairAnimalDiagnosis.animalB.emoji}</div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#B45309", marginTop: "0.25rem" }}>
-              {nameB}さん
-              <br />
-              <span style={{ fontSize: "0.8rem", color: "#64748B" }}>({pairAnimalDiagnosis.animalB.name})</span>
-            </div>
-          </div>
-        </div>
-
-        <h3 style={{ fontSize: "1.5rem", fontWeight: 800, color: "#1E293B", marginBottom: "0.35rem" }}>
-          称号: 「{pairAnimalDiagnosis.pairTitle}」
-        </h3>
-
-        <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--color-primary)", marginBottom: "1rem" }}>
-          〜 {pairAnimalDiagnosis.pairCatchphrase} 〜
-        </div>
-
-        <p
-          style={{
-            fontSize: "1rem",
-            color: "#334155",
-            lineHeight: 1.6,
-            maxWidth: "540px",
-            margin: "0 auto",
-            textAlign: "left",
+            fontSize: "0.775rem",
+            color: "#475569",
             background: "rgba(255, 255, 255, 0.8)",
-            padding: "1rem 1.25rem",
-            borderRadius: "var(--radius-md)",
+            padding: "0.3rem 0.75rem",
+            borderRadius: "var(--radius-full)",
+            border: "1px solid #E2E8F0",
           }}
         >
-          {pairAnimalDiagnosis.pairDescription}
-        </p>
-
-        <div style={{ fontSize: "0.85rem", color: "#64748B", marginTop: "0.875rem" }}>
-          📸 ふたりの記念にぜひ画面を写真で撮ってくださいね！
+          <Lock size={12} />
+          <span>混雑緩和のため、移動しながらスマホでゆっくりご覧いただけます</span>
         </div>
       </div>
 
-      {/* それぞれの視点 */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-        <div
-          style={{
-            background: "var(--color-surface-subtle)",
-            borderRadius: "var(--radius-md)",
-            padding: "1.25rem",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "0.875rem",
-              fontWeight: 700,
-              color: "#1D4ED8",
-              marginBottom: "0.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-            }}
-          >
-            <Heart size={16} />
-            {nameA}さんから見た思い
-          </div>
-          <p style={{ fontSize: "1rem", fontWeight: 500, lineHeight: 1.5 }}>
-            {perspectiveA || "（回答なし）"}
-          </p>
-        </div>
-
-        <div
-          style={{
-            background: "var(--color-surface-subtle)",
-            borderRadius: "var(--radius-md)",
-            padding: "1.25rem",
-            border: "1px solid var(--color-border)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "0.875rem",
-              fontWeight: 700,
-              color: "#B45309",
-              marginBottom: "0.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.4rem",
-            }}
-          >
-            <MessageSquareText size={16} />
-            {nameB}さんから見た受け止め
-          </div>
-          <p style={{ fontSize: "1rem", fontWeight: 500, lineHeight: 1.5 }}>
-            {perspectiveB || "（回答なし）"}
-          </p>
-        </div>
-      </div>
-
-      {/* ふたりへの振り返りメッセージ */}
-      <div
-        style={{
-          background: "var(--color-primary-light)",
-          borderRadius: "var(--radius-md)",
-          padding: "1.25rem 1.5rem",
-          border: "1px solid var(--color-primary-border)",
-        }}
-      >
-        <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--color-primary)", marginBottom: "0.5rem" }}>
-          AIからふたりへのメッセージ
-        </div>
-        <p style={{ fontSize: "1.05rem", lineHeight: 1.7, color: "var(--color-text-main)", margin: 0 }}>
-          {reflection}
-        </p>
-      </div>
-
-      {/* 診断のエンタメ性 & 研究活用の明示 */}
-      <div
-        style={{
-          background: "#F8FAFC",
-          border: "1px solid #CBD5E1",
-          borderRadius: "var(--radius-md)",
-          padding: "1.1rem 1.25rem",
-          fontSize: "0.875rem",
-          color: "#334155",
-          lineHeight: 1.6,
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.6rem",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-          <span style={{ fontWeight: 700, color: "#D97706", flexShrink: 0 }}>
-            【診断について】
-          </span>
-          <span>
-            ふたりの動物ペア診断は本展示企画用のお楽しみエンタメコンテンツです。医学・心理学・相性の厳密な診断ではありません。
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-          <span style={{ fontWeight: 700, color: "var(--color-primary)", flexShrink: 0 }}>
-            【研究への活用】
-          </span>
-          <span>
-            本体験で収集された対話・エピソードデータは、個人を特定できない統計・分析データとして「相互期待感の一致・不一致」に関する学術研究に活用させていただきます。
-          </span>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
+      {/* フッターアクション */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center", marginTop: "0.25rem" }}>
         <button
           type="button"
-          onClick={() => setIsShareModalOpen(true)}
-          className="btn"
+          onClick={onReset}
+          className="btn btn-primary"
           style={{
-            minWidth: "240px",
-            padding: "0.9rem 1.5rem",
-            fontSize: "1.05rem",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)",
-            color: "#FFFFFF",
+            minWidth: "260px",
+            padding: "1rem 2rem",
+            fontSize: "1.1rem",
+            fontWeight: 800,
             borderRadius: "var(--radius-md)",
             display: "inline-flex",
             alignItems: "center",
@@ -287,27 +208,40 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
             boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
           }}
         >
-          <Smartphone size={20} />
-          結果をスマホに持ち帰る（QR）
+          <RotateCcw size={20} />
+          体験終了（次の人へ・最初に戻る）
         </button>
 
-        <button
-          type="button"
-          onClick={onReset}
-          className="btn btn-secondary"
-          style={{ minWidth: "200px" }}
-        >
-          <RotateCcw size={18} />
-          最初からやり直す
-        </button>
+        {shareUrl && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--color-text-muted)",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              textDecoration: "underline",
+            }}
+          >
+            {isCopied ? (
+              <>
+                <Check size={14} color="#166534" />
+                <span style={{ color: "#166534", fontWeight: 700 }}>リンクをコピーしました！</span>
+              </>
+            ) : (
+              <>
+                <Copy size={14} />
+                <span>QRが読めない場合はリンクをコピー</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
-
-      <ShareQrModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        shareUrl={getShareUrl()}
-        title={`${pairAnimalDiagnosis.pairTitle || "ふたりの診断結果"} をスマホに保存`}
-      />
     </div>
   );
 };

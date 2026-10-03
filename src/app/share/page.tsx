@@ -3,20 +3,13 @@
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Sparkles, Camera, Heart, Users } from "lucide-react";
+import { restoreShareData } from "@/lib/share-code";
 
 function ShareContent() {
   const searchParams = useSearchParams();
   const rawData = searchParams.get("d");
 
-  let parsedData: any = null;
-  if (rawData) {
-    try {
-      const decoded = decodeURIComponent(escape(atob(rawData)));
-      parsedData = JSON.parse(decoded);
-    } catch (e) {
-      console.error("Failed to parse share data", e);
-    }
-  }
+  const parsedData = rawData ? restoreShareData(rawData) : null;
 
   if (!parsedData) {
     return (
