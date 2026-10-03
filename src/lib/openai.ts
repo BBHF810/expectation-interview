@@ -1,10 +1,18 @@
 import OpenAI from "openai";
 
-const DEFAULT_OPENAI_MODEL = "gpt-4o";
+const DEFAULT_OPENAI_MODEL = "gpt-6.1-sol";
 
 export function getOpenAiModelName(): string {
   const envModel = process.env.OPENAI_MODEL?.trim();
-  return envModel && envModel.length > 0 ? envModel : DEFAULT_OPENAI_MODEL;
+  if (envModel && envModel.length > 0) {
+    const lower = envModel.toLowerCase();
+    // gpt6.1sol, gpt-6.1sol, gpt6.1-sol などの表記揺れを公式ID "gpt-6.1-sol" に正規化
+    if (lower === "gpt6.1sol" || lower === "gpt-6.1sol" || lower === "gpt6.1-sol") {
+      return "gpt-6.1-sol";
+    }
+    return envModel;
+  }
+  return DEFAULT_OPENAI_MODEL;
 }
 
 export function getOpenAiClient(): OpenAI | null {
@@ -24,7 +32,7 @@ export function isOpenAiConfigured(): boolean {
 }
 
 /**
- * OpenAI (GPT-4o) をJSON形式で安全に呼び出すヘルパー
+ * OpenAI (GPT-6.1 Sol) をJSON形式で安全に呼び出すヘルパー
  */
 export async function callOpenAiJson<T>(params: {
   systemInstruction: string;
