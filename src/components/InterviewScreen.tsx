@@ -419,45 +419,6 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 />
               </div>
 
-              {/* マイクが動かない場合の救済案内 */}
-              <div
-                style={{
-                  textAlign: "center",
-                  fontSize: "0.85rem",
-                  color: "var(--color-text-muted)",
-                  background: "#F8FAFC",
-                  border: "1px dashed var(--color-border)",
-                  borderRadius: "var(--radius-md)",
-                  padding: "0.6rem 1rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <span>マイクが反応しない・上手く聞き取れないときは？</span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentInputMethod("text")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--color-primary)",
-                    fontWeight: 700,
-                    textDecoration: "underline",
-                    cursor: "pointer",
-                    padding: 0,
-                    fontSize: "0.85rem",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.25rem",
-                  }}
-                >
-                  <Keyboard size={14} />
-                  キーボード入力に切り替える
-                </button>
-              </div>
-
               {/* 音声で入力されたテキストの確認表示 */}
               {answer ? (
                 <div
@@ -519,37 +480,18 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
           ) : (
             /* --- キーボード・文字入力専用UI --- */
             <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                <label
-                  htmlFor="user-answer"
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    color: "var(--color-text-main)",
-                    margin: 0,
-                  }}
-                >
-                  {isSimple ? "ここにお返事を書いてね" : "回答を入力してください（最大500文字）"}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setCurrentInputMethod("voice")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--color-primary)",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.25rem",
-                  }}
-                >
-                  <Mic size={14} />
-                  音声で話す
-                </button>
-              </div>
+              <label
+                htmlFor="user-answer"
+                style={{
+                  display: "block",
+                  marginBottom: "0.5rem",
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  color: "var(--color-text-main)",
+                }}
+              >
+                {isSimple ? "ここにお返事を書いてね" : "回答を入力してください（最大500文字）"}
+              </label>
               <textarea
                 id="user-answer"
                 rows={4}

@@ -99,11 +99,12 @@ describe("UIコンポーネントテスト", () => {
       />
     );
 
-    // 初期状態は音声入力UIが表示されている
-    expect(screen.getByText(/キーボード入力に切り替える/i)).toBeInTheDocument();
+    // 初期状態は音声入力UIが表示されている（マイクボタン案内がある）
+    expect(screen.getByText(/声でお話しください/i)).toBeInTheDocument();
 
-    // 「キーボード入力に切り替える」をクリック
-    fireEvent.click(screen.getByText(/キーボード入力に切り替える/i));
+    // 「文字入力（タイピング）」タブをクリック
+    const typingTab = screen.getByRole("button", { name: /文字入力（タイピング）/i });
+    fireEvent.click(typingTab);
 
     // テキストエリアが表示される
     const textarea = screen.getByRole("textbox");
@@ -114,6 +115,6 @@ describe("UIコンポーネントテスト", () => {
     fireEvent.click(voiceTab);
 
     // 再び音声UIが表示される
-    expect(screen.getByText(/キーボード入力に切り替える/i)).toBeInTheDocument();
+    expect(screen.getByText(/声でお話しください/i)).toBeInTheDocument();
   });
 });
