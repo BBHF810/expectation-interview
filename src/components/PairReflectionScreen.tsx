@@ -1,6 +1,7 @@
-import React from "react";
-import { RotateCcw, CheckCircle2, Sparkles, Heart, MessageSquareText } from "lucide-react";
+import React, { useState } from "react";
+import { RotateCcw, CheckCircle2, Sparkles, Heart, MessageSquareText, Smartphone } from "lucide-react";
 import { PairAnimalDiagnosis } from "@/types";
+import { ShareQrModal } from "./ShareQrModal";
 
 interface PairReflectionScreenProps {
   nameA: string;
@@ -21,6 +22,31 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
   pairAnimalDiagnosis,
   onReset,
 }) => {
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  const getShareUrl = () => {
+    if (typeof window === "undefined") return "";
+    const shareData = {
+      mode: "pair",
+      nameA,
+      nameB,
+      animalA: pairAnimalDiagnosis.animalA,
+      animalB: pairAnimalDiagnosis.animalB,
+      pairTitle: pairAnimalDiagnosis.pairTitle,
+      pairCatchphrase: pairAnimalDiagnosis.pairCatchphrase,
+      pairDescription: pairAnimalDiagnosis.pairDescription,
+      perspectiveA,
+      perspectiveB,
+      reflection,
+    };
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(shareData))));
+      return `${window.location.origin}/share?d=${encoded}`;
+    } catch (e) {
+      return window.location.href;
+    }
+  };
+
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       <div style={{ textAlign: "center", borderBottom: "1px solid var(--color-border)", paddingBottom: "1.25rem" }}>
@@ -241,17 +267,47 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
         </div>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
+        <button
+          type="button"
+          onClick={() => setIsShareModalOpen(true)}
+          className="btn"
+          style={{
+            minWidth: "240px",
+            padding: "0.9rem 1.5rem",
+            fontSize: "1.05rem",
+            fontWeight: 700,
+            background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)",
+            color: "#FFFFFF",
+            borderRadius: "var(--radius-md)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+            boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+          }}
+        >
+          <Smartphone size={20} />
+          結果をスマホに持ち帰る（QR）
+        </button>
+
         <button
           type="button"
           onClick={onReset}
-          className="btn btn-primary"
-          style={{ minWidth: "220px", padding: "1rem 2rem" }}
+          className="btn btn-secondary"
+          style={{ minWidth: "200px" }}
         >
-          <RotateCcw size={20} />
+          <RotateCcw size={18} />
           最初からやり直す
         </button>
       </div>
+
+      <ShareQrModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={getShareUrl()}
+        title={`${pairAnimalDiagnosis.pairTitle || "ふたりの診断結果"} をスマホに保存`}
+      />
     </div>
   );
 };

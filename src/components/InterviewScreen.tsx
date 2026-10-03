@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowRight, RotateCcw, XCircle, Loader2, AlertCircle, Volume2, VolumeX, Edit3 } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
@@ -35,6 +35,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [showManualEdit, setShowManualEdit] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 10秒以上の待機メッセージ用タイマー
   useEffect(() => {
@@ -52,13 +53,22 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     return () => clearTimeout(timer);
   }, [isLoading]);
 
-  // 新しい質問が来たら音声合成で読み上げ
-  useEffect(() => {
-    if (!currentQuestion || isLoading || !isSpeechEnabled) return;
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const stopAllAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
 
+  // ブラウザ標準音声によるフォールバック再生
+  const playBrowserSpeech = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(currentQuestion);
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ja-JP";
     utterance.rate = 1.0;
     utterance.pitch = 1.05;
@@ -68,9 +78,61 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     utterance.onerror = () => setIsSpeaking(false);
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  // 新しい質問が来たら高品質音声（TTS）またはブラウザ音声で読み上げ
+  useEffect(() => {
+    if (!currentQuestion || isLoading || !isSpeechEnabled) {
+      stopAllAudio();
+      return;
+    }
+
+    let isCancelled = false;
+    stopAllAudio();
+
+    // 1. OpenAI TTS API 呼び出しを試行
+    const playTtsAudio = async () => {
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: currentQuestion, voice: "nova" }),
+        });
+
+        if (!res.ok) {
+          throw new Error("TTS API unavailable");
+        }
+
+        const blob = await res.blob();
+        if (isCancelled) return;
+
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          if (!isCancelled) playBrowserSpeech(currentQuestion);
+        };
+
+        await audio.play();
+      } catch (err) {
+        // OpenAI未設定または通信エラー時はブラウザ音声に自動フォールバック
+        if (!isCancelled) {
+          playBrowserSpeech(currentQuestion);
+        }
+      }
+    };
+
+    playTtsAudio();
 
     return () => {
-      window.speechSynthesis.cancel();
+      isCancelled = true;
+      stopAllAudio();
     };
   }, [currentQuestion, isLoading, isSpeechEnabled]);
 
@@ -87,17 +149,13 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopAllAudio();
     onSubmitAnswer(answer.trim(), false);
   };
 
   const handleSkip = (reason: "dont_know" | "no_answer") => {
     if (isLoading) return;
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopAllAudio();
     onSubmitAnswer(reason === "dont_know" ? "（思いつかない）" : "（答えたくない）", true, reason);
   };
 
@@ -138,8 +196,8 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (isSpeaking && typeof window !== "undefined") {
-                window.speechSynthesis.cancel();
+              if (isSpeaking) {
+                stopAllAudio();
               }
               setIsSpeechEnabled(!isSpeechEnabled);
             }}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
+import { isOpenAiConfigured, getOpenAiModelName, callOpenAiJson } from "@/lib/openai";
 import { REFLECTION_SYSTEM_INSTRUCTION } from "@/lib/prompts/reflection";
 import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackReflection, getFallbackAnimalDiagnosis } from "@/lib/fallbacks";
@@ -146,73 +147,119 @@ ${turnsContext}
 【依頼】
 上記の対話から「expected」「actual」「reflection（100〜180文字の中立的まとめ）」「safetyAction」「missingInformation」「animalDiagnosis（親しみやすい動物タイプ診断）」をJSONスキーマに従って出力してください。`;
 
-    const config = getGeminiConfig(450);
+    const config = getGeminiConfig(300);
 
-    const callModel = async (modelToUse: string) => {
-      return await generateContentWithTimeout(async () => {
-        return await ai.models.generateContent({
-          model: modelToUse,
-          contents: prompt,
-          config: {
-            systemInstruction: REFLECTION_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object",
-              properties: {
-                expected: { type: "string" },
-                actual: { type: "string" },
-                reflection: { type: "string" },
-                safetyAction: {
-                  type: "string",
-                  enum: ["continue", "stop"],
-                },
-                missingInformation: {
-                  type: "array",
-                  items: { type: "string" },
-                },
-                animalDiagnosis: {
-                  type: "object",
-                  properties: {
-                    animalEmoji: { type: "string" },
-                    animalName: { type: "string" },
-                    catchphrase: { type: "string" },
-                    description: { type: "string" },
-                  },
-                  required: ["animalEmoji", "animalName", "catchphrase", "description"],
-                },
-              },
-              required: ["expected", "actual", "reflection", "safetyAction", "missingInformation"],
-            },
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-          },
-        });
-      }, 8500);
-    };
-
-    let response: any = null;
+    let validatedData: z.infer<typeof GeminiReflectionOutputSchema> | null = null;
     let usedModel = primaryModel;
 
-    try {
-      response = await callModel(primaryModel);
-    } catch (err: any) {
+    // 1. OpenAI (GPT-4o) が設定されていれば最優先で呼び出し
+    if (isOpenAiConfigured()) {
       try {
-        usedModel = secondaryModel;
-        response = await callModel(secondaryModel);
-      } catch (retryErr: any) {
-        throw err;
+        usedModel = getOpenAiModelName();
+        const openAiResult = await callOpenAiJson<any>({
+          systemInstruction: `${REFLECTION_SYSTEM_INSTRUCTION}\n\n【必須出力フォーマット】以下のJSONオブジェクトを出力してください:
+{
+  "expected": "参加者が相手に期待していたこと",
+  "actual": "実際に起きた出来事",
+  "reflection": "心温まる振り返りと気づきのメッセージ",
+  "safetyAction": "continue" | "stop",
+  "missingInformation": [],
+  "animalDiagnosis": {
+    "animalEmoji": "動物の絵文字 (例: 🐬)",
+    "animalName": "動物の名前タイプ (例: まごころイルカタイプ)",
+    "catchphrase": "キャッチフレーズ",
+    "description": "診断の説明（長所や相手への思いやり）"
+  }
+}`,
+          userPrompt: prompt,
+          model: usedModel,
+          temperature: 0.3,
+          maxTokens: 500,
+          timeoutMs: 9000,
+        });
+
+        const parsed = GeminiReflectionOutputSchema.safeParse(openAiResult);
+        if (parsed.success) {
+          validatedData = parsed.data;
+        }
+      } catch (openAiErr) {
+        console.warn("OpenAI reflection failed, falling back to Gemini:", openAiErr);
+        validatedData = null;
       }
     }
 
-    const rawText = response.text || "";
-    const parsedJson = JSON.parse(rawText);
-    const validatedOutput = GeminiReflectionOutputSchema.safeParse(parsedJson);
+    // 2. OpenAI が未設定または失敗した場合は Gemini を呼び出し
+    if (!validatedData) {
+      if (!ai) {
+        throw new Error("No AI API keys configured");
+      }
 
-    if (!validatedOutput.success) {
-      throw new Error("Gemini reflection output validation failed");
+      const callModel = async (modelToUse: string) => {
+        return await generateContentWithTimeout(async () => {
+          return await ai.models.generateContent({
+            model: modelToUse,
+            contents: prompt,
+            config: {
+              systemInstruction: REFLECTION_SYSTEM_INSTRUCTION,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "object",
+                properties: {
+                  expected: { type: "string" },
+                  actual: { type: "string" },
+                  reflection: { type: "string" },
+                  safetyAction: {
+                    type: "string",
+                    enum: ["continue", "stop"],
+                  },
+                  missingInformation: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                  animalDiagnosis: {
+                    type: "object",
+                    properties: {
+                      animalEmoji: { type: "string" },
+                      animalName: { type: "string" },
+                      catchphrase: { type: "string" },
+                      description: { type: "string" },
+                    },
+                    required: ["animalEmoji", "animalName", "catchphrase", "description"],
+                  },
+                },
+                required: ["expected", "actual", "reflection", "safetyAction", "missingInformation"],
+              },
+              maxOutputTokens: config.maxOutputTokens,
+              temperature: config.temperature,
+            },
+          });
+        }, 8500);
+      };
+
+      let response: any = null;
+      usedModel = primaryModel;
+
+      try {
+        response = await callModel(primaryModel);
+      } catch (err: any) {
+        try {
+          usedModel = secondaryModel;
+          response = await callModel(secondaryModel);
+        } catch (retryErr: any) {
+          throw err;
+        }
+      }
+
+      const rawText = response.text || "";
+      const parsedJson = JSON.parse(rawText);
+      const parsed = GeminiReflectionOutputSchema.safeParse(parsedJson);
+      if (!parsed.success) {
+        throw new Error("Gemini reflection output validation failed");
+      }
+      validatedData = parsed.data;
     }
 
-    const data = validatedOutput.data;
+    const data = validatedData;
 
     if (data.safetyAction === "stop") {
       logSafeRequest({

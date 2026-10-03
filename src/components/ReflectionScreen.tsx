@@ -1,6 +1,7 @@
-import React from "react";
-import { RotateCcw, Heart, CheckCircle2, MessageSquareText, Sparkles, Share2 } from "lucide-react";
+import React, { useState } from "react";
+import { RotateCcw, Heart, CheckCircle2, MessageSquareText, Sparkles, Share2, Smartphone } from "lucide-react";
 import { AnimalDiagnosis } from "@/types";
+import { ShareQrModal } from "./ShareQrModal";
 
 interface ReflectionScreenProps {
   expected: string;
@@ -19,6 +20,25 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
   onReset,
   isSimple,
 }) => {
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  const getShareUrl = () => {
+    if (typeof window === "undefined") return "";
+    const shareData = {
+      mode: "single",
+      title: animalDiagnosis?.animalName || "コミュニケーション診断",
+      emoji: animalDiagnosis?.animalEmoji || "🌱",
+      catchphrase: animalDiagnosis?.catchphrase || "",
+      description: animalDiagnosis?.description || "",
+      reflection,
+    };
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(shareData))));
+      return `${window.location.origin}/share?d=${encoded}`;
+    } catch (e) {
+      return window.location.href;
+    }
+  };
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       <div style={{ textAlign: "center", borderBottom: "1px solid var(--color-border)", paddingBottom: "1.25rem" }}>
@@ -249,17 +269,47 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
         </div>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: "0.5rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
+        <button
+          type="button"
+          onClick={() => setIsShareModalOpen(true)}
+          className="btn"
+          style={{
+            minWidth: "240px",
+            padding: "0.9rem 1.5rem",
+            fontSize: "1.05rem",
+            fontWeight: 700,
+            background: "linear-gradient(135deg, #0284c7 0%, #2563eb 100%)",
+            color: "#FFFFFF",
+            borderRadius: "var(--radius-md)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.5rem",
+            boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+          }}
+        >
+          <Smartphone size={20} />
+          結果をスマホに持ち帰る（QR）
+        </button>
+
         <button
           type="button"
           onClick={onReset}
-          className="btn btn-primary"
-          style={{ minWidth: "220px", padding: "1rem 2rem" }}
+          className="btn btn-secondary"
+          style={{ minWidth: "200px" }}
         >
-          <RotateCcw size={20} />
+          <RotateCcw size={18} />
           最初からやり直す
         </button>
       </div>
+
+      <ShareQrModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareUrl={getShareUrl()}
+        title={`${animalDiagnosis?.animalName || "診断結果"} をスマホに保存`}
+      />
     </div>
   );
 };

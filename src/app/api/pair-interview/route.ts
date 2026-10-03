@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
+import { isOpenAiConfigured, getOpenAiModelName, callOpenAiJson } from "@/lib/openai";
 import { PAIR_INTERVIEWER_SYSTEM_INSTRUCTION } from "@/lib/prompts/pair-interviewer";
 import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackPairQuestion, getInitialPairQuestion } from "@/lib/pair-fallbacks";
@@ -196,59 +197,97 @@ ${
 
     const config = getGeminiConfig(160);
 
-    const callModel = async (modelToUse: string) => {
-      return await generateContentWithTimeout(async () => {
-        return await ai.models.generateContent({
-          model: modelToUse,
-          contents: userPrompt,
-          config: {
-            systemInstruction: PAIR_INTERVIEWER_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object",
-              properties: {
-                nextQuestion: { type: "string" },
-                nextSpeaker: {
-                  type: "string",
-                  enum: ["A", "B"],
-                },
-                safetyAction: {
-                  type: "string",
-                  enum: ["continue", "stop"],
-                },
-              },
-              required: ["nextQuestion", "nextSpeaker", "safetyAction"],
-            },
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-          },
-        });
-      }, 7500);
-    };
-
-    let response: any = null;
+    let validatedData: z.infer<typeof GeminiPairInterviewOutputSchema> | null = null;
     let usedModel = primaryModel;
 
-    try {
-      response = await callModel(primaryModel);
-    } catch (err: any) {
+    // 1. OpenAI (GPT-4o) が設定されていれば最優先で呼び出し
+    if (isOpenAiConfigured()) {
       try {
-        usedModel = secondaryModel;
-        response = await callModel(secondaryModel);
-      } catch (retryErr: any) {
-        throw err;
+        usedModel = getOpenAiModelName();
+        const openAiResult = await callOpenAiJson<any>({
+          systemInstruction: `${PAIR_INTERVIEWER_SYSTEM_INSTRUCTION}\n\n【必須出力フォーマット】以下のJSONを出力してください:
+{
+  "nextQuestion": "80文字以内の次の質問文（冒頭に${expectedSpeakerName}さん、を含める）",
+  "nextSpeaker": "${expectedNextSpeaker}",
+  "safetyAction": "continue" | "stop"
+}`,
+          userPrompt,
+          model: usedModel,
+          temperature: 0.3,
+          maxTokens: 250,
+          timeoutMs: 8000,
+        });
+
+        const parsed = GeminiPairInterviewOutputSchema.safeParse(openAiResult);
+        if (parsed.success) {
+          validatedData = parsed.data;
+        }
+      } catch (openAiErr) {
+        console.warn("OpenAI pair-interview failed, falling back to Gemini:", openAiErr);
+        validatedData = null;
       }
     }
 
-    const rawText = response.text || "";
-    const parsedJson = JSON.parse(rawText);
-    const validatedOutput = GeminiPairInterviewOutputSchema.safeParse(parsedJson);
+    // 2. OpenAI が未設定または失敗した場合は Gemini を呼び出し
+    if (!validatedData) {
+      if (!ai) {
+        throw new Error("No AI API keys configured");
+      }
 
-    if (!validatedOutput.success) {
-      throw new Error("Gemini pair interview schema validation failed");
+      const callModel = async (modelToUse: string) => {
+        return await generateContentWithTimeout(async () => {
+          return await ai.models.generateContent({
+            model: modelToUse,
+            contents: userPrompt,
+            config: {
+              systemInstruction: PAIR_INTERVIEWER_SYSTEM_INSTRUCTION,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "object",
+                properties: {
+                  nextQuestion: { type: "string" },
+                  nextSpeaker: {
+                    type: "string",
+                    enum: ["A", "B"],
+                  },
+                  safetyAction: {
+                    type: "string",
+                    enum: ["continue", "stop"],
+                  },
+                },
+                required: ["nextQuestion", "nextSpeaker", "safetyAction"],
+              },
+              maxOutputTokens: config.maxOutputTokens,
+              temperature: config.temperature,
+            },
+          });
+        }, 7500);
+      };
+
+      let response: any = null;
+      usedModel = primaryModel;
+
+      try {
+        response = await callModel(primaryModel);
+      } catch (err: any) {
+        try {
+          usedModel = secondaryModel;
+          response = await callModel(secondaryModel);
+        } catch (retryErr: any) {
+          throw err;
+        }
+      }
+
+      const rawText = response.text || "";
+      const parsedJson = JSON.parse(rawText);
+      const parsed = GeminiPairInterviewOutputSchema.safeParse(parsedJson);
+      if (!parsed.success) {
+        throw new Error("Gemini pair interview schema validation failed");
+      }
+      validatedData = parsed.data;
     }
 
-    const data = validatedOutput.data;
+    const data = validatedData;
 
     if (data.safetyAction === "stop") {
       logSafeRequest({

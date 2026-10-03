@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
+import { isOpenAiConfigured, getOpenAiModelName, callOpenAiJson } from "@/lib/openai";
 import { PAIR_REFLECTION_SYSTEM_INSTRUCTION } from "@/lib/prompts/pair-reflection";
 import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackPairReflection, PAIR_ANIMAL_COMBOS } from "@/lib/pair-fallbacks";
@@ -146,78 +147,124 @@ ${turnsContext}
 5. safetyAction: "continue" | "stop"
 をJSONスキーマに従って出力してください。`;
 
-    const config = getGeminiConfig(500);
+    const config = getGeminiConfig(300);
 
-    const callModel = async (modelToUse: string) => {
-      return await generateContentWithTimeout(async () => {
-        return await ai.models.generateContent({
-          model: modelToUse,
-          contents: prompt,
-          config: {
-            systemInstruction: PAIR_REFLECTION_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object",
-              properties: {
-                perspectiveA: { type: "string" },
-                perspectiveB: { type: "string" },
-                reflection: { type: "string" },
-                safetyAction: {
-                  type: "string",
-                  enum: ["continue", "stop"],
-                },
-                pairAnimalDiagnosis: {
-                  type: "object",
-                  properties: {
-                    animalA: {
-                      type: "object",
-                      properties: { emoji: { type: "string" }, name: { type: "string" } },
-                      required: ["emoji", "name"],
-                    },
-                    animalB: {
-                      type: "object",
-                      properties: { emoji: { type: "string" }, name: { type: "string" } },
-                      required: ["emoji", "name"],
-                    },
-                    pairTitle: { type: "string" },
-                    pairCatchphrase: { type: "string" },
-                    pairDescription: { type: "string" },
-                  },
-                  required: ["animalA", "animalB", "pairTitle", "pairCatchphrase", "pairDescription"],
-                },
-              },
-              required: ["perspectiveA", "perspectiveB", "reflection", "safetyAction"],
-            },
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-          },
-        });
-      }, 9000);
-    };
-
-    let response: any = null;
+    let validatedData: z.infer<typeof GeminiPairReflectionOutputSchema> | null = null;
     let usedModel = primaryModel;
 
-    try {
-      response = await callModel(primaryModel);
-    } catch (err: any) {
+    // 1. OpenAI (GPT-4o) が設定されていれば最優先で呼び出し
+    if (isOpenAiConfigured()) {
       try {
-        usedModel = secondaryModel;
-        response = await callModel(secondaryModel);
-      } catch (retryErr: any) {
-        throw err;
+        usedModel = getOpenAiModelName();
+        const openAiResult = await callOpenAiJson<any>({
+          systemInstruction: `${PAIR_REFLECTION_SYSTEM_INSTRUCTION}\n\n【必須出力フォーマット】以下のJSONを出力してください:
+{
+  "perspectiveA": "${nameA}さんの思いや期待のまとめ",
+  "perspectiveB": "${nameB}さんの受け止めや状況のまとめ",
+  "reflection": "ふたりの通い合いを温かく見守る振り返りメッセージ",
+  "safetyAction": "continue" | "stop",
+  "pairAnimalDiagnosis": {
+    "animalA": { "emoji": "絵文字", "name": "動物タイプ名" },
+    "animalB": { "emoji": "絵文字", "name": "動物タイプ名" },
+    "pairTitle": "ペアタイトル (例: 寄り添いイルカ＆見守りフクロウ)",
+    "pairCatchphrase": "ふたりのキャッチコピー",
+    "pairDescription": "ふたりの関係性の魅力や特徴についての温かい解説"
+  }
+}`,
+          userPrompt: prompt,
+          model: usedModel,
+          temperature: 0.3,
+          maxTokens: 500,
+          timeoutMs: 9000,
+        });
+
+        const parsed = GeminiPairReflectionOutputSchema.safeParse(openAiResult);
+        if (parsed.success) {
+          validatedData = parsed.data;
+        }
+      } catch (openAiErr) {
+        console.warn("OpenAI pair-reflection failed, falling back to Gemini:", openAiErr);
+        validatedData = null;
       }
     }
 
-    const rawText = response.text || "";
-    const parsedJson = JSON.parse(rawText);
-    const validatedOutput = GeminiPairReflectionOutputSchema.safeParse(parsedJson);
+    // 2. OpenAI が未設定または失敗した場合は Gemini を呼び出し
+    if (!validatedData) {
+      if (!ai) {
+        throw new Error("No AI API keys configured");
+      }
 
-    if (!validatedOutput.success) {
-      throw new Error("Gemini pair reflection schema validation failed");
+      const callModel = async (modelToUse: string) => {
+        return await generateContentWithTimeout(async () => {
+          return await ai.models.generateContent({
+            model: modelToUse,
+            contents: prompt,
+            config: {
+              systemInstruction: PAIR_REFLECTION_SYSTEM_INSTRUCTION,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "object",
+                properties: {
+                  perspectiveA: { type: "string" },
+                  perspectiveB: { type: "string" },
+                  reflection: { type: "string" },
+                  safetyAction: {
+                    type: "string",
+                    enum: ["continue", "stop"],
+                  },
+                  pairAnimalDiagnosis: {
+                    type: "object",
+                    properties: {
+                      animalA: {
+                        type: "object",
+                        properties: { emoji: { type: "string" }, name: { type: "string" } },
+                        required: ["emoji", "name"],
+                      },
+                      animalB: {
+                        type: "object",
+                        properties: { emoji: { type: "string" }, name: { type: "string" } },
+                        required: ["emoji", "name"],
+                      },
+                      pairTitle: { type: "string" },
+                      pairCatchphrase: { type: "string" },
+                      pairDescription: { type: "string" },
+                    },
+                    required: ["animalA", "animalB", "pairTitle", "pairCatchphrase", "pairDescription"],
+                  },
+                },
+                required: ["perspectiveA", "perspectiveB", "reflection", "safetyAction"],
+              },
+              maxOutputTokens: config.maxOutputTokens,
+              temperature: config.temperature,
+            },
+          });
+        }, 9000);
+      };
+
+      let response: any = null;
+      usedModel = primaryModel;
+
+      try {
+        response = await callModel(primaryModel);
+      } catch (err: any) {
+        try {
+          usedModel = secondaryModel;
+          response = await callModel(secondaryModel);
+        } catch (retryErr: any) {
+          throw err;
+        }
+      }
+
+      const rawText = response.text || "";
+      const parsedJson = JSON.parse(rawText);
+      const parsed = GeminiPairReflectionOutputSchema.safeParse(parsedJson);
+      if (!parsed.success) {
+        throw new Error("Gemini pair reflection schema validation failed");
+      }
+      validatedData = parsed.data;
     }
 
-    const data = validatedOutput.data;
+    const data = validatedData;
 
     if (data.safetyAction === "stop") {
       logSafeRequest({

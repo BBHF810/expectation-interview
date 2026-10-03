@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3 } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
@@ -36,19 +36,28 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [showManualEdit, setShowManualEdit] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setAnswer("");
     setShowManualEdit(false);
   }, [currentQuestion, currentSpeaker]);
 
-  // 新しい質問の音声読み上げ
-  useEffect(() => {
-    if (!currentQuestion || isLoading || !isSpeechEnabled) return;
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const stopAllAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
 
+  const playBrowserSpeech = (text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(currentQuestion);
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ja-JP";
     utterance.rate = 1.0;
     utterance.pitch = 1.05;
@@ -58,9 +67,59 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
     utterance.onerror = () => setIsSpeaking(false);
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  // 新しい質問の音声読み上げ（TTS優先 ＋ ブラウザフォールバック）
+  useEffect(() => {
+    if (!currentQuestion || isLoading || !isSpeechEnabled) {
+      stopAllAudio();
+      return;
+    }
+
+    let isCancelled = false;
+    stopAllAudio();
+
+    const playTtsAudio = async () => {
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: currentQuestion, voice: "nova" }),
+        });
+
+        if (!res.ok) {
+          throw new Error("TTS API unavailable");
+        }
+
+        const blob = await res.blob();
+        if (isCancelled) return;
+
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.onerror = () => {
+          if (!isCancelled) playBrowserSpeech(currentQuestion);
+        };
+
+        await audio.play();
+      } catch (err) {
+        if (!isCancelled) {
+          playBrowserSpeech(currentQuestion);
+        }
+      }
+    };
+
+    playTtsAudio();
 
     return () => {
-      window.speechSynthesis.cancel();
+      isCancelled = true;
+      stopAllAudio();
     };
   }, [currentQuestion, isLoading, isSpeechEnabled]);
 
@@ -76,17 +135,13 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopAllAudio();
     onSubmitAnswer(answer.trim(), false);
   };
 
   const handleSkip = () => {
     if (isLoading) return;
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopAllAudio();
     onSubmitAnswer("（スキップ）", true);
   };
 
@@ -128,8 +183,8 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (isSpeaking && typeof window !== "undefined") {
-                window.speechSynthesis.cancel();
+              if (isSpeaking) {
+                stopAllAudio();
               }
               setIsSpeechEnabled(!isSpeechEnabled);
             }}

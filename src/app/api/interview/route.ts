@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getGeminiClient, getGeminiModelName, getGeminiConfig, generateContentWithTimeout } from "@/lib/gemini";
+import { isOpenAiConfigured, getOpenAiModelName, callOpenAiJson } from "@/lib/openai";
 import { INTERVIEWER_SYSTEM_INSTRUCTION } from "@/lib/prompts/interviewer";
 import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackQuestion, getInitialSingleQuestion } from "@/lib/fallbacks";
@@ -192,68 +193,107 @@ ${
 
     const config = getGeminiConfig(150);
 
-    const callModel = async (modelToUse: string) => {
-      return await generateContentWithTimeout(async () => {
-        return await ai.models.generateContent({
-          model: modelToUse,
-          contents: userPrompt,
-          config: {
-            systemInstruction: INTERVIEWER_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object",
-              properties: {
-                nextQuestion: { type: "string" },
-                questionPurpose: {
-                  type: "string",
-                  enum: ["event", "expectation", "outcome", "reason", "communication", "feeling"],
-                },
-                safetyAction: {
-                  type: "string",
-                  enum: ["continue", "stop"],
-                },
-                detectedPartner: { type: "string" },
-                detectedExpectationType: {
-                  type: "string",
-                  enum: ["matched", "mismatched", "neutral"],
-                },
-                detectedIsCare: {
-                  type: "string",
-                  enum: ["yes", "no"],
-                },
-              },
-              required: ["nextQuestion", "questionPurpose", "safetyAction"],
-            },
-            maxOutputTokens: config.maxOutputTokens,
-            temperature: config.temperature,
-          },
-        });
-      }, 7000);
-    };
-
-    let response: any = null;
+    let validatedData: z.infer<typeof GeminiInterviewOutputSchema> | null = null;
     let usedModel = primaryModel;
 
-    try {
-      response = await callModel(primaryModel);
-    } catch (err: any) {
+    // 1. OpenAI (GPT-4o) が設定されていれば最優先で呼び出し
+    if (isOpenAiConfigured()) {
       try {
-        usedModel = secondaryModel;
-        response = await callModel(secondaryModel);
-      } catch (retryErr: any) {
-        throw err;
+        usedModel = getOpenAiModelName();
+        const openAiResult = await callOpenAiJson<any>({
+          systemInstruction: `${INTERVIEWER_SYSTEM_INSTRUCTION}\n\n【必須出力フォーマット】以下のキーを持つJSONを出力してください:
+- nextQuestion: 80文字以内の次の質問文
+- questionPurpose: "event" | "expectation" | "outcome" | "reason" | "communication" | "feeling" のいずれか
+- safetyAction: "continue" または "stop"
+- detectedPartner (任意): 相手との関係性
+- detectedExpectationType (任意): "matched" | "mismatched" | "neutral"
+- detectedIsCare (任意): "yes" | "no"`,
+          userPrompt,
+          model: usedModel,
+          temperature: 0.3,
+          maxTokens: 250,
+          timeoutMs: 8000,
+        });
+
+        const parsed = GeminiInterviewOutputSchema.safeParse(openAiResult);
+        if (parsed.success) {
+          validatedData = parsed.data;
+        }
+      } catch (openAiErr) {
+        console.warn("OpenAI API call failed, falling back to Gemini:", openAiErr);
+        validatedData = null;
       }
     }
 
-    const rawText = response.text || "";
-    const parsedJson = JSON.parse(rawText);
-    const validatedOutput = GeminiInterviewOutputSchema.safeParse(parsedJson);
+    // 2. OpenAI が未設定、または失敗した場合は Gemini を呼び出し
+    if (!validatedData) {
+      if (!ai) {
+        throw new Error("No AI API keys configured");
+      }
 
-    if (!validatedOutput.success) {
-      throw new Error("Gemini output schema validation failed");
+      const callModel = async (modelToUse: string) => {
+        return await generateContentWithTimeout(async () => {
+          return await ai.models.generateContent({
+            model: modelToUse,
+            contents: userPrompt,
+            config: {
+              systemInstruction: INTERVIEWER_SYSTEM_INSTRUCTION,
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "object",
+                properties: {
+                  nextQuestion: { type: "string" },
+                  questionPurpose: {
+                    type: "string",
+                    enum: ["event", "expectation", "outcome", "reason", "communication", "feeling"],
+                  },
+                  safetyAction: {
+                    type: "string",
+                    enum: ["continue", "stop"],
+                  },
+                  detectedPartner: { type: "string" },
+                  detectedExpectationType: {
+                    type: "string",
+                    enum: ["matched", "mismatched", "neutral"],
+                  },
+                  detectedIsCare: {
+                    type: "string",
+                    enum: ["yes", "no"],
+                  },
+                },
+                required: ["nextQuestion", "questionPurpose", "safetyAction"],
+              },
+              maxOutputTokens: config.maxOutputTokens,
+              temperature: config.temperature,
+            },
+          });
+        }, 7000);
+      };
+
+      let response: any = null;
+      usedModel = primaryModel;
+
+      try {
+        response = await callModel(primaryModel);
+      } catch (err: any) {
+        try {
+          usedModel = secondaryModel;
+          response = await callModel(secondaryModel);
+        } catch (retryErr: any) {
+          throw err;
+        }
+      }
+
+      const rawText = response.text || "";
+      const parsedJson = JSON.parse(rawText);
+      const parsed = GeminiInterviewOutputSchema.safeParse(parsedJson);
+      if (!parsed.success) {
+        throw new Error("Gemini output schema validation failed");
+      }
+      validatedData = parsed.data;
     }
 
-    const data = validatedOutput.data;
+    const data = validatedData;
 
     if (data.safetyAction === "stop") {
       logSafeRequest({
