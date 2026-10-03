@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3 } from "lucide-react";
+import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3, Mic, Keyboard } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
@@ -36,7 +36,12 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const [showManualEdit, setShowManualEdit] = useState(false);
+  const [currentInputMethod, setCurrentInputMethod] = useState<InputMethod>(inputMethod || "voice");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    setCurrentInputMethod(inputMethod || "voice");
+  }, [inputMethod]);
 
   useEffect(() => {
     setAnswer("");
@@ -274,7 +279,66 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         </div>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {inputMethod === "voice" ? (
+          {/* 音声/テキストのリアルタイム切り替えタブ */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              background: "#F1F5F9",
+              borderRadius: "var(--radius-full)",
+              padding: "0.25rem",
+              width: "fit-content",
+              margin: "0 auto",
+              border: "1px solid var(--color-border)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setCurrentInputMethod("voice")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                padding: "0.45rem 1.1rem",
+                borderRadius: "var(--radius-full)",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                background: currentInputMethod === "voice" ? "var(--color-primary)" : "transparent",
+                color: currentInputMethod === "voice" ? "#FFFFFF" : "var(--color-text-muted)",
+                boxShadow: currentInputMethod === "voice" ? "0 2px 6px rgba(2, 132, 199, 0.25)" : "none",
+              }}
+            >
+              <Mic size={16} />
+              音声入力
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentInputMethod("text")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                padding: "0.45rem 1.1rem",
+                borderRadius: "var(--radius-full)",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                background: currentInputMethod === "text" ? "var(--color-primary)" : "transparent",
+                color: currentInputMethod === "text" ? "#FFFFFF" : "var(--color-text-muted)",
+                boxShadow: currentInputMethod === "text" ? "0 2px 6px rgba(2, 132, 199, 0.25)" : "none",
+              }}
+            >
+              <Keyboard size={16} />
+              文字入力（タイピング）
+            </button>
+          </div>
+
+          {currentInputMethod === "voice" ? (
             /* 音声入力専用 */
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div
@@ -325,6 +389,45 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   onListeningStateChange={(active) => setIsListening(active)}
                   disabled={isLoading}
                 />
+              </div>
+
+              {/* マイクが動かない場合の救済案内 */}
+              <div
+                style={{
+                  textAlign: "center",
+                  fontSize: "0.85rem",
+                  color: "var(--color-text-muted)",
+                  background: "#F8FAFC",
+                  border: "1px dashed var(--color-border)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "0.6rem 1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <span>マイクが反応しない・上手く聞き取れないときは？</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentInputMethod("text")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--color-primary)",
+                    fontWeight: 700,
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    padding: 0,
+                    fontSize: "0.85rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <Keyboard size={14} />
+                  キーボード入力に切り替える
+                </button>
               </div>
 
               {answer ? (
@@ -387,18 +490,37 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           ) : (
             /* キーボード入力専用 */
             <div>
-              <label
-                htmlFor="user-answer"
-                style={{
-                  display: "block",
-                  marginBottom: "0.5rem",
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  color: isSpeakerA ? "#1D4ED8" : "#B45309",
-                }}
-              >
-                {currentSpeakerName}の回答を入力してください（最大500文字）
-              </label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <label
+                  htmlFor="user-answer"
+                  style={{
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    color: isSpeakerA ? "#1D4ED8" : "#B45309",
+                    margin: 0,
+                  }}
+                >
+                  {currentSpeakerName}の回答を入力してください（最大500文字）
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setCurrentInputMethod("voice")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--color-primary)",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <Mic size={14} />
+                  音声で話す
+                </button>
+              </div>
               <textarea
                 id="user-answer"
                 rows={4}

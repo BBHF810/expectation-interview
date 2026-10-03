@@ -6,6 +6,7 @@ import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { PartnerScreen } from "@/components/PartnerScreen";
 import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewerAvatar } from "@/components/InterviewerAvatar";
+import { InterviewScreen } from "@/components/InterviewScreen";
 import "@testing-library/jest-dom";
 
 describe("UIコンポーネントテスト", () => {
@@ -77,5 +78,42 @@ describe("UIコンポーネントテスト", () => {
     expect(startBtn).toBeEnabled();
     fireEvent.click(startBtn);
     expect(handleSelect).toHaveBeenCalledWith("voice");
+  });
+
+  it("インタビュー画面: 体験中に音声入力と文字入力をリアルタイムに切り替えられる", () => {
+    const handleSubmitAnswer = vi.fn();
+    const handleFinishEarly = vi.fn();
+    const handleReset = vi.fn();
+
+    render(
+      <InterviewScreen
+        currentQuestion="どんな出来事でしたか？"
+        progress={1}
+        isLoading={false}
+        fallbackUsed={false}
+        inputMethod="voice"
+        onSubmitAnswer={handleSubmitAnswer}
+        onFinishEarly={handleFinishEarly}
+        onReset={handleReset}
+        isSimple={false}
+      />
+    );
+
+    // 初期状態は音声入力UIが表示されている
+    expect(screen.getByText(/キーボード入力に切り替える/i)).toBeInTheDocument();
+
+    // 「キーボード入力に切り替える」をクリック
+    fireEvent.click(screen.getByText(/キーボード入力に切り替える/i));
+
+    // テキストエリアが表示される
+    const textarea = screen.getByRole("textbox");
+    expect(textarea).toBeInTheDocument();
+
+    // 再度「音声入力」タブをクリックして切り替え
+    const voiceTab = screen.getByRole("button", { name: /音声入力/i });
+    fireEvent.click(voiceTab);
+
+    // 再び音声UIが表示される
+    expect(screen.getByText(/キーボード入力に切り替える/i)).toBeInTheDocument();
   });
 });
