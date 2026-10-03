@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, Download, Trash2, Database, Users, User, FileSpreadsheet, FileCode, CheckCircle, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Download, Trash2, Database, Users, User, FileSpreadsheet, FileCode, CheckCircle, RefreshCw, ChevronDown, ChevronUp, Volume2, Play, Square, Settings2 } from "lucide-react";
 import { CollectedEpisode } from "@/types";
 import {
   getStoredEpisodes,
@@ -9,6 +9,7 @@ import {
   exportEpisodesAsCsv,
   exportEpisodesAsJson,
 } from "@/lib/episode-storage";
+import { TTS_VOICES, TtsVoiceId, getSavedTtsVoice, saveTtsVoice, DEFAULT_TTS_VOICE } from "@/lib/tts-voices";
 
 interface AdminEpisodeManagerModalProps {
   isOpen: boolean;
@@ -19,10 +20,15 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   isOpen,
   onClose,
 }) => {
+  const [activeTab, setActiveTab] = useState<"episodes" | "voice">("episodes");
   const [episodes, setEpisodes] = useState<CollectedEpisode[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "single" | "pair">("all");
   const [filterExp, setFilterExp] = useState<"all" | "matched" | "mismatched" | "neutral">("all");
+  const [selectedVoice, setSelectedVoice] = useState<TtsVoiceId>(DEFAULT_TTS_VOICE);
+  const [playingVoice, setPlayingVoice] = useState<TtsVoiceId | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
@@ -36,11 +42,74 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
     if (isOpen) {
       setPinInput("");
       setPinError(false);
+      setSelectedVoice(getSavedTtsVoice());
       if (isAuthenticated) {
         refreshData();
       }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      setIsPlaying(false);
+      setPlayingVoice(null);
     }
   }, [isOpen, isAuthenticated]);
+
+  const handlePlayVoice = async (voiceId: TtsVoiceId) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    if (playingVoice === voiceId && isPlaying) {
+      setIsPlaying(false);
+      setPlayingVoice(null);
+      return;
+    }
+
+    setPlayingVoice(voiceId);
+    setIsPlaying(true);
+
+    try {
+      const sampleText = "こんにちは！工大祭の体験展示へようこそ。お話しできるのを楽しみにしています。";
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: sampleText, voice: voiceId }),
+      });
+
+      if (!res.ok) {
+        throw new Error("TTS generation failed");
+      }
+
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setPlayingVoice(null);
+      };
+      audio.onerror = () => {
+        setIsPlaying(false);
+        setPlayingVoice(null);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.error("Failed to play TTS voice sample", err);
+      setIsPlaying(false);
+      setPlayingVoice(null);
+      alert("音声の試聴に失敗しました。OpenAI APIキーが正しく設定されているかご確認ください。");
+    }
+  };
+
+  const handleSelectVoice = (voiceId: TtsVoiceId) => {
+    saveTtsVoice(voiceId);
+    setSelectedVoice(voiceId);
+  };
 
   if (!isOpen) return null;
 
@@ -234,6 +303,222 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
           </button>
         </div>
 
+        {/* スタッフ管理画面のメインタブ切り替え */}
+        <div
+          style={{
+            display: "flex",
+            gap: "0.5rem",
+            borderBottom: "2px solid var(--color-border)",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveTab("episodes")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.6rem 1.25rem",
+              borderRadius: "var(--radius-md) var(--radius-md) 0 0",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              background: activeTab === "episodes" ? "#EFF6FF" : "transparent",
+              color: activeTab === "episodes" ? "var(--color-primary)" : "var(--color-text-muted)",
+              borderBottom: activeTab === "episodes" ? "3px solid var(--color-primary)" : "3px solid transparent",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Database size={18} />
+            エピソードデータ管理 ({episodes.length}件)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("voice")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.6rem 1.25rem",
+              borderRadius: "var(--radius-md) var(--radius-md) 0 0",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              background: activeTab === "voice" ? "#EFF6FF" : "transparent",
+              color: activeTab === "voice" ? "var(--color-primary)" : "var(--color-text-muted)",
+              borderBottom: activeTab === "voice" ? "3px solid var(--color-primary)" : "3px solid transparent",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Volume2 size={18} />
+            AI音声・しゃべり方設定（{TTS_VOICES.find((v) => v.id === selectedVoice)?.name}）
+          </button>
+        </div>
+
+        {activeTab === "voice" ? (
+          /* --- AI音声・しゃべり方設定タブ --- */
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            <div
+              style={{
+                background: "#F0FDF4",
+                border: "1px solid #86EFAC",
+                borderRadius: "var(--radius-md)",
+                padding: "1rem 1.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.35rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 700, color: "#166534" }}>
+                <Volume2 size={18} />
+                <span>OpenAI TTS 声質（ボイス）の聴き比べ・切り替え</span>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: "#166534", lineHeight: 1.5 }}>
+                OpenAI公式の6種類の音声（TTS）をその場で試聴できます。「この声にする」を選択すると、展示本番のAI発話音声が即座に切り替わります（1人モード・2人モード共通）。
+              </p>
+            </div>
+
+            {/* ボイスカード一覧 */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "1rem" }}>
+              {TTS_VOICES.map((v) => {
+                const isSelected = selectedVoice === v.id;
+                const isVoicePlaying = playingVoice === v.id && isPlaying;
+
+                return (
+                  <div
+                    key={v.id}
+                    style={{
+                      border: isSelected ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-lg)",
+                      padding: "1.25rem",
+                      background: isSelected ? "#F0F9FF" : "#FFFFFF",
+                      boxShadow: isSelected ? "0 4px 12px rgba(2, 132, 199, 0.15)" : "var(--shadow-sm)",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      gap: "0.75rem",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span style={{ fontSize: "1.75rem", lineHeight: 1 }}>{v.emoji}</span>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text-main)" }}>
+                              {v.name}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                padding: "0.15rem 0.5rem",
+                                borderRadius: "var(--radius-full)",
+                                background: v.genderLabel === "女性的" ? "#FCE7F3" : v.genderLabel === "男性的" ? "#DBEAFE" : "#F3F4F6",
+                                color: v.genderLabel === "女性的" ? "#BE185D" : v.genderLabel === "男性的" ? "#1D4ED8" : "#4B5563",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {v.genderLabel}
+                            </span>
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.25rem",
+                              fontSize: "0.8rem",
+                              fontWeight: 700,
+                              color: "#166534",
+                              background: "#DCFCE7",
+                              border: "1px solid #86EFAC",
+                              padding: "0.25rem 0.6rem",
+                              borderRadius: "var(--radius-full)",
+                            }}
+                          >
+                            <CheckCircle size={14} />
+                            適用中
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--color-primary)", marginBottom: "0.35rem" }}>
+                        {v.tagline}
+                      </div>
+
+                      <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+                        {v.description}
+                      </p>
+                    </div>
+
+                    {/* アクションボタン */}
+                    <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.5rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => handlePlayVoice(v.id)}
+                        className="btn"
+                        style={{
+                          flex: 1,
+                          padding: "0.55rem 0.85rem",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.4rem",
+                          background: isVoicePlaying ? "#EF4444" : "#F1F5F9",
+                          color: isVoicePlaying ? "#FFFFFF" : "var(--color-text-main)",
+                          border: "1px solid var(--color-border)",
+                          borderRadius: "var(--radius-md)",
+                        }}
+                      >
+                        {isVoicePlaying ? (
+                          <>
+                            <Square size={14} fill="currentColor" />
+                            停止
+                          </>
+                        ) : (
+                          <>
+                            <Play size={14} fill="currentColor" />
+                            試聴する
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectVoice(v.id)}
+                        disabled={isSelected}
+                        className={isSelected ? "btn btn-outline" : "btn btn-primary"}
+                        style={{
+                          flex: 1,
+                          padding: "0.55rem 0.85rem",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.3rem",
+                          opacity: isSelected ? 0.7 : 1,
+                        }}
+                      >
+                        {isSelected ? "選択済み" : "この声にする"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* --- エピソードデータ管理タブ --- */
+          <>
         {/* 統計サマリーバー */}
         <div
           style={{
@@ -471,6 +756,8 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
               );
             })}
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

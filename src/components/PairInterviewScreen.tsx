@@ -5,6 +5,7 @@ import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3,
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
+import { getSavedTtsVoice } from "@/lib/tts-voices";
 
 interface PairInterviewScreenProps {
   currentQuestion: string;
@@ -89,7 +90,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: currentQuestion, voice: "nova" }),
+          body: JSON.stringify({ text: currentQuestion, voice: getSavedTtsVoice() }),
         });
 
         if (!res.ok) {
