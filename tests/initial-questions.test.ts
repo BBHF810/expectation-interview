@@ -44,7 +44,7 @@ describe("初期固定質問の選定ロジック", () => {
       });
       expect(q.question).toContain("たろうさん、まずは");
       expect(q.question).toContain("はなこさんとの間で");
-      expect(q.question).toContain("期待どおり気持ちが通じ合ったり");
+      expect(q.question).toContain("気持ちが通じ合った場面");
       expect(q.nextSpeaker).toBe("A");
       expect(q.nextSpeakerName).toBe("たろう");
     });
@@ -56,7 +56,7 @@ describe("初期固定質問の選定ロジック", () => {
         relationship: "親子",
         expectationType: "mismatched",
       });
-      expect(qParent.question).toContain("ケンさん、まずは親子のユウさんに対して");
+      expect(qParent.question).toContain("ケンさん、まずは親子のユウさんとの間で");
       expect(qParent.question).toContain("すれ違ってしまった");
 
       const qSpouse = getInitialPairQuestion({
@@ -74,6 +74,14 @@ describe("初期固定質問の選定ロジック", () => {
         expectationType: "matched",
       });
       expect(qLover.question).toContain("レンさん、まずは恋人のリンさんとの間で");
+
+      const qCustom = getInitialPairQuestion({
+        nameA: "ミホ",
+        nameB: "サキ",
+        relationship: "先輩後輩",
+        expectationType: "matched",
+      });
+      expect(qCustom.question).toContain("ミホさん、まずは先輩後輩のサキさんとの間で");
     });
   });
 

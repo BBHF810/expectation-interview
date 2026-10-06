@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
+import { PairSetupScreen } from "@/components/PairSetupScreen";
+import { PairReflectionScreen } from "@/components/PairReflectionScreen";
 import { POST as pairInterviewPost } from "@/app/api/pair-interview/route";
 import { POST as pairReflectionPost } from "@/app/api/pair-reflection/route";
 import { NextRequest } from "next/server";
@@ -18,6 +20,60 @@ describe("ふたりで体験するモードのテスト", () => {
     expect(pairBtn).toBeEnabled();
     fireEvent.click(pairBtn);
     expect(handlePair).toHaveBeenCalledTimes(1);
+  });
+
+  it("PairSetupScreen: 「その他」を選択すると自由入力欄が表示され入力した関係性が渡される", () => {
+    const handleNext = vi.fn();
+    const handleBack = vi.fn();
+
+    render(<PairSetupScreen onNext={handleNext} onBack={handleBack} />);
+
+    // 「その他」ボタンをクリック
+    const otherBtn = screen.getByRole("button", { name: "その他" });
+    fireEvent.click(otherBtn);
+
+    // 自由入力欄が表示される
+    const customInput = screen.getByPlaceholderText(/具体的な関係性/i);
+    expect(customInput).toBeInTheDocument();
+
+    // 入力して送信
+    fireEvent.change(customInput, { target: { value: "サークルの先輩後輩" } });
+    const submitBtn = screen.getByRole("button", { name: /次へ/i });
+    fireEvent.click(submitBtn);
+
+    expect(handleNext).toHaveBeenCalledWith(
+      "Aさん",
+      "Bさん",
+      "サークルの先輩後輩",
+      null,
+      null
+    );
+  });
+
+  it("PairReflectionScreen: 「QRが読めない場合はリンクをコピー」が存在しないこと", () => {
+    const handleReset = vi.fn();
+    render(
+      <PairReflectionScreen
+        nameA="たろう"
+        nameB="はなこ"
+        perspectiveA="A視点"
+        perspectiveB="B視点"
+        reflection="ふたりの振り返り"
+        pairAnimalDiagnosis={{
+          animalA: { emoji: "🐶", name: "素直なワンちゃん" },
+          animalB: { emoji: "🐱", name: "マイペースな猫ちゃん" },
+          pairTitle: "お互いを引き立て合うナイスペア",
+          pairCatchphrase: "正反対のテンポが心地よい絶妙なバランス",
+          pairDescription: "素敵なふたりです。",
+          futureRelationship: "パートナー",
+          academicDynamic: "相補的適応型",
+        }}
+        onReset={handleReset}
+      />
+    );
+
+    expect(screen.queryByText(/QRが読めない場合はリンクをコピー/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/周りの人に見られず/i)).not.toBeInTheDocument();
   });
 
   it("ふたりインタビューAPI: 初回はAさんへの質問を返す", async () => {

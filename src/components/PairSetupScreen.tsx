@@ -16,6 +16,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
   const [ageA, setAgeA] = useState<number | null>(null);
   const [ageB, setAgeB] = useState<number | null>(null);
   const [relationship, setRelationship] = useState("友だち");
+  const [customRelationship, setCustomRelationship] = useState("");
 
   const relationshipOptions = [
     "友だち",
@@ -30,7 +31,10 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
     e.preventDefault();
     const cleanA = nameA.trim() || "Aさん";
     const cleanB = nameB.trim() || "Bさん";
-    onNext(cleanA, cleanB, relationship, ageA, ageB);
+    const finalRelationship = relationship === "その他"
+      ? (customRelationship.trim() || "その他")
+      : relationship;
+    onNext(cleanA, cleanB, finalRelationship, ageA, ageB);
   };
 
   return (
@@ -271,6 +275,24 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
               );
             })}
           </div>
+
+          {relationship === "その他" && (
+            <div style={{ marginTop: "0.75rem" }}>
+              <input
+                type="text"
+                value={customRelationship}
+                onChange={(e) => setCustomRelationship(e.target.value.slice(0, 30))}
+                placeholder="具体的な関係性（例: サークルの先輩後輩、同僚など）"
+                style={{
+                  width: "100%",
+                  padding: "0.6rem 0.8rem",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--color-border)",
+                  fontSize: "0.95rem",
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginTop: "1rem" }}>

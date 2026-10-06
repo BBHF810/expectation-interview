@@ -81,23 +81,38 @@ export function getFallbackPairQuestion(
   turnIndex: number, // 0: Q1-A, 1: Q1-B, 2: Q2-A, 3: Q2-B
   expectationType: ExpectationType
 ): { question: string; nextSpeaker: "A" | "B"; nextSpeakerName: string } {
-  if (turnIndex <= 1) {
-    // Q1: ふたりであった出来事について
-    const q = `${turnIndex === 0 ? nameA : nameB}さん、ふたりであったどんな出来事ですか？そのとき${turnIndex === 0 ? nameB : nameA}さんにどんなことを期待していましたか？`;
+  if (turnIndex === 0) {
+    // ターン1: Aさん・出来事の想起
+    const initial = getInitialPairQuestion({ nameA, nameB, relationship: "", expectationType });
+    return {
+      question: initial.question,
+      nextSpeaker: "A",
+      nextSpeakerName: nameA,
+    };
+  } else if (turnIndex === 1) {
+    // ターン2: Bさん・当時の状況や受け止め
+    return {
+      question: `${nameB}さん、${nameA}さんのお話を聞いて、そのとき${nameB}さんはどんな状況だったり、どう思っていましたか？`,
+      nextSpeaker: "B",
+      nextSpeakerName: nameB,
+    };
+  } else if (turnIndex === 2) {
+    // ターン3: Aさん・相手への期待（本当はどうしてほしかったか）の深掘り
+    let q = `${nameA}さん、そのとき、本当は${nameB}さんにどんな風にしてほしかったと思っていましたか？`;
+    if (expectationType === "matched") {
+      q = `${nameA}さん、そのとき、${nameB}さんにどんなことを期待していましたか？（${nameB}さんのどんな対応が嬉しかったですか？）`;
+    }
     return {
       question: q,
-      nextSpeaker: turnIndex === 0 ? "A" : "B",
-      nextSpeakerName: turnIndex === 0 ? nameA : nameB,
+      nextSpeaker: "A",
+      nextSpeakerName: nameA,
     };
   } else {
-    // Q2: そのときの気持ちについて
-    const q = turnIndex === 2
-      ? `${nameA}さん、その出来事を振り返って、${nameB}さんとのお互いの気持ちについてどう感じましたか？`
-      : `${nameB}さん、同じ出来事を振り返って、${nameA}さんとのお互いの気持ちについてどう感じましたか？`;
+    // ターン4: Bさん・相手の期待を聞いての受け止めと気持ち
     return {
-      question: q,
-      nextSpeaker: turnIndex === 2 ? "A" : "B",
-      nextSpeakerName: turnIndex === 2 ? nameA : nameB,
+      question: `${nameB}さん、${nameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${nameA}さんに伝えたいことはありますか？`,
+      nextSpeaker: "B",
+      nextSpeakerName: nameB,
     };
   }
 }
@@ -129,23 +144,25 @@ export function getInitialPairQuestion(params: {
     relContext = "パートナーの";
   } else if (relationship.includes("家族")) {
     relContext = "ご家族の";
+  } else if (relationship && relationship !== "その他") {
+    relContext = `${relationship}の`;
   }
 
   if (expectationType === "matched") {
     return {
-      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、期待どおり気持ちが通じ合ったり嬉しかった具体的な出来事を教えていただけますか？`,
+      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、印象に残っている嬉しかった出来事や気持ちが通じ合った場面について教えていただけますか？ どんなことがありましたか？`,
       nextSpeaker: "A",
       nextSpeakerName: nameA,
     };
   } else if (expectationType === "mismatched") {
     return {
-      question: `${nameA}さん、まずは${relContext}${nameB}さんに対して「こうしてほしかった」と期待していたのに、少しすれ違ってしまった具体的な出来事を教えていただけますか？`,
+      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、「思っていたのと違ったな」と感じたり、少しすれ違ってしまった具体的な出来事を教えていただけますか？ どんな場面でしたか？`,
       nextSpeaker: "A",
       nextSpeakerName: nameA,
     };
   } else {
     return {
-      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で印象に残っている出来事や、そのとき${nameB}さんに期待していたことについて教えていただけますか？`,
+      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、印象に残っている具体的な出来事について教えていただけますか？ どんな場面でしたか？`,
       nextSpeaker: "A",
       nextSpeakerName: nameA,
     };

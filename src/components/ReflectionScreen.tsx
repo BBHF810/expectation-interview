@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
-import { RotateCcw, CheckCircle2, Sparkles, Smartphone, Camera, Copy, Check, Lock, ExternalLink } from "lucide-react";
+import { RotateCcw, CheckCircle2, Sparkles, Camera, ExternalLink } from "lucide-react";
 import { AnimalDiagnosis } from "@/types";
 import { createSingleShareUrl } from "@/lib/share-code";
 
@@ -25,7 +25,6 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
-  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     const url = createSingleShareUrl(animalDiagnosis, reflection);
@@ -44,14 +43,6 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
       .then((dataUrl) => setQrDataUrl(dataUrl))
       .catch((err) => console.error("QR creation failed", err));
   }, [animalDiagnosis, reflection]);
-
-  const handleCopy = () => {
-    if (navigator.clipboard && shareUrl) {
-      navigator.clipboard.writeText(shareUrl);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
-  };
 
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.25rem", textAlign: "center" }}>
@@ -164,24 +155,6 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
             「未来の性格・強み」やAIからの振り返りをスマホでゆっくり読んだりスクショ保存できます📸
           </p>
         </div>
-
-        {/* プライバシー＆混雑緩和バッジ */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.35rem",
-            fontSize: "0.775rem",
-            color: "#78716C",
-            background: "rgba(255, 255, 255, 0.8)",
-            padding: "0.3rem 0.75rem",
-            borderRadius: "var(--radius-full)",
-            border: "1px solid #E7E5E4",
-          }}
-        >
-          <Lock size={12} />
-          <span>周りの人に見られず、安心してプライベートにご覧いただけます</span>
-        </div>
       </div>
 
       {/* フッターアクション */}
@@ -208,35 +181,7 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
         </button>
 
         {shareUrl && (
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-            <button
-              type="button"
-              onClick={handleCopy}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--color-text-muted)",
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                textDecoration: "underline",
-              }}
-            >
-              {isCopied ? (
-                <>
-                  <Check size={14} color="#166534" />
-                  <span style={{ color: "#166534", fontWeight: 700 }}>リンクをコピーしました！</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={14} />
-                  <span>QRが読めない場合はリンクをコピー</span>
-                </>
-              )}
-            </button>
-            <span style={{ color: "var(--color-border)" }}>|</span>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center", justifyContent: "center" }}>
             <a
               href={shareUrl}
               target="_blank"

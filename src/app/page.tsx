@@ -419,7 +419,7 @@ export default function Home() {
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
       setPairCurrentQuestion(
-        `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき実際にはどう思っていたり、どんな状況でしたか？`
+        `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき${pairNameB}さんはどんな状況だったり、どう思っていましたか？`
       );
       return;
     }
@@ -428,7 +428,7 @@ export default function Home() {
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
       setPairCurrentQuestion(
-        `${pairNameB}さん、同じ出来事を振り返って、${pairNameA}さんとのお互いの気持ちについてどう感じましたか？`
+        `${pairNameB}さん、${pairNameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${pairNameA}さんに伝えたいことはありますか？`
       );
       return;
     }
