@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Sparkles, Camera, Heart, Users, Home } from "lucide-react";
+import { Sparkles, Camera, Heart, Users } from "lucide-react";
 import { restoreShareData } from "@/lib/share-code";
 
 function ShareContent() {
@@ -318,52 +318,38 @@ function ShareContent() {
         )}
       </div>
 
-      {/* スクリーンショット案内 */}
+      {/* スクリーンショット案内（持ち帰り保存） */}
       <div
         style={{
-          marginTop: "1.25rem",
+          marginTop: "1.5rem",
           textAlign: "center",
-          padding: "0.85rem",
+          padding: "1.25rem 1rem",
           background: "#FFFBEB",
-          border: "1px solid #FDE68A",
-          borderRadius: "var(--radius-md)",
+          border: "2px dashed #FCD34D",
+          borderRadius: "var(--radius-lg)",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
           gap: "0.5rem",
-          color: "#92400E",
-          fontSize: "0.9rem",
-          fontWeight: 700,
         }}
       >
-        <Camera size={20} color="#EA580C" />
-        <span>この画面をスクリーンショットして保存してね！📸</span>
-      </div>
-
-      {/* トップページへ戻る導線 */}
-      <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
-        <a
-          href="/"
+        <div
           style={{
             display: "inline-flex",
             alignItems: "center",
-            justifyContent: "center",
-            gap: "0.4rem",
-            color: "var(--color-primary)",
-            fontWeight: 700,
-            fontSize: "0.9rem",
-            textDecoration: "none",
-            background: "#FFFFFF",
-            border: "1px solid var(--color-border)",
-            padding: "0.6rem 1.25rem",
-            borderRadius: "var(--radius-full)",
-            margin: "0 auto",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+            gap: "0.5rem",
+            color: "#92400E",
+            fontSize: "1rem",
+            fontWeight: 800,
           }}
         >
-          <Home size={16} />
-          <span>トップページへ（もう一度体験する）</span>
-        </a>
+          <Camera size={22} color="#EA580C" />
+          <span>この画面をスクリーンショットして保存してね！📸</span>
+        </div>
+        <p style={{ margin: 0, fontSize: "0.825rem", color: "#B45309", lineHeight: 1.5 }}>
+          ※ このページは展示体験の持ち帰り専用カードです。<br />
+          画像として保存しておくと、後からいつでも見返すことができます。
+        </p>
       </div>
     </div>
   );

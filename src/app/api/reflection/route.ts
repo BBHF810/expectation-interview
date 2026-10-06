@@ -38,6 +38,7 @@ const GeminiReflectionOutputSchema = z.object({
   expected: z.string(),
   actual: z.string(),
   reflection: z.string(),
+  closingComment: z.string().optional(),
   safetyAction: z.enum(["continue", "stop"]),
   missingInformation: z.array(z.string()),
   animalDiagnosis: AnimalDiagnosisSchema.optional(),
@@ -165,6 +166,7 @@ ${turnsContext}
   "expected": "参加者が相手に期待していたこと",
   "actual": "実際に起きた出来事",
   "reflection": "心温まる振り返りと気づきのメッセージ",
+  "closingComment": "インタビュー全体の回答を踏まえ、温かく語りかける80〜120文字の音声コメント",
   "safetyAction": "continue" | "stop",
   "missingInformation": [],
   "animalDiagnosis": {
@@ -211,6 +213,7 @@ ${turnsContext}
                   expected: { type: "string" },
                   actual: { type: "string" },
                   reflection: { type: "string" },
+                  closingComment: { type: "string" },
                   safetyAction: {
                     type: "string",
                     enum: ["continue", "stop"],
@@ -299,10 +302,17 @@ ${turnsContext}
       fallbackUsed: false,
     });
 
+    const closingComment =
+      data.closingComment ||
+      `お話ししてくださり、ありがとうございました！${
+        partner && partner !== "相手" ? `${partner}さんとの` : ""
+      }エピソードを教えていただき、とても嬉しかったです。あなたの診断結果をお渡ししますね！`;
+
     return NextResponse.json({
       expected: data.expected || "（回答なし）",
       actual: data.actual || "（回答なし）",
       reflection: data.reflection,
+      closingComment,
       safetyAction: "continue",
       missingInformation: data.missingInformation || [],
       animalDiagnosis,
@@ -328,10 +338,14 @@ ${turnsContext}
       errorType: err?.message || err?.name || "GEMINI_ERROR",
     });
 
+    const fallbackClosing =
+      "お話ししてくださり、ありがとうございました！あなたのお気持ちや出来事がとてもよく伝わってきました。診断結果をお渡ししますね！";
+
     return NextResponse.json({
       expected: fallback.expected,
       actual: fallback.actual,
       reflection: fallback.reflection,
+      closingComment: fallbackClosing,
       safetyAction: "continue",
       missingInformation: [],
       animalDiagnosis: fallback.animalDiagnosis,

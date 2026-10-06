@@ -86,6 +86,7 @@ export interface ReflectionResponseData {
   missingInformation: string[];
   fallbackUsed?: boolean;
   animalDiagnosis: AnimalDiagnosis;
+  closingComment?: string;
 }
 
 // ふたりで体験するモード用
@@ -144,6 +145,7 @@ export interface PairReflectionResponseData {
   pairAnimalDiagnosis: PairAnimalDiagnosis;
   safetyAction: SafetyAction;
   fallbackUsed?: boolean;
+  closingComment?: string;
 }
 
 export type InputMethod = "voice" | "text";
@@ -154,11 +156,13 @@ export type ScreenState =
   | "AGE_SELECT"
   | "INPUT_METHOD_SELECT"
   | "INTERVIEW"
+  | "CLOSING"
   | "REFLECTION"
   | "SAFETY"
   | "PAIR_SETUP"
   | "PAIR_EXPECTATION"
   | "PAIR_INTERVIEW"
+  | "PAIR_CLOSING"
   | "PAIR_REFLECTION";
 
 /** 数値年齢からAgeGroupを算出するユーティリティ */

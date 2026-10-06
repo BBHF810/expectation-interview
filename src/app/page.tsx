@@ -29,6 +29,7 @@ import { PairSetupScreen } from "@/components/PairSetupScreen";
 import { PairExpectationScreen } from "@/components/PairExpectationScreen";
 import { PairInterviewScreen } from "@/components/PairInterviewScreen";
 import { PairReflectionScreen } from "@/components/PairReflectionScreen";
+import { ClosingScreen } from "@/components/ClosingScreen";
 import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
 import { ANIMAL_DIAGNOSES, getInitialSingleQuestion, getSmartFallbackQuestion } from "@/lib/fallbacks";
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
@@ -64,6 +65,8 @@ export default function Home() {
     animalDiagnosis: ANIMAL_DIAGNOSES[0],
   });
 
+  const [closingComment, setClosingComment] = useState<string>("");
+
   // ふたりモード用ステート
   const [pairNameA, setPairNameA] = useState("Aさん");
   const [pairNameB, setPairNameB] = useState("Bさん");
@@ -76,6 +79,7 @@ export default function Home() {
   const [pairCurrentSpeaker, setPairCurrentSpeaker] = useState<"A" | "B">("A");
   const [pairCurrentSpeakerName, setPairCurrentSpeakerName] = useState<string>("Aさん");
   const [pairProgress, setPairProgress] = useState<number>(1);
+  const [pairClosingComment, setPairClosingComment] = useState<string>("");
   const [pairReflectionData, setPairReflectionData] = useState<{
     perspectiveA: string;
     perspectiveB: string;
@@ -105,13 +109,13 @@ export default function Home() {
     setCurrentProgress(1);
     setIsLoading(false);
     setFallbackUsed(false);
+    setClosingComment("");
     setReflectionData({
       expected: "",
       actual: "",
       reflection: "",
       animalDiagnosis: ANIMAL_DIAGNOSES[0],
     });
-
     setPairNameA("Aさん");
     setPairNameB("Bさん");
     setPairAgeA(null);
@@ -123,6 +127,7 @@ export default function Home() {
     setPairCurrentSpeaker("A");
     setPairCurrentSpeakerName("Aさん");
     setPairProgress(1);
+    setPairClosingComment("");
     setPairReflectionData({
       perspectiveA: "",
       perspectiveB: "",
@@ -281,6 +286,12 @@ export default function Home() {
       }
 
       const animalDiag = data.animalDiagnosis || ANIMAL_DIAGNOSES[0];
+      const comment =
+        data.closingComment ||
+        `お話ししてくださり、ありがとうございました！${
+          partner && partner !== "相手" ? `${partner}さんとの` : ""
+        }エピソードを教えていただき、とても嬉しかったです。あなたの診断結果をお渡ししますね！`;
+      setClosingComment(comment);
       setReflectionData({
         expected: data.expected,
         actual: data.actual,
@@ -313,13 +324,16 @@ export default function Home() {
       };
       saveEpisodeLocally(episode);
 
-      setScreen("REFLECTION");
+      setScreen("CLOSING");
     } catch (err) {
       const fallbackDiag = ANIMAL_DIAGNOSES[0];
       const fallbackExpected = history[1]?.answer || history[0]?.answer || "（相手への思い）";
       const fallbackActual = history[0]?.answer || "（実際の出来事）";
       const fallbackRef = "お互いの気持ちに気づき、温かい対話の振り返りとなりました。";
+      const fallbackComment =
+        "お話ししてくださり、ありがとうございました！あなたのお気持ちや出来事がとてもよく伝わってきました。診断結果をお渡ししますね！";
 
+      setClosingComment(fallbackComment);
       setReflectionData({
         expected: fallbackExpected,
         actual: fallbackActual,
@@ -352,7 +366,7 @@ export default function Home() {
       };
       saveEpisodeLocally(episode);
 
-      setScreen("REFLECTION");
+      setScreen("CLOSING");
     } finally {
       setIsLoading(false);
     }
@@ -494,6 +508,10 @@ export default function Home() {
       }
 
       const pairDiag = data.pairAnimalDiagnosis || PAIR_ANIMAL_COMBOS[0];
+      const pairComment =
+        data.closingComment ||
+        `おふたりでお話ししてくださり、ありがとうございました！${pairNameA}さんと${pairNameB}さんの素直なやり取りがとても素敵でした。ふたりの診断結果をお渡ししますね！`;
+      setPairClosingComment(pairComment);
       setPairReflectionData({
         perspectiveA: data.perspectiveA,
         perspectiveB: data.perspectiveB,
@@ -528,13 +546,16 @@ export default function Home() {
       };
       saveEpisodeLocally(episode);
 
-      setScreen("PAIR_REFLECTION");
+      setScreen("PAIR_CLOSING");
     } catch (err) {
       const fallbackDiag = PAIR_ANIMAL_COMBOS[0];
       const fallbackPerspA = history[0]?.answer || "（思い）";
       const fallbackPerspB = history[1]?.answer || "（受け止め）";
       const fallbackRef = `${pairNameA}さんと${pairNameB}さんの素直な気持ちが通い合った、温かい対話の記録です。`;
+      const fallbackComment =
+        `おふたりでお話ししてくださり、ありがとうございました！${pairNameA}さんと${pairNameB}さんの思いがとてもよく伝わってきました。ふたりの診断結果をお渡ししますね！`;
 
+      setPairClosingComment(fallbackComment);
       setPairReflectionData({
         perspectiveA: fallbackPerspA,
         perspectiveB: fallbackPerspB,
@@ -569,7 +590,7 @@ export default function Home() {
       };
       saveEpisodeLocally(episode);
 
-      setScreen("PAIR_REFLECTION");
+      setScreen("PAIR_CLOSING");
     } finally {
       setIsLoading(false);
     }
@@ -635,6 +656,14 @@ export default function Home() {
         />
       )}
 
+      {screen === "CLOSING" && (
+        <ClosingScreen
+          closingComment={closingComment}
+          onProceedToResult={() => setScreen("REFLECTION")}
+          onReset={handleReset}
+        />
+      )}
+
       {screen === "REFLECTION" && (
         <ReflectionScreen
           expected={reflectionData.expected}
@@ -684,6 +713,17 @@ export default function Home() {
           inputMethod={inputMethod}
           onSubmitAnswer={handlePairAnswerSubmit}
           onFinishEarly={() => fetchPairReflection(pairTurns)}
+          onReset={handleReset}
+        />
+      )}
+
+      {screen === "PAIR_CLOSING" && (
+        <ClosingScreen
+          closingComment={pairClosingComment}
+          isPair={true}
+          nameA={pairNameA}
+          nameB={pairNameB}
+          onProceedToResult={() => setScreen("PAIR_REFLECTION")}
           onReset={handleReset}
         />
       )}

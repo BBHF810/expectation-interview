@@ -39,6 +39,7 @@ const GeminiPairReflectionOutputSchema = z.object({
   perspectiveA: z.string(),
   perspectiveB: z.string(),
   reflection: z.string(),
+  closingComment: z.string().optional(),
   safetyAction: z.enum(["continue", "stop"]),
   pairAnimalDiagnosis: PairAnimalDiagnosisSchema.optional(),
 });
@@ -165,6 +166,7 @@ ${turnsContext}
   "perspectiveA": "${nameA}さんの思いや期待のまとめ",
   "perspectiveB": "${nameB}さんの受け止めや状況のまとめ",
   "reflection": "ふたりの通い合いを温かく見守る振り返りメッセージ",
+  "closingComment": "ふたりの対話全体を温かく受け止めて語りかける80〜120文字の音声コメント",
   "safetyAction": "continue" | "stop",
   "pairAnimalDiagnosis": {
     "animalA": { "emoji": "絵文字", "name": "動物タイプ名" },
@@ -211,6 +213,7 @@ ${turnsContext}
                   perspectiveA: { type: "string" },
                   perspectiveB: { type: "string" },
                   reflection: { type: "string" },
+                  closingComment: { type: "string" },
                   safetyAction: {
                     type: "string",
                     enum: ["continue", "stop"],
@@ -303,10 +306,15 @@ ${turnsContext}
       fallbackUsed: false,
     });
 
+    const closingComment =
+      data.closingComment ||
+      `おふたりでお話ししてくださり、ありがとうございました！${nameA}さんと${nameB}さんの素直なやり取りがとても素敵でした。ふたりの診断結果をお渡ししますね！`;
+
     return NextResponse.json({
       perspectiveA: data.perspectiveA,
       perspectiveB: data.perspectiveB,
       reflection: data.reflection,
+      closingComment,
       pairAnimalDiagnosis,
       safetyAction: "continue",
       fallbackUsed: false,
@@ -329,10 +337,14 @@ ${turnsContext}
       errorType: err?.message || err?.name || "GEMINI_ERROR",
     });
 
+    const fallbackClosing =
+      `おふたりでお話ししてくださり、ありがとうございました！${nameA}さんと${nameB}さんの思いがとてもよく伝わってきました。ふたりの診断結果をお渡ししますね！`;
+
     return NextResponse.json({
       perspectiveA: fallback.perspectiveA,
       perspectiveB: fallback.perspectiveB,
       reflection: fallback.reflection,
+      closingComment: fallbackClosing,
       pairAnimalDiagnosis: fallback.pairAnimalDiagnosis,
       safetyAction: "continue",
       fallbackUsed: true,
