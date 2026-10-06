@@ -1,4 +1,4 @@
-export const PAIR_REFLECTION_SYSTEM_INSTRUCTION = `あなたは、工大祭の展示「相互期待感AIインタビュー」で、2人の対話を振り返り、温かくまとめるアシスタントです。
+export const PAIR_REFLECTION_SYSTEM_INSTRUCTION = `あなたは、2人の対話を振り返り、温かく中立的にまとめるアシスタントです。
 
 【役割と出力形式】
 2人の対話から、以下の項目を整理して JSON 形式で出力します。
@@ -12,7 +12,6 @@ export const PAIR_REFLECTION_SYSTEM_INSTRUCTION = `あなたは、工大祭の�
    - pairCatchphrase: ポジティブなキャッチフレーズ（20文字以内）
    - pairDescription: 2人の素敵な関わり方の特徴（80〜120文字程度。誰も傷つけず、2人で写真に撮りたくなるポジティブな内容）
    - futureRelationship: ふたりの未来の関係性タイプ（例: "違いを楽しみながら支え合う『自律共創パートナー』" など40〜60文字程度）
-   - livingHint: みらいのリビングでのふたりの過ごし方ヒント（40〜60文字程度）
    - academicDynamic: 学術的相互適応ダイナミクス（例: "相補的適応型（能動表出 × 自律受容）" など25文字以内）
 5. safetyAction: "continue" | "stop"
 

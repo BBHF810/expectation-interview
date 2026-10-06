@@ -13,7 +13,6 @@ interface ReflectionScreenProps {
   animalDiagnosis?: AnimalDiagnosis;
   onReset: () => void;
   isSimple: boolean;
-  onOpenTheory?: () => void;
 }
 
 export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
@@ -23,7 +22,6 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
   animalDiagnosis,
   onReset,
   isSimple,
-  onOpenTheory,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -163,7 +161,7 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
             <span>スマホのカメラをかざして読み取ってね！</span>
           </div>
           <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-            「未来の性格」や「リビングでの心地よいヒント」をスマホでゆっくり読んだりスクショ保存できます📸
+            「未来の性格・強み」やAIからの振り返りをスマホでゆっくり読んだりスクショ保存できます📸
           </p>
         </div>
 
@@ -208,29 +206,6 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
           <RotateCcw size={20} />
           体験終了（次の人へ・最初に戻る）
         </button>
-
-        {/* 論文ベースの学術解説ボタン */}
-        {onOpenTheory && (
-          <button
-            type="button"
-            onClick={onOpenTheory}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--color-primary)",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              textDecoration: "underline",
-              padding: "0.25rem 0.5rem",
-            }}
-          >
-            <span>📘 診断ロジック・研究背景（論文ベース）を見る</span>
-          </button>
-        )}
 
         {shareUrl && (
           <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

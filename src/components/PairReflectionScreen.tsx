@@ -14,7 +14,6 @@ interface PairReflectionScreenProps {
   reflection: string;
   pairAnimalDiagnosis: PairAnimalDiagnosis;
   onReset: () => void;
-  onOpenTheory?: () => void;
 }
 
 export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
@@ -25,7 +24,6 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
   reflection,
   pairAnimalDiagnosis,
   onReset,
-  onOpenTheory,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -168,7 +166,7 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
             <span>ふたりのスマホでカメラをかざして読み取ってね！</span>
           </div>
           <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-            「ふたりの未来の関係性タイプ」や「みらいリビングでの心地よいヒント」をお手元のスマホで確認・スクショ保存できます📸
+            「ふたりの未来の関係性」やAIからのメッセージをお手元のスマホで確認・スクショ保存できます📸
           </p>
         </div>
 
@@ -213,29 +211,6 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
           <RotateCcw size={20} />
           体験終了（次の人へ・最初に戻る）
         </button>
-
-        {/* 論文ベースの学術解説ボタン */}
-        {onOpenTheory && (
-          <button
-            type="button"
-            onClick={onOpenTheory}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--color-primary)",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.35rem",
-              textDecoration: "underline",
-              padding: "0.25rem 0.5rem",
-            }}
-          >
-            <span>📘 診断ロジック・研究背景（論文ベース）を見る</span>
-          </button>
-        )}
 
         {shareUrl && (
           <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

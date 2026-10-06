@@ -32,7 +32,6 @@ const PairAnimalDiagnosisSchema = z.object({
   pairCatchphrase: z.string(),
   pairDescription: z.string(),
   futureRelationship: z.string().optional(),
-  livingHint: z.string().optional(),
   academicDynamic: z.string().optional(),
 });
 
@@ -233,7 +232,6 @@ ${turnsContext}
                       pairCatchphrase: { type: "string" },
                       pairDescription: { type: "string" },
                       futureRelationship: { type: "string" },
-                      livingHint: { type: "string" },
                       academicDynamic: { type: "string" },
                     },
                     required: ["animalA", "animalB", "pairTitle", "pairCatchphrase", "pairDescription"],

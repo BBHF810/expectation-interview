@@ -31,7 +31,6 @@ const AnimalDiagnosisSchema = z.object({
   catchphrase: z.string(),
   description: z.string(),
   futureTrait: z.string().optional(),
-  livingHint: z.string().optional(),
   academicTrait: z.string().optional(),
 });
 
@@ -228,7 +227,6 @@ ${turnsContext}
                       catchphrase: { type: "string" },
                       description: { type: "string" },
                       futureTrait: { type: "string" },
-                      livingHint: { type: "string" },
                       academicTrait: { type: "string" },
                     },
                     required: ["animalEmoji", "animalName", "catchphrase", "description"],

@@ -44,7 +44,7 @@ function ShareContent() {
           }}
         >
           <Sparkles size={16} color="#EA580C" />
-          <span>みらいリビングラボ 工大祭2026 体験記念カード</span>
+          <span>体験記念カード</span>
         </div>
       </div>
 
@@ -88,25 +88,6 @@ function ShareContent() {
             <h1 style={{ fontSize: "1.75rem", fontWeight: 800, margin: "0 0 0.5rem", color: "var(--color-text-main)" }}>
               {parsedData.title}
             </h1>
-
-            {/* 学術的コミュニケーション分類バッジ */}
-            {parsedData.academicTrait && (
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: "#9A3412",
-                  background: "#FFEDD5",
-                  border: "1px solid #FED7AA",
-                  padding: "0.25rem 0.75rem",
-                  borderRadius: "var(--radius-full)",
-                  display: "inline-block",
-                  marginBottom: "0.75rem",
-                }}
-              >
-                🔬 学術モデル：{parsedData.academicTrait}
-              </div>
-            )}
 
             {parsedData.catchphrase && (
               <div
@@ -154,7 +135,7 @@ function ShareContent() {
                   border: "1px solid #FEF3C7",
                   padding: "1rem",
                   borderRadius: "var(--radius-md)",
-                  marginBottom: "1rem",
+                  marginBottom: "1.25rem",
                 }}
               >
                 <div style={{ fontWeight: 800, color: "#B45309", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
@@ -163,28 +144,6 @@ function ShareContent() {
                 </div>
                 <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#78350F" }}>
                   {parsedData.futureTrait}
-                </div>
-              </div>
-            )}
-
-            {/* みらいリビングでの心地よい関わり方ヒント */}
-            {parsedData.livingHint && (
-              <div
-                style={{
-                  textAlign: "left",
-                  background: "#ECFDF5",
-                  border: "1px solid #D1FAE5",
-                  padding: "1rem",
-                  borderRadius: "var(--radius-md)",
-                  marginBottom: "1.25rem",
-                }}
-              >
-                <div style={{ fontWeight: 800, color: "#065F46", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  <span>🏡</span>
-                  <span>みらいリビングでの心地よい関わり方</span>
-                </div>
-                <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#064E3B" }}>
-                  {parsedData.livingHint}
                 </div>
               </div>
             )}
@@ -229,25 +188,6 @@ function ShareContent() {
             <h1 style={{ fontSize: "1.65rem", fontWeight: 800, margin: "0 0 0.5rem", color: "var(--color-text-main)" }}>
               {parsedData.pairTitle || `${parsedData.nameA} & ${parsedData.nameB} ペア`}
             </h1>
-
-            {/* 学術的相互適応ダイナミクスバッジ */}
-            {parsedData.academicDynamic && (
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  fontWeight: 600,
-                  color: "#9A3412",
-                  background: "#FFEDD5",
-                  border: "1px solid #FED7AA",
-                  padding: "0.25rem 0.75rem",
-                  borderRadius: "var(--radius-full)",
-                  display: "inline-block",
-                  marginBottom: "0.75rem",
-                }}
-              >
-                🔬 学術モデル：{parsedData.academicDynamic}
-              </div>
-            )}
 
             {parsedData.pairCatchphrase && (
               <div
@@ -295,7 +235,7 @@ function ShareContent() {
                   border: "1px solid #FEF3C7",
                   padding: "1rem",
                   borderRadius: "var(--radius-md)",
-                  marginBottom: "1rem",
+                  marginBottom: "1.25rem",
                 }}
               >
                 <div style={{ fontWeight: 800, color: "#B45309", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
@@ -304,28 +244,6 @@ function ShareContent() {
                 </div>
                 <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#78350F" }}>
                   {parsedData.futureRelationship}
-                </div>
-              </div>
-            )}
-
-            {/* みらいのリビングでの過ごし方ヒント */}
-            {parsedData.livingHint && (
-              <div
-                style={{
-                  textAlign: "left",
-                  background: "#ECFDF5",
-                  border: "1px solid #D1FAE5",
-                  padding: "1rem",
-                  borderRadius: "var(--radius-md)",
-                  marginBottom: "1.25rem",
-                }}
-              >
-                <div style={{ fontWeight: 800, color: "#065F46", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  <span>🏡</span>
-                  <span>みらいのリビングでの心地よい過ごし方</span>
-                </div>
-                <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#064E3B" }}>
-                  {parsedData.livingHint}
                 </div>
               </div>
             )}
@@ -422,8 +340,8 @@ function ShareContent() {
         <span>この画面をスクリーンショットして保存してね！📸</span>
       </div>
 
-      {/* 研究室クレジット & トップページへ戻る導線 */}
-      <div style={{ marginTop: "1.5rem", textAlign: "center", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      {/* トップページへ戻る導線 */}
+      <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
         <a
           href="/"
           style={{
@@ -444,14 +362,8 @@ function ShareContent() {
           }}
         >
           <Home size={16} />
-          <span>展示トップページへ（もう一度体験する）</span>
+          <span>トップページへ（もう一度体験する）</span>
         </a>
-
-        <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-          東京科学大学 中谷桃子研究室 ｜ みらいリビングラボ
-          <br />
-          工大祭2026 大岡山キャンパス 西9号館 W9-201
-        </div>
       </div>
     </div>
   );

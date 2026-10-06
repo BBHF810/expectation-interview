@@ -8,7 +8,6 @@ export const PAIR_ANIMAL_COMBOS: PairAnimalDiagnosis[] = [
     pairCatchphrase: "正反対のテンポが心地よい絶妙なバランス",
     pairDescription: "素直に思いを伝える側と、マイペースに受け止める側で、お互いの違いを自然に楽しめている素敵なふたりです。すれ違いがあっても『まあいっか』と笑い合える軽やかさがあります。",
     futureRelationship: "違いを楽しみながらお互いの自由を尊重し合う『自律共創パートナー』",
-    livingHint: "同じリビングにいながら別々の趣味や作業を楽しむ『心地よいゆるやかな共存』がベスト。",
     academicDynamic: "相補的適応型（Complementary Adaptation: 能動表出 × 自律受容）",
   },
   {
@@ -18,7 +17,6 @@ export const PAIR_ANIMAL_COMBOS: PairAnimalDiagnosis[] = [
     pairCatchphrase: "言葉にしなくても通じ合える仲良しペア",
     pairDescription: "お互いの楽しい気持ちや嬉しい瞬間を共有し合える、とても温かい関係性です。お互いの感情のキャッチボールが自然に弾んでいます。",
     futureRelationship: "感情の波長がシンクロし、喜びも悩みも瞬時に分かち合える『共鳴ソウルメイト』",
-    livingHint: "日常の小さな嬉しい発見をリビングで気軽にシェアし合う時間が、ふたりの最大の活力に。",
     academicDynamic: "相互同調型（Mutual Synchrony: 高共感・即時フィードバック）",
   },
   {
@@ -28,7 +26,6 @@ export const PAIR_ANIMAL_COMBOS: PairAnimalDiagnosis[] = [
     pairCatchphrase: "深い信頼と安心感で結ばれたふたり",
     pairDescription: "一歩引いて静かに見守る側と、まっすぐに気持ちをぶつける側で、お互いに深い安心感を持っています。困ったときも助け合える心強いパートナーシップです。",
     futureRelationship: "動く人と見守る人が自然に噛み合い、どんな変化も乗り越えられる『信頼の航海パートナー』",
-    livingHint: "大事な相談ごとは、落ち着いた照明やあたたかい飲み物を囲んでリビングでじっくりと。",
     academicDynamic: "安定補完型（Secure Complementary: 直面行動 × 俯瞰的認知的支援）",
   },
   {
@@ -38,7 +35,6 @@ export const PAIR_ANIMAL_COMBOS: PairAnimalDiagnosis[] = [
     pairCatchphrase: "一緒にいるだけでホッとする優しい時間",
     pairDescription: "お互いに気遣い合い、相手を尊重する思いやりに溢れています。小さな日常の出来事も、ふたりにとってはかけがえのない大切な思い出になります。",
     futureRelationship: "日々の暮らしのタスクや安心感を分け合い、穏やかな日常を紡ぎ続ける『ひだまり共生チーム』",
-    livingHint: "暮らしの役割分担を『お互いへのプレゼント』のように楽しむ工夫が温かい空気を生み出します。",
     academicDynamic: "協調支援型（Collaborative Supportive: 相互ケア・協同行動）",
   },
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Download, Trash2, Database, Users, User, FileSpreadsheet, FileCode, CheckCircle, RefreshCw, ChevronDown, ChevronUp, Volume2, Play, Square, Settings2 } from "lucide-react";
+import { X, Download, Trash2, Database, Users, User, FileSpreadsheet, FileCode, CheckCircle, RefreshCw, ChevronDown, ChevronUp, Volume2, Play, Square, Settings2, BookOpen } from "lucide-react";
 import { CollectedEpisode } from "@/types";
 import {
   getStoredEpisodes,
@@ -10,6 +10,7 @@ import {
   exportEpisodesAsJson,
 } from "@/lib/episode-storage";
 import { TTS_VOICES, TtsVoiceId, getSavedTtsVoice, saveTtsVoice, DEFAULT_TTS_VOICE } from "@/lib/tts-voices";
+import { TheoryExplanationModal } from "./TheoryExplanationModal";
 
 interface AdminEpisodeManagerModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<"episodes" | "voice">("episodes");
+  const [isTheoryModalOpen, setIsTheoryModalOpen] = useState(false);
   const [episodes, setEpisodes] = useState<CollectedEpisode[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "single" | "pair">("all");
@@ -356,6 +358,32 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
           >
             <Volume2 size={18} />
             AI音声・しゃべり方設定（{TTS_VOICES.find((v) => v.id === selectedVoice)?.name}）
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsTheoryModalOpen(true)}
+            style={{
+              marginLeft: "auto",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.4rem 0.85rem",
+              borderRadius: "var(--radius-md)",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              border: "1px dashed var(--color-primary-border)",
+              cursor: "pointer",
+              background: "#FFF7ED",
+              color: "#C2410C",
+              transition: "all 0.15s ease",
+              alignSelf: "center",
+              marginBottom: "0.3rem",
+            }}
+            title="来場者からロジックを質問された際の説明用資料"
+          >
+            <BookOpen size={16} />
+            <span>📘 診断ロジック・理論解説</span>
           </button>
         </div>
 
@@ -760,6 +788,12 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
           </>
         )}
       </div>
+
+      {/* スタッフ説明用：診断理論解説モーダル */}
+      <TheoryExplanationModal
+        isOpen={isTheoryModalOpen}
+        onClose={() => setIsTheoryModalOpen(false)}
+      />
     </div>
   );
 };

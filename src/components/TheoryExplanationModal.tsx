@@ -82,10 +82,10 @@ export const TheoryExplanationModal: React.FC<TheoryExplanationModalProps> = ({
           </div>
           <div>
             <div style={{ fontSize: "0.8rem", color: "var(--color-primary)", fontWeight: 700, letterSpacing: "0.05em" }}>
-              東京科学大学 中谷桃子研究室 ｜ みらいリビングラボ
+              コミュニケーション研究モデル・理論的背景
             </div>
             <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: 0, color: "var(--color-text-main)" }}>
-              AIインタビューの診断ロジック・研究背景
+              診断ロジック・学術的背景（スタッフ向け解説）
             </h2>
           </div>
         </div>
@@ -315,9 +315,9 @@ export const TheoryExplanationModal: React.FC<TheoryExplanationModalProps> = ({
                   Step 3
                 </span>
                 <div>
-                  <div style={{ fontWeight: 700, color: "var(--color-text-main)" }}>感情の受容と未来の暮らしへの展望（Future Living Reframing）</div>
+                  <div style={{ fontWeight: 700, color: "var(--color-text-main)" }}>感情の受容と未来の関わり方への展望（Future Reframing）</div>
                   <div style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-                    湧き上がった感情を肯定し、相手を責めるのではなく「これからの暮らしやリビングでの関わり方のヒント」として昇華します。
+                    湧き上がった感情を肯定し、相手を責めるのではなく「これからの心地よい関わり方のヒント」として昇華します。
                   </div>
                 </div>
               </div>

@@ -140,7 +140,6 @@ export function restoreShareData(rawD: string): any {
       catchphrase: animal.catchphrase,
       description: animal.description,
       futureTrait: animal.futureTrait,
-      livingHint: animal.livingHint,
       academicTrait: animal.academicTrait,
       reflection: decoded.r || "",
     };
@@ -161,7 +160,6 @@ export function restoreShareData(rawD: string): any {
           pairCatchphrase: decoded.pc || "",
           pairDescription: decoded.pd || "",
           futureRelationship: decoded.fr,
-          livingHint: decoded.lh,
           academicDynamic: decoded.ad,
         };
       }
@@ -177,7 +175,6 @@ export function restoreShareData(rawD: string): any {
       pairCatchphrase: combo.pairCatchphrase,
       pairDescription: combo.pairDescription,
       futureRelationship: combo.futureRelationship,
-      livingHint: combo.livingHint,
       academicDynamic: combo.academicDynamic,
       perspectiveA: decoded.pA,
       perspectiveB: decoded.pB,

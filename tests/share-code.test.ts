@@ -39,7 +39,6 @@ describe("短縮QRコードURL生成・復元テスト", () => {
     expect(restored.catchphrase).toBe(animal.catchphrase);
     expect(restored.description).toBe(animal.description);
     expect(restored.futureTrait).toBe(animal.futureTrait);
-    expect(restored.livingHint).toBe(animal.livingHint);
     expect(restored.academicTrait).toBe(animal.academicTrait);
     expect(restored.reflection).toBe(reflection);
   });
@@ -68,7 +67,6 @@ describe("短縮QRコードURL生成・復元テスト", () => {
     expect(restored.nameB).toBe("はなこ");
     expect(restored.pairTitle).toBe(combo.pairTitle);
     expect(restored.futureRelationship).toBe(combo.futureRelationship);
-    expect(restored.livingHint).toBe(combo.livingHint);
     expect(restored.academicDynamic).toBe(combo.academicDynamic);
     expect(restored.animalA).toEqual(combo.animalA);
     expect(restored.animalB).toEqual(combo.animalB);

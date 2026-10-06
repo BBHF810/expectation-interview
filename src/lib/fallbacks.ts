@@ -54,7 +54,6 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     catchphrase: "まっすぐな信頼とピュアな心",
     description: "相手への期待を大切にして、素直な気持ちで向き合えるタイプです。お互いの思いを言葉にし合うことで、さらに強い絆が育まれます。",
     futureTrait: "感情の透明性が高く、周囲に安心感と活気をもたらすオープンマインドな性格",
-    livingHint: "言葉で素直に感謝を伝えることで、リビングに明るい会話のリズムが生まれます。",
     academicTrait: "高親和・ストレート表出型（Direct & Affiliative）",
   },
   {
@@ -63,7 +62,6 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     catchphrase: "心地よい距離感と自立した優しさ",
     description: "相手の領域も自分のペースも尊重できるタイプです。すれ違いが起きても『そういうこともあるよね』とお互いの違いを認め合えるしなやかさがあります。",
     futureTrait: "お互いの境界線を尊重し、過度な干渉を避けてしなやかに共存できる自立した性格",
-    livingHint: "同じ空間にいながら別々のことを楽しむ『心地よい共存の時間』がふたりの信頼を深めます。",
     academicTrait: "自立志向・適応的距離感型（Autonomous & Adaptive）",
   },
   {
@@ -72,7 +70,6 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     catchphrase: "深い洞察力と静かな包容力",
     description: "相手の状況や気持ちを一歩引いて客観的に見つめられるタイプです。言葉にしない期待の奥にある想いに気づく優しさを持っています。",
     futureTrait: "相手のサインを静かに察知し、必要なときに適切なサポートを届けられる思慮深い性格",
-    livingHint: "心の中で温めている優しい気遣いを、たまに一言だけ言葉にして手渡してみましょう。",
     academicTrait: "内省的・観察受容型（Reflective & Accommodating）",
   },
   {
@@ -81,7 +78,6 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     catchphrase: "気持ちのキャッチボールを楽しむ共感力",
     description: "心と心が通じ合う温かい瞬間を何よりも愛するタイプです。楽しいこともすれ違いも、お互いを深く知るきっかけに変えていけます。",
     futureTrait: "気持ちの波長を敏感に受け止め、ポジティブな感情を分かち合えるムードメーカーな性格",
-    livingHint: "『今日あった嬉しかったこと』を日常の夕食や団らんの場でシェアし合う習慣がエネルギーに。",
     academicTrait: "共感主導・相互同調型（Empathetic & Synchronous）",
   },
   {
@@ -90,7 +86,6 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     catchphrase: "どっしり構える安心感と大きな思いやり",
     description: "相手のどんな一面も大らかに受け止めようとする包容力タイプです。そばにいるだけで相手にホッとした安心感を届けられます。",
     futureTrait: "相手の感情の揺らぎをどっしりと受け止め、居場所としての絶対的な安心感を与える性格",
-    livingHint: "特別な言葉がなくても、あたたかいお茶やリラックスできる空間作りが最高のコミュニケーションに。",
     academicTrait: "安定志向・情動的包容型（Secure & Supportive）",
   },
   {
@@ -99,7 +94,6 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     catchphrase: "力を合わせて歩む健気なチームワーク",
     description: "相手と一緒に同じ方向を向いて協力し合いたいと願う誠実なタイプです。小さなすれ違いも、ふたりの歩幅を合わせるための大切な一歩になります。",
     futureTrait: "目標や暮らしの課題を一緒に分担し、歩幅を合わせて前進できるチームワーク志向の性格",
-    livingHint: "ちょっとした家事や予定を『ふたりの共同プロジェクト』として楽しむ工夫が絆を強くします。",
     academicTrait: "協調行動・タスク共有型（Collaborative & Cooperative）",
   },
 ];
