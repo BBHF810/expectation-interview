@@ -31,9 +31,26 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   const [playingVoice, setPlayingVoice] = useState<TtsVoiceId | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      const audio = audioRef.current;
+      audioRef.current = null;
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+    setIsPlaying(false);
+    setPlayingVoice(null);
+  };
 
   const refreshData = () => {
     const list = getStoredEpisodes();
@@ -49,24 +66,14 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
         refreshData();
       }
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setIsPlaying(false);
-      setPlayingVoice(null);
+      stopAudio();
     }
   }, [isOpen, isAuthenticated]);
 
   const handlePlayVoice = async (voiceId: TtsVoiceId) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    stopAudio();
 
     if (playingVoice === voiceId && isPlaying) {
-      setIsPlaying(false);
-      setPlayingVoice(null);
       return;
     }
 
@@ -74,7 +81,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
     setIsPlaying(true);
 
     try {
-      const sampleText = "こんにちは！工大祭の体験展示へようこそ。お話しできるのを楽しみにしています。";
+      const sampleText = "こんにちは！体験展示へようこそ。お話しできるのを楽しみにしています。";
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,23 +94,27 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
 
       const blob = await res.blob();
       const audioUrl = URL.createObjectURL(blob);
+      audioUrlRef.current = audioUrl;
+
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
 
       audio.onended = () => {
-        setIsPlaying(false);
-        setPlayingVoice(null);
+        stopAudio();
       };
       audio.onerror = () => {
-        setIsPlaying(false);
-        setPlayingVoice(null);
+        stopAudio();
       };
 
-      await audio.play();
+      await audio.play().catch((err) => {
+        if (err.name !== "AbortError") {
+          console.error("Audio play error", err);
+          stopAudio();
+        }
+      });
     } catch (err) {
       console.error("Failed to play TTS voice sample", err);
-      setIsPlaying(false);
-      setPlayingVoice(null);
+      stopAudio();
       alert("音声の試聴に失敗しました。OpenAI APIキーが正しく設定されているかご確認ください。");
     }
   };

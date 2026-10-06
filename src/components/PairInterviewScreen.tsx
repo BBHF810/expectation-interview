@@ -39,6 +39,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const [showManualEdit, setShowManualEdit] = useState(false);
   const [currentInputMethod, setCurrentInputMethod] = useState<InputMethod>(inputMethod || "voice");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     setCurrentInputMethod(inputMethod || "voice");
@@ -51,8 +52,17 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
 
   const stopAllAudio = () => {
     if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      const audio = audioRef.current;
+      audioRef.current = null;
+      audio.pause();
+      // currentTime = 0 を呼ぶと revoke された Blob URL への再フェッチが走り ERR_FILE_NOT_FOUND となるため、
+      // currentTime は操作せず src を解除して load() でリソースを切り離す
+      audio.removeAttribute("src");
+      audio.load();
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -100,20 +110,50 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         const blob = await res.blob();
         if (isCancelled) return;
 
+        // 前のオーディオがあれば安全に停止・破棄
+        stopAllAudio();
+
         const audioUrl = URL.createObjectURL(blob);
+        audioUrlRef.current = audioUrl;
+
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
 
-        audio.onplay = () => setIsSpeaking(true);
+        audio.onplay = () => {
+          if (!isCancelled) setIsSpeaking(true);
+        };
         audio.onended = () => {
           setIsSpeaking(false);
-          URL.revokeObjectURL(audioUrl);
+          if (audioRef.current === audio) {
+            audio.removeAttribute("src");
+            audio.load();
+            audioRef.current = null;
+          }
+          if (audioUrlRef.current === audioUrl) {
+            URL.revokeObjectURL(audioUrl);
+            audioUrlRef.current = null;
+          }
         };
         audio.onerror = () => {
+          if (audioRef.current === audio) {
+            audio.removeAttribute("src");
+            audio.load();
+            audioRef.current = null;
+          }
+          if (audioUrlRef.current === audioUrl) {
+            URL.revokeObjectURL(audioUrl);
+            audioUrlRef.current = null;
+          }
           if (!isCancelled) playBrowserSpeech(currentQuestion);
         };
 
-        await audio.play();
+        await audio.play().catch((err) => {
+          // ユーザーによる中断（AbortError）は正常な挙動として無視
+          if (err.name !== "AbortError" && !isCancelled) {
+            console.warn("TTS playback error:", err);
+            playBrowserSpeech(currentQuestion);
+          }
+        });
       } catch (err) {
         if (!isCancelled) {
           playBrowserSpeech(currentQuestion);
