@@ -59,6 +59,9 @@ export interface AnimalDiagnosis {
   animalName: string;
   catchphrase: string;
   description: string;
+  futureTrait?: string; // 未来の性格・くらしで発揮される強み
+  livingHint?: string; // みらいのリビングでの心地よい関わり方のヒント
+  academicTrait?: string; // 学術的コミュニケーション分類軸
 }
 
 export interface ReflectionRequestBody {
@@ -123,6 +126,9 @@ export interface PairAnimalDiagnosis {
   pairTitle: string;
   pairCatchphrase: string;
   pairDescription: string;
+  futureRelationship?: string; // ふたりの未来の関係性タイプ
+  livingHint?: string; // みらいのリビングでのふたりの過ごし方ヒント
+  academicDynamic?: string; // 学術的相互適応ダイナミクス
 }
 
 export interface PairReflectionRequestBody {

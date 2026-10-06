@@ -30,6 +30,7 @@ import { PairExpectationScreen } from "@/components/PairExpectationScreen";
 import { PairInterviewScreen } from "@/components/PairInterviewScreen";
 import { PairReflectionScreen } from "@/components/PairReflectionScreen";
 import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
+import { TheoryExplanationModal } from "@/components/TheoryExplanationModal";
 import { ANIMAL_DIAGNOSES, getInitialSingleQuestion, getSmartFallbackQuestion } from "@/lib/fallbacks";
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
 import { saveEpisodeLocally } from "@/lib/episode-storage";
@@ -40,6 +41,7 @@ export default function Home() {
   const [mode, setMode] = useState<ExperienceMode>("single");
   const [inputMethod, setInputMethod] = useState<InputMethod>("voice");
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isTheoryModalOpen, setIsTheoryModalOpen] = useState(false);
 
   // 一人モード用ステート
   const [age, setAge] = useState<number | null>(null);
@@ -587,6 +589,7 @@ export default function Home() {
             setMode("pair");
             setScreen("CONSENT");
           }}
+          onOpenTheory={() => setIsTheoryModalOpen(true)}
         />
       )}
 
@@ -643,6 +646,7 @@ export default function Home() {
           animalDiagnosis={reflectionData.animalDiagnosis}
           onReset={handleReset}
           isSimple={isSimple}
+          onOpenTheory={() => setIsTheoryModalOpen(true)}
         />
       )}
 
@@ -697,6 +701,7 @@ export default function Home() {
           reflection={pairReflectionData.reflection}
           pairAnimalDiagnosis={pairReflectionData.pairAnimalDiagnosis}
           onReset={handleReset}
+          onOpenTheory={() => setIsTheoryModalOpen(true)}
         />
       )}
 
@@ -705,20 +710,45 @@ export default function Home() {
         <SafetyScreen onReset={handleReset} isSimple={isSimple} />
       )}
 
-      {/* 共通フッターツールバー（スタッフ専用データ管理） */}
+      {/* 共通フッターツールバー（スタッフ専用データ管理 & 学術解説） */}
       <footer
         style={{
           marginTop: "2rem",
           paddingTop: "1rem",
           borderTop: "1px solid var(--border-color)",
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: "0.75rem",
           fontSize: "0.825rem",
           color: "var(--text-muted)",
+          flexWrap: "wrap",
         }}
       >
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsTheoryModalOpen(true)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--color-primary)",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.3rem",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              padding: "0.25rem 0.5rem",
+              borderRadius: "0.375rem",
+              textDecoration: "underline",
+            }}
+          >
+            <span>📘</span>
+            <span>診断ロジック・研究背景（中谷桃子研究室）</span>
+          </button>
+        </div>
+
         <div>
           <button
             type="button"
@@ -743,6 +773,12 @@ export default function Home() {
           </button>
         </div>
       </footer>
+
+      {/* 論文ベースの診断理論解説モーダル */}
+      <TheoryExplanationModal
+        isOpen={isTheoryModalOpen}
+        onClose={() => setIsTheoryModalOpen(false)}
+      />
 
       {/* スタッフ専用モーダル */}
       <AdminEpisodeManagerModal

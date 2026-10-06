@@ -33,17 +33,18 @@ function ShareContent() {
             display: "inline-flex",
             alignItems: "center",
             gap: "0.4rem",
-            background: "#EFF6FF",
-            border: "1px solid #BFDBFE",
-            color: "#1D4ED8",
+            background: "#FFF7ED",
+            border: "1px solid #FFEDD5",
+            color: "#C2410C",
             fontSize: "0.85rem",
             fontWeight: 700,
-            padding: "0.35rem 0.85rem",
+            padding: "0.4rem 1rem",
             borderRadius: "var(--radius-full)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
           }}
         >
-          <Sparkles size={16} />
-          <span>工大祭展示・体験記念カード</span>
+          <Sparkles size={16} color="#EA580C" />
+          <span>みらいリビングラボ 工大祭2026 体験記念カード</span>
         </div>
       </div>
 
@@ -52,11 +53,11 @@ function ShareContent() {
         className="card"
         style={{
           borderRadius: "var(--radius-lg)",
-          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-          border: "2px solid var(--color-primary-border)",
+          boxShadow: "0 10px 25px -5px rgba(234, 88, 12, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+          border: "2px solid #FED7AA",
           padding: "2rem 1.5rem",
           textAlign: "center",
-          background: "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)",
+          background: "linear-gradient(180deg, #FFFFFF 0%, #FFFDF9 100%)",
         }}
       >
         {/* 動物アバター */}
@@ -67,19 +68,20 @@ function ShareContent() {
                 width: "100px",
                 height: "100px",
                 margin: "0 auto 1.25rem",
-                background: "var(--color-primary-light)",
+                background: "#FFF7ED",
+                border: "2px solid #FFEDD5",
                 borderRadius: "var(--radius-full)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: "3.5rem",
-                boxShadow: "0 4px 12px rgba(2, 132, 199, 0.15)",
+                boxShadow: "0 4px 12px rgba(234, 88, 12, 0.12)",
               }}
             >
               {parsedData.emoji || "🌱"}
             </div>
 
-            <div style={{ fontSize: "0.9rem", color: "var(--color-primary)", fontWeight: 700, marginBottom: "0.35rem" }}>
+            <div style={{ fontSize: "0.9rem", color: "#EA580C", fontWeight: 700, marginBottom: "0.35rem" }}>
               あなたのコミュニケーションタイプ
             </div>
 
@@ -87,17 +89,37 @@ function ShareContent() {
               {parsedData.title}
             </h1>
 
+            {/* 学術的コミュニケーション分類バッジ */}
+            {parsedData.academicTrait && (
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "#9A3412",
+                  background: "#FFEDD5",
+                  border: "1px solid #FED7AA",
+                  padding: "0.25rem 0.75rem",
+                  borderRadius: "var(--radius-full)",
+                  display: "inline-block",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                🔬 学術モデル：{parsedData.academicTrait}
+              </div>
+            )}
+
             {parsedData.catchphrase && (
               <div
                 style={{
                   fontSize: "1.05rem",
                   fontWeight: 700,
-                  color: "#0369A1",
-                  background: "#E0F2FE",
+                  color: "#C2410C",
+                  background: "#FFF7ED",
+                  border: "1px solid #FFEDD5",
                   padding: "0.5rem 1rem",
                   borderRadius: "var(--radius-md)",
                   display: "inline-block",
-                  margin: "0.5rem auto 1.25rem",
+                  margin: "0.25rem auto 1.25rem",
                 }}
               >
                 “{parsedData.catchphrase}”
@@ -114,12 +136,57 @@ function ShareContent() {
                   background: "#FFFFFF",
                   padding: "1rem",
                   borderRadius: "var(--radius-md)",
-                  border: "1px solid #E2E8F0",
-                  margin: "0 0 1.5rem",
+                  border: "1px solid #F1F5F9",
+                  boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.02)",
+                  margin: "0 0 1.25rem",
                 }}
               >
                 {parsedData.description}
               </p>
+            )}
+
+            {/* 未来の性格・強み */}
+            {parsedData.futureTrait && (
+              <div
+                style={{
+                  textAlign: "left",
+                  background: "#FFFBEB",
+                  border: "1px solid #FEF3C7",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: "1rem",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "#B45309", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🔮</span>
+                  <span>未来の性格・これからの強み</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#78350F" }}>
+                  {parsedData.futureTrait}
+                </div>
+              </div>
+            )}
+
+            {/* みらいリビングでの心地よい関わり方ヒント */}
+            {parsedData.livingHint && (
+              <div
+                style={{
+                  textAlign: "left",
+                  background: "#ECFDF5",
+                  border: "1px solid #D1FAE5",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: "1.25rem",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "#065F46", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🏡</span>
+                  <span>みらいリビングでの心地よい関わり方</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#064E3B" }}>
+                  {parsedData.livingHint}
+                </div>
+              </div>
             )}
           </>
         ) : (
@@ -136,7 +203,7 @@ function ShareContent() {
             >
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "3.2rem", lineHeight: 1 }}>{parsedData.animalA?.emoji || "🐰"}</div>
-                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#1D4ED8", marginTop: "0.3rem" }}>
+                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#EA580C", marginTop: "0.3rem" }}>
                   {parsedData.nameA}さん
                   <br />
                   <span style={{ fontSize: "0.75rem", color: "#64748B" }}>({parsedData.animalA?.name})</span>
@@ -147,7 +214,7 @@ function ShareContent() {
 
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "3.2rem", lineHeight: 1 }}>{parsedData.animalB?.emoji || "🦉"}</div>
-                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#B45309", marginTop: "0.3rem" }}>
+                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#C2410C", marginTop: "0.3rem" }}>
                   {parsedData.nameB}さん
                   <br />
                   <span style={{ fontSize: "0.75rem", color: "#64748B" }}>({parsedData.animalB?.name})</span>
@@ -155,7 +222,7 @@ function ShareContent() {
               </div>
             </div>
 
-            <div style={{ fontSize: "0.9rem", color: "#D97706", fontWeight: 700, marginBottom: "0.35rem" }}>
+            <div style={{ fontSize: "0.9rem", color: "#EA580C", fontWeight: 700, marginBottom: "0.35rem" }}>
               ふたりの相性・関係性タイプ
             </div>
 
@@ -163,17 +230,37 @@ function ShareContent() {
               {parsedData.pairTitle || `${parsedData.nameA} & ${parsedData.nameB} ペア`}
             </h1>
 
+            {/* 学術的相互適応ダイナミクスバッジ */}
+            {parsedData.academicDynamic && (
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "#9A3412",
+                  background: "#FFEDD5",
+                  border: "1px solid #FED7AA",
+                  padding: "0.25rem 0.75rem",
+                  borderRadius: "var(--radius-full)",
+                  display: "inline-block",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                🔬 学術モデル：{parsedData.academicDynamic}
+              </div>
+            )}
+
             {parsedData.pairCatchphrase && (
               <div
                 style={{
                   fontSize: "1rem",
                   fontWeight: 700,
-                  color: "#B45309",
-                  background: "#FEF3C7",
+                  color: "#C2410C",
+                  background: "#FFF7ED",
+                  border: "1px solid #FFEDD5",
                   padding: "0.5rem 1rem",
                   borderRadius: "var(--radius-md)",
                   display: "inline-block",
-                  margin: "0.5rem auto 1.25rem",
+                  margin: "0.25rem auto 1.25rem",
                 }}
               >
                 “{parsedData.pairCatchphrase}”
@@ -190,12 +277,57 @@ function ShareContent() {
                   background: "#FFFFFF",
                   padding: "1rem",
                   borderRadius: "var(--radius-md)",
-                  border: "1px solid #E2E8F0",
-                  margin: "0 0 1.5rem",
+                  border: "1px solid #F1F5F9",
+                  boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.02)",
+                  margin: "0 0 1.25rem",
                 }}
               >
                 {parsedData.pairDescription}
               </p>
+            )}
+
+            {/* ふたりの未来の関係性タイプ */}
+            {parsedData.futureRelationship && (
+              <div
+                style={{
+                  textAlign: "left",
+                  background: "#FFFBEB",
+                  border: "1px solid #FEF3C7",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: "1rem",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "#B45309", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🚀</span>
+                  <span>ふたりの未来の関係性</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#78350F" }}>
+                  {parsedData.futureRelationship}
+                </div>
+              </div>
+            )}
+
+            {/* みらいのリビングでの過ごし方ヒント */}
+            {parsedData.livingHint && (
+              <div
+                style={{
+                  textAlign: "left",
+                  background: "#ECFDF5",
+                  border: "1px solid #D1FAE5",
+                  padding: "1rem",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: "1.25rem",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "#065F46", fontSize: "0.9rem", marginBottom: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <span>🏡</span>
+                  <span>みらいのリビングでの心地よい過ごし方</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", lineHeight: 1.6, color: "#064E3B" }}>
+                  {parsedData.livingHint}
+                </div>
+              </div>
             )}
 
             {/* ふたりの受け止めまとめ */}
@@ -205,40 +337,40 @@ function ShareContent() {
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.75rem",
-                  marginBottom: "1.5rem",
+                  marginBottom: "1.25rem",
                   textAlign: "left",
                 }}
               >
                 {parsedData.perspectiveA && (
                   <div
                     style={{
-                      background: "#EFF6FF",
-                      border: "1px solid #DBEAFE",
+                      background: "#FFF7ED",
+                      border: "1px solid #FED7AA",
                       borderRadius: "var(--radius-md)",
                       padding: "0.75rem 1rem",
                       fontSize: "0.85rem",
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: "#1D4ED8", marginBottom: "0.2rem" }}>
+                    <div style={{ fontWeight: 700, color: "#C2410C", marginBottom: "0.2rem" }}>
                       {parsedData.nameA}さんの受け止め
                     </div>
-                    <div>{parsedData.perspectiveA}</div>
+                    <div style={{ color: "var(--color-text-main)" }}>{parsedData.perspectiveA}</div>
                   </div>
                 )}
                 {parsedData.perspectiveB && (
                   <div
                     style={{
-                      background: "#FFFBEB",
-                      border: "1px solid #FEF3C7",
+                      background: "#FEFCE8",
+                      border: "1px solid #FEF08A",
                       borderRadius: "var(--radius-md)",
                       padding: "0.75rem 1rem",
                       fontSize: "0.85rem",
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: "#B45309", marginBottom: "0.2rem" }}>
+                    <div style={{ fontWeight: 700, color: "#A16207", marginBottom: "0.2rem" }}>
                       {parsedData.nameB}さんの受け止め
                     </div>
-                    <div>{parsedData.perspectiveB}</div>
+                    <div style={{ color: "var(--color-text-main)" }}>{parsedData.perspectiveB}</div>
                   </div>
                 )}
               </div>
@@ -251,7 +383,8 @@ function ShareContent() {
           <div
             style={{
               textAlign: "left",
-              background: "#F1F5F9",
+              background: "#FAF9F6",
+              border: "1px solid #E2E8F0",
               padding: "1rem",
               borderRadius: "var(--radius-md)",
               fontSize: "0.9rem",
@@ -273,39 +406,52 @@ function ShareContent() {
           marginTop: "1.25rem",
           textAlign: "center",
           padding: "0.85rem",
-          background: "#FEF9C3",
-          border: "1px solid #FDE047",
+          background: "#FFFBEB",
+          border: "1px solid #FDE68A",
           borderRadius: "var(--radius-md)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: "0.5rem",
-          color: "#854D0E",
+          color: "#92400E",
           fontSize: "0.9rem",
           fontWeight: 700,
         }}
       >
-        <Camera size={20} />
+        <Camera size={20} color="#EA580C" />
         <span>この画面をスクリーンショットして保存してね！📸</span>
       </div>
 
-      {/* トップページへ戻る導線 */}
-      <div style={{ marginTop: "1.25rem", textAlign: "center" }}>
+      {/* 研究室クレジット & トップページへ戻る導線 */}
+      <div style={{ marginTop: "1.5rem", textAlign: "center", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <a
           href="/"
           style={{
             display: "inline-flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: "0.4rem",
-            color: "var(--color-text-muted)",
-            fontSize: "0.875rem",
-            textDecoration: "underline",
-            padding: "0.5rem 1rem",
+            color: "var(--color-primary)",
+            fontWeight: 700,
+            fontSize: "0.9rem",
+            textDecoration: "none",
+            background: "#FFFFFF",
+            border: "1px solid var(--color-border)",
+            padding: "0.6rem 1.25rem",
+            borderRadius: "var(--radius-full)",
+            margin: "0 auto",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
           }}
         >
           <Home size={16} />
           <span>展示トップページへ（もう一度体験する）</span>
         </a>
+
+        <div style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
+          東京科学大学 中谷桃子研究室 ｜ みらいリビングラボ
+          <br />
+          工大祭2026 大岡山キャンパス 西9号館 W9-201
+        </div>
       </div>
     </div>
   );

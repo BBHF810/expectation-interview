@@ -13,6 +13,7 @@ interface ReflectionScreenProps {
   animalDiagnosis?: AnimalDiagnosis;
   onReset: () => void;
   isSimple: boolean;
+  onOpenTheory?: () => void;
 }
 
 export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
@@ -22,6 +23,7 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
   animalDiagnosis,
   onReset,
   isSimple,
+  onOpenTheory,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -37,7 +39,7 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
       margin: 1,
       errorCorrectionLevel: "L", // 誤り訂正レベルLにすることで最もシンプルなQRコードになる
       color: {
-        dark: "#0F172A",
+        dark: "#1C1917",
         light: "#FFFFFF",
       },
     })
@@ -61,9 +63,9 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
           style={{
             display: "inline-flex",
             padding: "0.5rem",
-            background: "#DCFCE7",
+            background: "#ECFDF5",
             borderRadius: "var(--radius-full)",
-            color: "#166534",
+            color: "#065F46",
             marginBottom: "0.5rem",
           }}
         >
@@ -75,22 +77,22 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
         <p className="subtitle" style={{ margin: 0, fontSize: "0.95rem" }}>
           {isSimple
             ? "あなたの診断結果ができました！下のQRコードをスマホでよみとってね。"
-            : "あなた専用の診断結果ができました。スマートフォンのカメラでQRコードを読み取ってご覧ください。"}
+            : "あなた専用の診断カードが完成しました。スマートフォンのカメラでQRコードを読み取ってご覧ください。"}
         </p>
       </div>
 
       {/* メイン：QRコード提示カード */}
       <div
         style={{
-          background: "linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%)",
-          border: "2px solid #BFDBFE",
+          background: "linear-gradient(180deg, #FFFDF9 0%, #FFF7ED 100%)",
+          border: "2px solid #FED7AA",
           borderRadius: "var(--radius-lg)",
           padding: "1.5rem 1rem",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: "1rem",
-          boxShadow: "0 4px 15px rgba(37, 99, 235, 0.08)",
+          boxShadow: "0 4px 15px rgba(234, 88, 12, 0.08)",
         }}
       >
         {/* チラ見せバッジ */}
@@ -100,17 +102,17 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
               display: "inline-flex",
               alignItems: "center",
               gap: "0.4rem",
-              padding: "0.35rem 1rem",
+              padding: "0.4rem 1.1rem",
               background: "#FFFFFF",
-              border: "1px solid #93C5FD",
+              border: "1px solid #FED7AA",
               borderRadius: "var(--radius-full)",
               fontSize: "0.95rem",
               fontWeight: 800,
-              color: "#1D4ED8",
+              color: "#C2410C",
               boxShadow: "0 2px 5px rgba(0, 0, 0, 0.05)",
             }}
           >
-            <Sparkles size={16} color="#F59E0B" />
+            <Sparkles size={16} color="#EA580C" />
             <span>
               あなたのタイプ：【{animalDiagnosis.animalEmoji} {animalDiagnosis.animalName}】
             </span>
@@ -123,7 +125,7 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
             background: "#FFFFFF",
             padding: "0.75rem",
             borderRadius: "var(--radius-md)",
-            border: "2px solid var(--color-border)",
+            border: "2px solid #FED7AA",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
             display: "inline-flex",
             alignItems: "center",
@@ -154,14 +156,14 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
               gap: "0.4rem",
               fontSize: "1.05rem",
               fontWeight: 800,
-              color: "#0F172A",
+              color: "#1C1917",
             }}
           >
-            <Camera size={20} color="#2563eb" />
+            <Camera size={20} color="#EA580C" />
             <span>スマホのカメラをかざして読み取ってね！</span>
           </div>
           <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-            詳しい診断解説やAIからの振り返りを、スマホでゆっくり読んだりスクショ保存できます📸
+            「未来の性格」や「リビングでの心地よいヒント」をスマホでゆっくり読んだりスクショ保存できます📸
           </p>
         </div>
 
@@ -172,11 +174,11 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
             alignItems: "center",
             gap: "0.35rem",
             fontSize: "0.775rem",
-            color: "#475569",
+            color: "#78716C",
             background: "rgba(255, 255, 255, 0.8)",
             padding: "0.3rem 0.75rem",
             borderRadius: "var(--radius-full)",
-            border: "1px solid #E2E8F0",
+            border: "1px solid #E7E5E4",
           }}
         >
           <Lock size={12} />
@@ -200,12 +202,35 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
             alignItems: "center",
             justifyContent: "center",
             gap: "0.5rem",
-            boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+            boxShadow: "0 4px 12px rgba(234, 88, 12, 0.25)",
           }}
         >
           <RotateCcw size={20} />
           体験終了（次の人へ・最初に戻る）
         </button>
+
+        {/* 論文ベースの学術解説ボタン */}
+        {onOpenTheory && (
+          <button
+            type="button"
+            onClick={onOpenTheory}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--color-primary)",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              textDecoration: "underline",
+              padding: "0.25rem 0.5rem",
+            }}
+          >
+            <span>📘 診断ロジック・研究背景（論文ベース）を見る</span>
+          </button>
+        )}
 
         {shareUrl && (
           <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

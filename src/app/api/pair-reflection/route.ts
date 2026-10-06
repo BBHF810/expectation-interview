@@ -22,7 +22,7 @@ const PairReflectionRequestSchema = z.object({
   nameB: z.string().min(1).max(30),
   relationship: z.string().max(50),
   expectationType: z.enum(["matched", "mismatched", "neutral"]),
-  conversationHistory: z.array(PairTurnSchema).max(3),
+  conversationHistory: z.array(PairTurnSchema).max(6),
 });
 
 const PairAnimalDiagnosisSchema = z.object({
@@ -31,6 +31,9 @@ const PairAnimalDiagnosisSchema = z.object({
   pairTitle: z.string(),
   pairCatchphrase: z.string(),
   pairDescription: z.string(),
+  futureRelationship: z.string().optional(),
+  livingHint: z.string().optional(),
+  academicDynamic: z.string().optional(),
 });
 
 const GeminiPairReflectionOutputSchema = z.object({
@@ -229,6 +232,9 @@ ${turnsContext}
                       pairTitle: { type: "string" },
                       pairCatchphrase: { type: "string" },
                       pairDescription: { type: "string" },
+                      futureRelationship: { type: "string" },
+                      livingHint: { type: "string" },
+                      academicDynamic: { type: "string" },
                     },
                     required: ["animalA", "animalB", "pairTitle", "pairCatchphrase", "pairDescription"],
                   },

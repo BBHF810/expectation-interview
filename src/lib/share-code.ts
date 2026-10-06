@@ -139,6 +139,9 @@ export function restoreShareData(rawD: string): any {
       emoji: animal.animalEmoji,
       catchphrase: animal.catchphrase,
       description: animal.description,
+      futureTrait: animal.futureTrait,
+      livingHint: animal.livingHint,
+      academicTrait: animal.academicTrait,
       reflection: decoded.r || "",
     };
   } else if (decoded.m === "p") {
@@ -157,6 +160,9 @@ export function restoreShareData(rawD: string): any {
           pairTitle: decoded.pt || `${decoded.nA} & ${decoded.nB} ペア`,
           pairCatchphrase: decoded.pc || "",
           pairDescription: decoded.pd || "",
+          futureRelationship: decoded.fr,
+          livingHint: decoded.lh,
+          academicDynamic: decoded.ad,
         };
       }
     }
@@ -170,6 +176,9 @@ export function restoreShareData(rawD: string): any {
       pairTitle: combo.pairTitle,
       pairCatchphrase: combo.pairCatchphrase,
       pairDescription: combo.pairDescription,
+      futureRelationship: combo.futureRelationship,
+      livingHint: combo.livingHint,
+      academicDynamic: combo.academicDynamic,
       perspectiveA: decoded.pA,
       perspectiveB: decoded.pB,
       reflection: decoded.r || "",

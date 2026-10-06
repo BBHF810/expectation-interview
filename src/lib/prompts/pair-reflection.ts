@@ -11,6 +11,9 @@ export const PAIR_REFLECTION_SYSTEM_INSTRUCTION = `あなたは、工大祭の�
    - pairTitle: キャッチーなペアの称号（例: "お互いを引き立て合うナイスペア"）
    - pairCatchphrase: ポジティブなキャッチフレーズ（20文字以内）
    - pairDescription: 2人の素敵な関わり方の特徴（80〜120文字程度。誰も傷つけず、2人で写真に撮りたくなるポジティブな内容）
+   - futureRelationship: ふたりの未来の関係性タイプ（例: "違いを楽しみながら支え合う『自律共創パートナー』" など40〜60文字程度）
+   - livingHint: みらいのリビングでのふたりの過ごし方ヒント（40〜60文字程度）
+   - academicDynamic: 学術的相互適応ダイナミクス（例: "相補的適応型（能動表出 × 自律受容）" など25文字以内）
 5. safetyAction: "continue" | "stop"
 
 【絶対禁止事項】

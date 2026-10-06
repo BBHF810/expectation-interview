@@ -14,6 +14,7 @@ interface PairReflectionScreenProps {
   reflection: string;
   pairAnimalDiagnosis: PairAnimalDiagnosis;
   onReset: () => void;
+  onOpenTheory?: () => void;
 }
 
 export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
@@ -24,6 +25,7 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
   reflection,
   pairAnimalDiagnosis,
   onReset,
+  onOpenTheory,
 }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -46,7 +48,7 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
       margin: 1,
       errorCorrectionLevel: "L", // 誤り訂正レベルLにすることで最もシンプルなQRコードになる
       color: {
-        dark: "#0F172A",
+        dark: "#1C1917",
         light: "#FFFFFF",
       },
     })
@@ -70,9 +72,9 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
           style={{
             display: "inline-flex",
             padding: "0.5rem",
-            background: "#EFF6FF",
+            background: "#FFF7ED",
             borderRadius: "var(--radius-full)",
-            color: "#1D4ED8",
+            color: "#C2410C",
             marginBottom: "0.5rem",
           }}
         >
@@ -82,22 +84,22 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
           ふたりでお話ししてくれてありがとう！🎉
         </h2>
         <p className="subtitle" style={{ margin: 0, fontSize: "0.95rem" }}>
-          {nameA}さん、{nameB}さん、ふたりの診断結果ができました！スマートフォンのカメラでQRコードを読み取ってご覧ください。
+          {nameA}さん、{nameB}さん、ふたりの診断カードが完成しました！スマートフォンのカメラでQRコードを読み取ってご覧ください。
         </p>
       </div>
 
       {/* メイン：QRコード提示カード */}
       <div
         style={{
-          background: "linear-gradient(135deg, #FEF9C3 0%, #EFF6FF 50%, #FCE7F3 100%)",
-          border: "2px solid #FDE047",
+          background: "linear-gradient(135deg, #FFFDF9 0%, #FFF7ED 50%, #FEF3C7 100%)",
+          border: "2px solid #FED7AA",
           borderRadius: "var(--radius-lg)",
           padding: "1.5rem 1rem",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: "1rem",
-          boxShadow: "0 4px 15px rgba(245, 158, 11, 0.12)",
+          boxShadow: "0 4px 15px rgba(234, 88, 12, 0.1)",
         }}
       >
         {/* チラ見せバッジ */}
@@ -106,17 +108,17 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
             display: "inline-flex",
             alignItems: "center",
             gap: "0.4rem",
-            padding: "0.35rem 1rem",
+            padding: "0.4rem 1.1rem",
             background: "#FFFFFF",
-            border: "1px solid #FCD34D",
+            border: "1px solid #FED7AA",
             borderRadius: "var(--radius-full)",
             fontSize: "0.95rem",
             fontWeight: 800,
-            color: "#B45309",
+            color: "#C2410C",
             boxShadow: "0 2px 5px rgba(0, 0, 0, 0.05)",
           }}
         >
-          <Sparkles size={16} color="#F59E0B" />
+          <Sparkles size={16} color="#EA580C" />
           <span>
             ふたりのペア：【{pairAnimalDiagnosis.animalA.emoji} × {pairAnimalDiagnosis.animalB.emoji} {pairAnimalDiagnosis.pairTitle}】
           </span>
@@ -128,7 +130,7 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
             background: "#FFFFFF",
             padding: "0.75rem",
             borderRadius: "var(--radius-md)",
-            border: "2px solid var(--color-border)",
+            border: "2px solid #FED7AA",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
             display: "inline-flex",
             alignItems: "center",
@@ -159,29 +161,29 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
               gap: "0.4rem",
               fontSize: "1.05rem",
               fontWeight: 800,
-              color: "#0F172A",
+              color: "#1C1917",
             }}
           >
-            <Camera size={20} color="#2563eb" />
+            <Camera size={20} color="#EA580C" />
             <span>ふたりのスマホでカメラをかざして読み取ってね！</span>
           </div>
           <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
-            ふたりの相性タイプやお互いの受け止め、AIからのメッセージをお手元のスマホで確認・スクショ保存できます📸
+            「ふたりの未来の関係性タイプ」や「みらいリビングでの心地よいヒント」をお手元のスマホで確認・スクショ保存できます📸
           </p>
         </div>
 
-        {/* プライバシー＆混雑緩和バッジ */}
+        {/* 混雑緩和バッジ */}
         <div
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "0.35rem",
             fontSize: "0.775rem",
-            color: "#475569",
-            background: "rgba(255, 255, 255, 0.8)",
+            color: "#78716C",
+            background: "rgba(255, 255, 255, 0.85)",
             padding: "0.3rem 0.75rem",
             borderRadius: "var(--radius-full)",
-            border: "1px solid #E2E8F0",
+            border: "1px solid #E7E5E4",
           }}
         >
           <Lock size={12} />
@@ -205,12 +207,35 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
             alignItems: "center",
             justifyContent: "center",
             gap: "0.5rem",
-            boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)",
+            boxShadow: "0 4px 12px rgba(234, 88, 12, 0.25)",
           }}
         >
           <RotateCcw size={20} />
           体験終了（次の人へ・最初に戻る）
         </button>
+
+        {/* 論文ベースの学術解説ボタン */}
+        {onOpenTheory && (
+          <button
+            type="button"
+            onClick={onOpenTheory}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--color-primary)",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              textDecoration: "underline",
+              padding: "0.25rem 0.5rem",
+            }}
+          >
+            <span>📘 診断ロジック・研究背景（論文ベース）を見る</span>
+          </button>
+        )}
 
         {shareUrl && (
           <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>

@@ -85,16 +85,16 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({ onConsent, onBack 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
-            <strong>研究へのデータ活用：</strong>
-            お話しいただいた内容は、個人を特定できない統計情報として、人と人との気持ちの通い合い（相互期待感）に関する学術研究に活用させていただきます。
+            <strong>みらいリビングラボ（中谷桃子研究室）の研究活用：</strong>
+            お話しいただいた内容は、個人を特定できない統計情報として、人と人との気持ちの通い合い（相互期待感）や未来の生活空間におけるコミュニケーション支援に関する学術研究に活用させていただきます。
           </span>
         </div>
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
-            <strong>お楽しみコンテンツ：</strong>
-            最後の動物タイプ診断は工大祭のお楽しみ企画です。医学・心理学的な診断ではありません。
+            <strong>工大祭お楽しみ体験コンテンツ：</strong>
+            最後の動物タイプ診断は、コミュニケーション理論（期待不一致理論等）をベースにした工大祭のお楽しみ体験企画です。医学・心理学的な臨床診断ではありません。
           </span>
         </div>
 
