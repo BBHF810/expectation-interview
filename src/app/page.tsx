@@ -141,12 +141,28 @@ export default function Home() {
   // 入力方式選択 → インタビュー開始
   const handleInputMethodSelect = (method: InputMethod) => {
     setInputMethod(method);
-    const initialQ = getInitialSingleQuestion({ ageGroup });
-    setCurrentQuestion(initialQ.question);
-    setCurrentProgress(1);
-    setFallbackUsed(false);
-    setIsLoading(false);
-    setScreen("INTERVIEW");
+    if (mode === "single") {
+      const initialQ = getInitialSingleQuestion({ ageGroup });
+      setCurrentQuestion(initialQ.question);
+      setCurrentProgress(1);
+      setFallbackUsed(false);
+      setIsLoading(false);
+      setScreen("INTERVIEW");
+    } else {
+      const initialQ = getInitialPairQuestion({
+        nameA: pairNameA,
+        nameB: pairNameB,
+        relationship: pairRelationship,
+        expectationType: pairExpectationType,
+      });
+      setPairCurrentQuestion(initialQ.question);
+      setPairCurrentSpeaker(initialQ.nextSpeaker);
+      setPairCurrentSpeakerName(initialQ.nextSpeakerName);
+      setPairProgress(1);
+      setFallbackUsed(false);
+      setIsLoading(false);
+      setScreen("PAIR_INTERVIEW");
+    }
   };
 
   // 一人モード：回答送信
@@ -595,7 +611,13 @@ export default function Home() {
       {screen === "INPUT_METHOD_SELECT" && (
         <InputMethodScreen
           onSelect={handleInputMethodSelect}
-          onBack={() => setScreen("AGE_SELECT")}
+          onBack={() => {
+            if (mode === "single") {
+              setScreen("AGE_SELECT");
+            } else {
+              setScreen("PAIR_EXPECTATION");
+            }
+          }}
         />
       )}
 
@@ -643,7 +665,10 @@ export default function Home() {
         <PairExpectationScreen
           nameA={pairNameA}
           nameB={pairNameB}
-          onSelect={(exp) => handleStartPairInterview(exp)}
+          onSelect={(exp) => {
+            setPairExpectationType(exp);
+            setScreen("INPUT_METHOD_SELECT");
+          }}
           onBack={() => setScreen("PAIR_SETUP")}
         />
       )}

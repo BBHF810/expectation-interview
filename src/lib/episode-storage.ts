@@ -1,4 +1,4 @@
-﻿import { CollectedEpisode } from "@/types";
+import { CollectedEpisode } from "@/types";
 
 const STORAGE_KEY = "expectation_episodes_data";
 
@@ -89,6 +89,8 @@ export function exportEpisodesAsCsv(episodes: CollectedEpisode[]): void {
     "回答2",
     "質問3",
     "回答3",
+    "質問4",
+    "回答4",
   ];
 
   const rows = episodes.map((e) => {
@@ -129,6 +131,7 @@ export function exportEpisodesAsCsv(episodes: CollectedEpisode[]): void {
     const t1 = e.turns[0];
     const t2 = e.turns[1];
     const t3 = e.turns[2];
+    const t4 = e.turns[3];
 
     return [
       e.id,
@@ -148,6 +151,8 @@ export function exportEpisodesAsCsv(episodes: CollectedEpisode[]): void {
       t2 ? t2.answer : "",
       t3 ? `[${t3.speaker || "Q3"}] ${t3.question}` : "",
       t3 ? t3.answer : "",
+      t4 ? `[${t4.speaker || "Q4"}] ${t4.question}` : "",
+      t4 ? t4.answer : "",
     ].map(escapeCsvCell);
   });
 

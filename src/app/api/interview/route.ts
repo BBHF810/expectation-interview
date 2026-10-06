@@ -129,8 +129,9 @@ export async function POST(req: NextRequest) {
     const nextProgress = nextQuestionIndex + 1;
 
     const ai = getGeminiClient();
+    const hasOpenAi = isOpenAiConfigured();
 
-    if (!ai) {
+    if (!ai && !hasOpenAi) {
       const fallback = getFallbackQuestion(expectationType as ExpectationType, ageGroup as AgeGroup, nextQuestionIndex);
       logSafeRequest({
         requestId,

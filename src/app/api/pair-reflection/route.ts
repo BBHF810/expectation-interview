@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
     }
 
     const ai = getGeminiClient();
+    const hasOpenAi = isOpenAiConfigured();
 
-    if (!ai) {
+    if (!ai && !hasOpenAi) {
       const fallback = getFallbackPairReflection(nameA, nameB, expectationType as ExpectationType, conversationHistory);
       logSafeRequest({
         requestId,

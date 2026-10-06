@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   saveEpisodeLocally,
   getStoredEpisodes,
@@ -88,5 +88,22 @@ describe("エピソードデータのローカル保存・管理 (episode-storag
     expect(getStoredEpisodes().length).toBe(2);
     clearStoredEpisodes();
     expect(getStoredEpisodes().length).toBe(0);
+  });
+
+  it("ペアエピソード（4ターン）を保存して正しく保持できる", () => {
+    const pair4Turns: CollectedEpisode = {
+      ...mockEpisodePair,
+      id: "pair_4turns",
+      turns: [
+        { turnNumber: 1, speaker: "たろう", question: "Q1", answer: "A1" },
+        { turnNumber: 2, speaker: "はなこ", question: "Q2", answer: "A2" },
+        { turnNumber: 3, speaker: "たろう", question: "Q3", answer: "A3" },
+        { turnNumber: 4, speaker: "はなこ", question: "Q4", answer: "A4" },
+      ],
+    };
+    saveEpisodeLocally(pair4Turns);
+    const stored = getStoredEpisodes();
+    expect(stored[0].turns.length).toBe(4);
+    expect(stored[0].turns[3].answer).toBe("A4");
   });
 });

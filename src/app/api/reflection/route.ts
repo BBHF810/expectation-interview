@@ -93,8 +93,9 @@ export async function POST(req: NextRequest) {
     }
 
     const ai = getGeminiClient();
+    const hasOpenAi = isOpenAiConfigured();
 
-    if (!ai) {
+    if (!ai && !hasOpenAi) {
       const fallback = getFallbackReflection(
         expectationType as ExpectationType,
         ageGroup as AgeGroup,

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import QRCode from "qrcode";
-import { RotateCcw, CheckCircle2, Sparkles, Smartphone, Camera, Copy, Check, Lock } from "lucide-react";
+import { RotateCcw, CheckCircle2, Sparkles, Smartphone, Camera, Copy, Check, Lock, ExternalLink } from "lucide-react";
 import { AnimalDiagnosis } from "@/types";
 import { createSingleShareUrl } from "@/lib/share-code";
 
@@ -208,33 +208,52 @@ export const ReflectionScreen: React.FC<ReflectionScreenProps> = ({
         </button>
 
         {shareUrl && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--color-text-muted)",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.3rem",
-              textDecoration: "underline",
-            }}
-          >
-            {isCopied ? (
-              <>
-                <Check size={14} color="#166534" />
-                <span style={{ color: "#166534", fontWeight: 700 }}>リンクをコピーしました！</span>
-              </>
-            ) : (
-              <>
-                <Copy size={14} />
-                <span>QRが読めない場合はリンクをコピー</span>
-              </>
-            )}
-          </button>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--color-text-muted)",
+                fontSize: "0.85rem",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.3rem",
+                textDecoration: "underline",
+              }}
+            >
+              {isCopied ? (
+                <>
+                  <Check size={14} color="#166534" />
+                  <span style={{ color: "#166534", fontWeight: 700 }}>リンクをコピーしました！</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={14} />
+                  <span>QRが読めない場合はリンクをコピー</span>
+                </>
+              )}
+            </button>
+            <span style={{ color: "var(--color-border)" }}>|</span>
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "var(--color-text-muted)",
+                fontSize: "0.85rem",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                textDecoration: "underline",
+              }}
+            >
+              <span>この端末でカードを開く</span>
+              <ExternalLink size={13} />
+            </a>
+          </div>
         )}
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Sparkles, Camera, Heart, Users } from "lucide-react";
+import { Sparkles, Camera, Heart, Users, Home } from "lucide-react";
 import { restoreShareData } from "@/lib/share-code";
 
 function ShareContent() {
@@ -287,6 +287,25 @@ function ShareContent() {
       >
         <Camera size={20} />
         <span>この画面をスクリーンショットして保存してね！📸</span>
+      </div>
+
+      {/* トップページへ戻る導線 */}
+      <div style={{ marginTop: "1.25rem", textAlign: "center" }}>
+        <a
+          href="/"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            color: "var(--color-text-muted)",
+            fontSize: "0.875rem",
+            textDecoration: "underline",
+            padding: "0.5rem 1rem",
+          }}
+        >
+          <Home size={16} />
+          <span>展示トップページへ（もう一度体験する）</span>
+        </a>
       </div>
     </div>
   );
