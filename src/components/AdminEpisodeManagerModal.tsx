@@ -414,10 +414,11 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 700, color: "#166534" }}>
                 <Volume2 size={18} />
-                <span>OpenAI TTS 声質（ボイス）の聴き比べ・切り替え</span>
+                <span>AI発話音声（VOICEVOX / OpenAI HD）の聴き比べ・切り替え</span>
               </div>
               <p style={{ margin: 0, fontSize: "0.875rem", color: "#166534", lineHeight: 1.5 }}>
-                OpenAI公式の6種類の音声（TTS）をその場で試聴できます。「この声にする」を選択すると、展示本番のAI発話音声が即座に切り替わります（1人モード・2人モード共通）。
+                日本語に特化した<strong>VOICEVOX</strong>（四国めたん・青山龍星など）と、OpenAI HD音声を試聴・選択できます。
+                PCでVOICEVOXアプリが起動している時は完全自然な日本語音声で発話し、未起動時は自動的にOpenAI HDへフォールバックします。
               </p>
             </div>
 
@@ -448,8 +449,23 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                           <span style={{ fontSize: "1.75rem", lineHeight: 1 }}>{v.emoji}</span>
                           <div>
-                            <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text-main)" }}>
-                              {v.name}
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                              <span style={{ fontWeight: 800, fontSize: "1.05rem", color: "var(--color-text-main)" }}>
+                                {v.name}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "0.7rem",
+                                  padding: "0.1rem 0.4rem",
+                                  borderRadius: "var(--radius-sm)",
+                                  fontWeight: 700,
+                                  background: v.engine === "VOICEVOX" ? "#EEF2FF" : "#F3F4F6",
+                                  color: v.engine === "VOICEVOX" ? "#4F46E5" : "#4B5563",
+                                  border: v.engine === "VOICEVOX" ? "1px solid #C7D2FE" : "1px solid #E5E7EB",
+                                }}
+                              >
+                                {v.engine}
+                              </span>
                             </div>
                             <span
                               style={{

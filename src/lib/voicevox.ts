@@ -1,0 +1,122 @@
+/**
+ * VOICEVOX Engine API 連携モジュール
+ * デフォルトURL: http://127.0.0.1:50021
+ */
+
+export interface VoicevoxSpeakerOption {
+  id: number;
+  name: string;
+  character: string;
+  style: string;
+  genderLabel: string;
+  emoji: string;
+  description: string;
+}
+
+export const VOICEVOX_SPEAKERS: VoicevoxSpeakerOption[] = [
+  {
+    id: 2,
+    name: "四国めたん（ノーマル）",
+    character: "四国めたん",
+    style: "ノーマル",
+    genderLabel: "女性的",
+    emoji: "🌸",
+    description: "落ち着いた清楚で親しみやすい女性の声。インタビュアーの標準に最適です。",
+  },
+  {
+    id: 13,
+    name: "青山龍星（ノーマル）",
+    character: "青山龍星",
+    style: "ノーマル",
+    genderLabel: "男性的",
+    emoji: "🎙️",
+    description: "落ち着いた重厚感と知性のあるアナウンサー調の男性ボイスです。",
+  },
+  {
+    id: 3,
+    name: "ずんだもん（ノーマル）",
+    character: "ずんだもん",
+    style: "ノーマル",
+    genderLabel: "ニュートラル",
+    emoji: "🌱",
+    description: "明るく親しみやすいキャラクターボイス。親しみやすい雰囲気に最適です。",
+  },
+  {
+    id: 8,
+    name: "春日部つむぎ（ノーマル）",
+    character: "春日部つむぎ",
+    style: "ノーマル",
+    genderLabel: "女性的",
+    emoji: "☀️",
+    description: "元気で快活な明るいトーンの女性ボイスです。",
+  },
+];
+
+export function getVoicevoxApiUrl(): string {
+  return process.env.VOICEVOX_API_URL?.trim() || "http://127.0.0.1:50021";
+}
+
+/**
+ * VOICEVOX API を呼び出して音声を合成（WAV Buffer 返却）
+ * 未起動・接続不可・タイムアウト時は null を返す
+ */
+export async function generateVoicevoxAudio(
+  text: string,
+  speakerId: number = 2,
+  timeoutMs: number = 3500
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const baseUrl = getVoicevoxApiUrl().replace(/\/$/, "");
+
+  try {
+    const signal = typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(timeoutMs)
+      : undefined;
+
+    // 1. audio_query 生成
+    const queryUrl = `${baseUrl}/audio_query?speaker=${speakerId}&text=${encodeURIComponent(text)}`;
+    const queryRes = await fetch(queryUrl, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      signal,
+    });
+
+    if (!queryRes.ok) {
+      console.warn(`VOICEVOX audio_query failed with status ${queryRes.status}`);
+      return null;
+    }
+
+    const audioQuery = await queryRes.json();
+
+    // 読み上げスピード調整（自然な落ち着いたテンポ 1.0）
+    if (audioQuery && typeof audioQuery === "object") {
+      audioQuery.speedScale = 1.0;
+    }
+
+    // 2. synthesis 音声合成
+    const synthUrl = `${baseUrl}/synthesis?speaker=${speakerId}`;
+    const synthRes = await fetch(synthUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "audio/wav",
+      },
+      body: JSON.stringify(audioQuery),
+      signal,
+    });
+
+    if (!synthRes.ok) {
+      console.warn(`VOICEVOX synthesis failed with status ${synthRes.status}`);
+      return null;
+    }
+
+    const arrayBuffer = await synthRes.arrayBuffer();
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      contentType: "audio/wav",
+    };
+  } catch (err: any) {
+    // 接続拒否（未起動）、タイムアウト、Abort等の場合は安全にnullを返す
+    console.warn("VOICEVOX is not available or timed out:", err?.message || err);
+    return null;
+  }
+}
