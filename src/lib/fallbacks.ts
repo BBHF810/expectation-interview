@@ -96,6 +96,70 @@ export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
     futureTrait: "目標や暮らしの課題を一緒に分担し、歩幅を合わせて前進できるチームワーク志向の性格",
     academicTrait: "協調行動・タスク共有型（Collaborative & Cooperative）",
   },
+  {
+    animalEmoji: "🐿️",
+    animalName: "きくばりリスさんタイプ",
+    catchphrase: "細やかな気配りと先回りの優しさ",
+    description: "相手が困らないように先回りして準備したり、小さな変化にすぐ気づける気配り上手です。さりげない心遣いで周りを心地よく満たします。",
+    futureTrait: "日常の些細なサインやニーズを敏感にキャッチし、円滑で心地よい環境を整える性格",
+    academicTrait: "配慮主導・予防的サポート型（Attentive & Proactive）",
+  },
+  {
+    animalEmoji: "🦊",
+    animalName: "ひらめきキツネタイプ",
+    catchphrase: "スマートな機転としなやかな適応力",
+    description: "予想外のすれ違いが起きても、機転を利かせて柔軟に別の楽しさを見つけられるタイプです。どんな状況も軽やかに乗りこなす柔軟性を持っています。",
+    futureTrait: "想定外の状況でも慌てず、新しい解決策や楽しい視点に素早く切り替えられる性格",
+    academicTrait: "認知的柔軟性・状況適応型（Flexible & Resourceful）",
+  },
+  {
+    animalEmoji: "🦔",
+    animalName: "シャイなハリネズミタイプ",
+    catchphrase: "不器用だけど純粋で深いあたたかさ",
+    description: "最初は少し慎重で気持ちを出すのに時間がかかりますが、心の中には相手への純粋で温かい想いが詰まっているタイプです。時間をかけて確かな絆を育みます。",
+    futureTrait: "慎重に信頼関係を深め、一度築いた絆を何よりも大切に守り抜く誠実な性格",
+    academicTrait: "防衛受容・深層愛着型（Cautious & Dedicated）",
+  },
+  {
+    animalEmoji: "🦦",
+    animalName: "陽気なラッコタイプ",
+    catchphrase: "笑顔とユーモアでほぐすポジティブな心",
+    description: "ちょっとしたすれ違いやモヤモヤも、笑顔やユーモアでふわりと和らげてしまえるタイプです。一緒にいる空間を明るい空気で満たします。",
+    futureTrait: "張り詰めた空気をポジティブにほぐし、人との関わりを楽しい遊び場に変える性格",
+    academicTrait: "情動調整・ユーモア媒介型（Playful & Harmonizing）",
+  },
+  {
+    animalEmoji: "🦌",
+    animalName: "おだやかシカタイプ",
+    catchphrase: "相手を尊重する静かな調和と品性",
+    description: "相手の領域や気持ちに無理に踏み込まず、自然な距離感を大切にしながらそっと寄り添えるタイプです。穏やかで安心できる関係を作ります。",
+    futureTrait: "相手のペースとプライベートを大切に尊重し、長続きする穏やかな調和を保つ性格",
+    academicTrait: "非侵襲・調和維持型（Non-intrusive & Peaceful）",
+  },
+  {
+    animalEmoji: "🦁",
+    animalName: "頼れるライオンタイプ",
+    catchphrase: "力強い情熱とブレない包容リーダーシップ",
+    description: "相手を喜ばせたい、困ったときは守りたいという強い情熱とリーダーシップを持つタイプです。頼もしさで相手に前向きな勇気を届けます。",
+    futureTrait: "決断力と責任感を持ち、大切な人を力強く引っ張りながら安心をもたらす性格",
+    academicTrait: "能動主導・防護的コミットメント型（Assertive & Protective）",
+  },
+  {
+    animalEmoji: "🐘",
+    animalName: "しっかりゾウさんタイプ",
+    catchphrase: "約束を重んじる揺るぎない信頼と誠実さ",
+    description: "過去の約束やふたりで交わした言葉を大切に記憶し、相手に誠実に応え続けようとするタイプです。揺るぎない安心感で周囲を支えます。",
+    futureTrait: "約束や信頼を何よりも重んじ、時間をかけて揺るぎない安心と実績を積み重ねる性格",
+    academicTrait: "信義誠実・長期継続型（Consistent & Loyal）",
+  },
+  {
+    animalEmoji: "🐇",
+    animalName: "びかんウサギタイプ",
+    catchphrase: "豊かな感受性と素早い思いやりのアンテナ",
+    description: "相手の些細な表情や声のトーンの変化を素早く感じ取り、ピュアな優しさで応答できるタイプです。繊細だからこそ、相手の痛みに一番に寄り添えます。",
+    futureTrait: "細やかな心の機微を察知し、相手の気持ちに優しく共鳴できる高い感受性を持つ性格",
+    academicTrait: "高感受性・迅速応答型（Sensitive & Responsive）",
+  },
 ];
 
 export function getFallbackAnimalDiagnosis(
@@ -104,18 +168,42 @@ export function getFallbackAnimalDiagnosis(
 ): AnimalDiagnosis {
   const combined = answers.join(" ");
   if (type === "matched") {
-    if (combined.includes("嬉し") || combined.includes("楽")) {
+    if (combined.includes("笑") || combined.includes("楽し") || combined.includes("ユーモア")) {
+      return ANIMAL_DIAGNOSES[9]; // 陽気なラッコ
+    }
+    if (combined.includes("嬉し") || combined.includes("通じ")) {
       return ANIMAL_DIAGNOSES[3]; // 共感イルカ
+    }
+    if (combined.includes("守") || combined.includes("引") || combined.includes("頑張")) {
+      return ANIMAL_DIAGNOSES[11]; // 頼れるライオン
     }
     return ANIMAL_DIAGNOSES[0]; // 素直なワンちゃん
   } else if (type === "mismatched") {
-    if (combined.includes("時間") || combined.includes("忙し")) {
+    if (combined.includes("気遣") || combined.includes("準備") || combined.includes("先")) {
+      return ANIMAL_DIAGNOSES[6]; // きくばりリス
+    }
+    if (combined.includes("我慢") || combined.includes("言えな") || combined.includes("不安") || combined.includes("緊張")) {
+      return ANIMAL_DIAGNOSES[8]; // シャイなハリネズミ
+    }
+    if (combined.includes("時間") || combined.includes("忙し") || combined.includes("マイペース")) {
       return ANIMAL_DIAGNOSES[1]; // 猫ちゃん
     }
-    return ANIMAL_DIAGNOSES[2]; // 見守りフクロウ
+    if (combined.includes("どうして") || combined.includes("なぜ") || combined.includes("考え")) {
+      return ANIMAL_DIAGNOSES[2]; // 見守りフクロウ
+    }
+    return ANIMAL_DIAGNOSES[7]; // ひらめきキツネ
   } else {
-    if (combined.includes("手伝") || combined.includes("一緒")) {
+    if (combined.includes("約束") || combined.includes("信") || combined.includes("待")) {
+      return ANIMAL_DIAGNOSES[12]; // しっかりゾウ
+    }
+    if (combined.includes("静か") || combined.includes("距離") || combined.includes("そっと")) {
+      return ANIMAL_DIAGNOSES[10]; // おだやかシカ
+    }
+    if (combined.includes("手伝") || combined.includes("一緒") || combined.includes("協力")) {
       return ANIMAL_DIAGNOSES[5]; // よりそいペンギン
+    }
+    if (combined.includes("気配") || combined.includes("優し") || combined.includes("気付")) {
+      return ANIMAL_DIAGNOSES[13]; // びかんウサギ
     }
     return ANIMAL_DIAGNOSES[4]; // ぬくもりクマ
   }

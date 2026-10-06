@@ -192,12 +192,12 @@ ${
 センシティブな兆候があれば safetyAction を "stop" にしてください。
 必ず指定されたJSONフォーマットのみを出力してください。`;
 
-    const config = getGeminiConfig(150);
+    const config = getGeminiConfig(120);
 
     let validatedData: z.infer<typeof GeminiInterviewOutputSchema> | null = null;
     let usedModel = primaryModel;
 
-    // 1. OpenAI (GPT-4o) が設定されていれば最優先で呼び出し
+    // 1. OpenAI (GPT-6.1 Sol / GPT-4o) が設定されていれば最優先で呼び出し
     if (isOpenAiConfigured()) {
       try {
         usedModel = getOpenAiModelName();
@@ -211,9 +211,9 @@ ${
 - detectedIsCare (任意): "yes" | "no"`,
           userPrompt,
           model: usedModel,
-          temperature: 0.3,
-          maxTokens: 250,
-          timeoutMs: 8000,
+          temperature: 0.2,
+          maxTokens: 120,
+          timeoutMs: 6500,
         });
 
         const parsed = GeminiInterviewOutputSchema.safeParse(openAiResult);

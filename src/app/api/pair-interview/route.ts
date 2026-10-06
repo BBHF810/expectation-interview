@@ -196,12 +196,12 @@ ${
 質問は80文字以内、1つの疑問文で簡潔にしてください。
 必ず指定されたJSONスキーマに従って出力してください。`;
 
-    const config = getGeminiConfig(160);
+    const config = getGeminiConfig(120);
 
     let validatedData: z.infer<typeof GeminiPairInterviewOutputSchema> | null = null;
     let usedModel = primaryModel;
 
-    // 1. OpenAI (GPT-4o) が設定されていれば最優先で呼び出し
+    // 1. OpenAI (GPT-6.1 Sol / GPT-4o) が設定されていれば最優先で呼び出し
     if (isOpenAiConfigured()) {
       try {
         usedModel = getOpenAiModelName();
@@ -214,9 +214,9 @@ ${
 }`,
           userPrompt,
           model: usedModel,
-          temperature: 0.3,
-          maxTokens: 250,
-          timeoutMs: 8000,
+          temperature: 0.2,
+          maxTokens: 120,
+          timeoutMs: 6500,
         });
 
         const parsed = GeminiPairInterviewOutputSchema.safeParse(openAiResult);

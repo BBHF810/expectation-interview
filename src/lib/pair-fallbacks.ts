@@ -37,6 +37,42 @@ export const PAIR_ANIMAL_COMBOS: PairAnimalDiagnosis[] = [
     futureRelationship: "日々の暮らしのタスクや安心感を分け合い、穏やかな日常を紡ぎ続ける『ひだまり共生チーム』",
     academicDynamic: "協調支援型（Collaborative Supportive: 相互ケア・協同行動）",
   },
+  {
+    animalA: { emoji: "🐿️", name: "きくばりリス" },
+    animalB: { emoji: "🦊", name: "ひらめきキツネ" },
+    pairTitle: "スマート連携！名探偵＆サポーターペア",
+    pairCatchphrase: "先回りの気配りと機転の良さで息ぴったり",
+    pairDescription: "細かい部分によく気がつく気配りと、機転を利かせて状況を動かす柔軟さが合わさった、非常に有能でテンポの良いふたりです。どんな出来事も軽やかに楽しく解決できます。",
+    futureRelationship: "困難な出来事もふたりの知恵と機転で軽やかに乗り越えていく『最強のタッグパートナー』",
+    academicDynamic: "戦略的相補型（Strategic Complementarity: 予見的配慮 × 状況即応）",
+  },
+  {
+    animalA: { emoji: "🦔", name: "シャイなハリネズミ" },
+    animalB: { emoji: "🐻", name: "ぬくもりクマさん" },
+    pairTitle: "じんわり温まる！ゆっくり絆ペア",
+    pairCatchphrase: "時間はかかっても絶対に壊れない深い信頼",
+    pairDescription: "繊細で慎重な側を、どっしり構える側が優しく包み込み、ゆっくりと確かな安心感を育めるふたりです。一緒にいるほど心が安らぎ、本音を打ち明け合えます。",
+    futureRelationship: "お互いの繊細さを守り合い、静かなぬくもりで寄り添い続ける『避難所のような安心パートナー』",
+    academicDynamic: "保護的受容型（Protective Acceptance: 防衛的自己開示 × 感情的受容）",
+  },
+  {
+    animalA: { emoji: "🦦", name: "陽気なラッコ" },
+    animalB: { emoji: "🦌", name: "おだやかシカ" },
+    pairTitle: "笑顔と癒やし！ピースフルフレンズ",
+    pairCatchphrase: "ユーモアと穏やかさが調和する心地よい空気",
+    pairDescription: "楽しい話題で場を明るくする側と、穏やかに微笑んで見守る側で、いつも心地よい空気が流れています。お互いに無理をせず自然体でいられる関係です。",
+    futureRelationship: "どんな変化も笑い飛ばしながら、お互いのプライベートを尊重し合える『陽だまりフレンド』",
+    academicDynamic: "調和共生型（Harmonious Coexistence: ポジティブ感情喚起 × 非侵襲的受容）",
+  },
+  {
+    animalA: { emoji: "🦁", name: "頼れるライオン" },
+    animalB: { emoji: "🐶", name: "素直なワンちゃん" },
+    pairTitle: "熱血タッグ！前進するチャレンジペア",
+    pairCatchphrase: "まっすぐな情熱と信頼で突き進むパワフルコンビ",
+    pairDescription: "力強くリードする側と、まっすぐ素直に応える側で、ポジティブなエネルギーに満ちた関係です。お互いを高め合い、背中を押し合える力強さがあります。",
+    futureRelationship: "お互いの背中を押し合い、新しい目標や挑戦に立ち向かい続ける『情熱の前進パートナー』",
+    academicDynamic: "目標志向・能動牽引型（Goal-oriented & Assertive: 能動的リード × 高協調）",
+  },
 ];
 
 export function getFallbackPairQuestion(

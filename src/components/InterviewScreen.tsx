@@ -310,14 +310,15 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
         </div>
         <p
           style={{
-            fontSize: "1.3rem",
+            fontSize: "1.25rem",
             fontWeight: 700,
-            color: "var(--color-text-main)",
+            color: isLoading ? "var(--color-primary)" : "var(--color-text-main)",
             lineHeight: 1.5,
             margin: 0,
+            transition: "all 0.2s ease",
           }}
         >
-          {currentQuestion}
+          {isLoading ? "💭 お答えを受け止めて、次の質問を考えています…" : currentQuestion}
         </p>
       </div>
 

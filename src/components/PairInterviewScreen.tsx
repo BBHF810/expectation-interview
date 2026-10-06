@@ -304,8 +304,17 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         <div style={{ fontSize: "0.875rem", color: "var(--color-primary)", fontWeight: 700, marginBottom: "0.35rem" }}>
           AIインタビュアーからの質問
         </div>
-        <p style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--color-text-main)", lineHeight: 1.5, margin: 0 }}>
-          {currentQuestion}
+        <p
+          style={{
+            fontSize: "1.25rem",
+            fontWeight: 700,
+            color: isLoading ? "var(--color-primary)" : "var(--color-text-main)",
+            lineHeight: 1.5,
+            margin: 0,
+            transition: "all 0.2s ease",
+          }}
+        >
+          {isLoading ? "💭 ふたりのお返事を受け止めて、次の質問を考えています…" : currentQuestion}
         </p>
       </div>
 
