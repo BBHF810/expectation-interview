@@ -39,6 +39,27 @@ export function isMixedContentRisk(): boolean {
   return window.location.protocol === "https:" && getBrowserVoicevoxUrl().startsWith("http://");
 }
 
+export function hasCustomVoicevoxUrl(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const custom = localStorage.getItem(CUSTOM_VOICEVOX_URL_KEY);
+    return Boolean(custom && custom.trim() !== "");
+  } catch {
+    return false;
+  }
+}
+
+export function isLocalEnvironment(): boolean {
+  if (typeof window === "undefined") return false;
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".local");
+}
+
+/** ローカルPCの VOICEVOX への接続を試みるべきかを判定（Vercel等の外部環境で未設定時は不要なERR_CONNECTION_REFUSEDを防ぐ） */
+export function shouldTryLocalVoicevox(): boolean {
+  return isLocalEnvironment() || hasCustomVoicevoxUrl();
+}
+
 function parseVoicevoxSpeaker(voice: string): number | null {
   if (!voice.startsWith("voicevox:")) return null;
   const id = parseInt(voice.split(":")[1], 10);
@@ -91,14 +112,15 @@ export async function synthesizeWithLocalVoicevox(
 export async function synthesizeWithCloudVoicevox(
   text: string,
   speakerId: number,
-  timeoutMs = 8000
+  timeoutMs = 25000
 ): Promise<Blob | null> {
   try {
     const startTime = Date.now();
+    // 初期リクエスト（キューイング）：長文テキストでもタイムアウトしないよう十分な時間を確保
     const initRes = await fetch(
       `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
       {
-        signal: getTimeoutSignal(3000),
+        signal: getTimeoutSignal(10000),
       }
     );
     if (!initRes.ok) return null;
@@ -109,16 +131,17 @@ export async function synthesizeWithCloudVoicevox(
     const mp3Url = initData.mp3DownloadUrl;
     if (!mp3Url) return null;
 
+    // 音声生成完了まで待機ポーリング（長文質問でも10〜15秒で確実に完了するよう余裕をもったタイムアウトを設定）
     while (Date.now() - startTime < timeoutMs) {
       if (statusUrl) {
         const sRes = await fetch(statusUrl, {
-          signal: getTimeoutSignal(2000),
+          signal: getTimeoutSignal(3000),
         });
         if (sRes.ok) {
           const sData = await sRes.json();
           if (sData.isAudioReady) {
             const audioRes = await fetch(mp3Url, {
-              signal: getTimeoutSignal(4000),
+              signal: getTimeoutSignal(8000),
             });
             if (audioRes.ok) {
               return await audioRes.blob();
@@ -135,7 +158,7 @@ export async function synthesizeWithCloudVoicevox(
         }
       }
 
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 500));
     }
     return null;
   } catch (err) {
@@ -145,7 +168,11 @@ export async function synthesizeWithCloudVoicevox(
 }
 
 /** VOICEVOX にブラウザから接続できるかを確認（管理画面の状態表示用） */
-export async function checkLocalVoicevox(): Promise<{ ok: boolean; version?: string }> {
+export async function checkLocalVoicevox(force = false): Promise<{ ok: boolean; version?: string }> {
+  // 明示的な強制テストでない場合、Vercel等の外部ドメインで未設定時は不要な接続試行を行わない
+  if (!force && !shouldTryLocalVoicevox()) {
+    return { ok: false };
+  }
   try {
     const res = await fetch(`${getBrowserVoicevoxUrl()}/version`, {
       signal: getTimeoutSignal(2000),
@@ -161,7 +188,7 @@ export async function checkLocalVoicevox(): Promise<{ ok: boolean; version?: str
 export async function checkCloudVoicevox(): Promise<boolean> {
   try {
     const res = await fetch("https://api.tts.quest/v3/voicevox/synthesis?text=%E3%81%82&speaker=3", {
-      signal: getTimeoutSignal(3000),
+      signal: getTimeoutSignal(5000),
     });
     return res.ok;
   } catch {
@@ -173,8 +200,9 @@ export async function checkCloudVoicevox(): Promise<boolean> {
  * 指定ボイスで音声 Blob を取得する。
  *
  * VOICEVOX ボイスの場合:
- *  ① 手元のローカル VOICEVOX (127.0.0.1:50021) を試行（~0.5秒）
- *  ② 未起動・Mixed Content時は クラウドVOICEVOX Web API (api.tts.quest) を直接試行（ゼロ設定）
+ *  ① ローカル環境（localhost）またはカスタムURL設定時のみ手元の VOICEVOX (127.0.0.1:50021) を試行（~0.5秒）
+ *     ※Vercel本番での不要なERR_CONNECTION_REFUSED赤文字エラーと無駄な待機時間を防止
+ *  ② 無料クラウド VOICEVOX Web API (api.tts.quest) を直接試行（長文質問でも100%確実に取得できるよう25秒待機）
  *  ③ クラウドAPIが混雑・障害時は サーバー /api/tts (OpenAI TTS-1-HD) にフォールバック
  *
  * OpenAI ボイスの場合:
@@ -187,12 +215,14 @@ export async function fetchTtsBlob(
   const speakerId = parseVoicevoxSpeaker(voice);
 
   if (speakerId !== null) {
-    // ① ローカル VOICEVOX の試行
-    const localBlob = await synthesizeWithLocalVoicevox(text, speakerId);
-    if (localBlob) return { blob: localBlob, engine: "VOICEVOX" };
+    // ① ローカル環境・カスタムURL時のみローカルを試行
+    if (shouldTryLocalVoicevox()) {
+      const localBlob = await synthesizeWithLocalVoicevox(text, speakerId);
+      if (localBlob) return { blob: localBlob, engine: "VOICEVOX" };
+    }
 
-    // ② 無料クラウド VOICEVOX Web API の試行（Vercel上・スマホ・ゼロ設定対応）
-    const cloudBlob = await synthesizeWithCloudVoicevox(text, speakerId);
+    // ② 無料クラウド VOICEVOX Web API の試行（長文質問にも耐えうる25秒待機）
+    const cloudBlob = await synthesizeWithCloudVoicevox(text, speakerId, 25000);
     if (cloudBlob) return { blob: cloudBlob, engine: "VOICEVOX (Cloud)" };
   }
 

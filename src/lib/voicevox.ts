@@ -137,7 +137,7 @@ export async function generateVoicevoxAudio(
 export async function generateCloudVoicevoxAudio(
   text: string,
   speakerId: number = 2,
-  timeoutMs: number = 6000
+  timeoutMs: number = 15000
 ): Promise<{ buffer: Buffer; contentType: string } | null> {
   try {
     const apiKey = process.env.VOICEVOX_QUEST_API_KEY?.trim();
@@ -148,7 +148,7 @@ export async function generateCloudVoicevoxAudio(
 
     const startTime = Date.now();
     const initRes = await fetch(url, {
-      signal: getTimeoutSignal(3000),
+      signal: getTimeoutSignal(10000),
     });
     if (!initRes.ok) return null;
     const initData = await initRes.json();
@@ -162,13 +162,13 @@ export async function generateCloudVoicevoxAudio(
     while (Date.now() - startTime < timeoutMs) {
       if (statusUrl) {
         const sRes = await fetch(statusUrl, {
-          signal: getTimeoutSignal(2000),
+          signal: getTimeoutSignal(3000),
         });
         if (sRes.ok) {
           const sData = await sRes.json();
           if (sData.isAudioReady) {
             const audioRes = await fetch(mp3Url, {
-              signal: getTimeoutSignal(4000),
+              signal: getTimeoutSignal(8000),
             });
             if (audioRes.ok) {
               const arrayBuf = await audioRes.arrayBuffer();

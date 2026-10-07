@@ -50,9 +50,9 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   const [voicevoxUrlInput, setVoicevoxUrlInput] = useState<string>(DEFAULT_VOICEVOX_URL);
   const [urlSavedMessage, setUrlSavedMessage] = useState(false);
 
-  const refreshVoicevoxStatus = async () => {
+  const refreshVoicevoxStatus = async (force = false) => {
     setVoicevoxStatus("checking");
-    const result = await checkLocalVoicevox();
+    const result = await checkLocalVoicevox(force);
     setVoicevoxStatus(result.ok ? "ok" : "ng");
     setVoicevoxVersion(result.version);
   };
@@ -481,7 +481,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                 </div>
                 <button
                   type="button"
-                  onClick={refreshVoicevoxStatus}
+                  onClick={() => refreshVoicevoxStatus(true)}
                   className="btn btn-secondary"
                   style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                 >
@@ -521,7 +521,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                         saveBrowserVoicevoxUrl(voicevoxUrlInput);
                         setUrlSavedMessage(true);
                         setTimeout(() => setUrlSavedMessage(false), 2000);
-                        refreshVoicevoxStatus();
+                        refreshVoicevoxStatus(true);
                       }}
                       className="btn btn-primary"
                       style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
@@ -533,7 +533,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                       onClick={() => {
                         setVoicevoxUrlInput(DEFAULT_VOICEVOX_URL);
                         saveBrowserVoicevoxUrl(DEFAULT_VOICEVOX_URL);
-                        refreshVoicevoxStatus();
+                        refreshVoicevoxStatus(true);
                       }}
                       className="btn btn-secondary"
                       style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
