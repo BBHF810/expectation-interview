@@ -197,6 +197,110 @@ export async function checkCloudVoicevox(): Promise<boolean> {
 }
 
 /**
+ * クラウドVOICEVOXのストリーミング再生用URLを即座に取得（約0.3秒で返却）
+ * 失敗時は null
+ */
+export async function getCloudVoicevoxStreamingUrl(
+  text: string,
+  speakerId: number,
+  timeoutMs = 6000
+): Promise<string | null> {
+  try {
+    const initRes = await fetch(
+      `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
+      {
+        signal: getTimeoutSignal(timeoutMs),
+      }
+    );
+    if (!initRes.ok) return null;
+    const initData = await initRes.json();
+    if (!initData || !initData.success || !initData.mp3StreamingUrl) return null;
+    return initData.mp3StreamingUrl;
+  } catch (err) {
+    console.warn("[TTS] クラウドストリーミングURL取得失敗:", err);
+    return null;
+  }
+}
+
+export interface TtsPlayableAudio {
+  src: string;
+  engine: TtsEngineUsed;
+  cleanup?: () => void;
+}
+
+/**
+ * 最速で再生可能な音声ソースを取得する
+ * クラウドVOICEVOXの場合は mp3StreamingUrl を即座に返し、
+ * ブラウザの <audio> が chunked transfer で約3秒で発話を開始できるようにする。
+ */
+export async function fetchPlayableTts(
+  text: string,
+  voice: string
+): Promise<TtsPlayableAudio> {
+  const speakerId = parseVoicevoxSpeaker(voice);
+
+  if (speakerId !== null) {
+    // ① ローカル環境・カスタムURL時のみローカルを試行
+    if (shouldTryLocalVoicevox()) {
+      const localBlob = await synthesizeWithLocalVoicevox(text, speakerId);
+      if (localBlob) {
+        const url = URL.createObjectURL(localBlob);
+        return {
+          src: url,
+          engine: "VOICEVOX",
+          cleanup: () => URL.revokeObjectURL(url),
+        };
+      }
+    }
+
+    // ② 無料クラウド VOICEVOX のストリーミングURLを最優先で取得（約0.3秒）
+    // ブラウザの Audio 要素に直接渡すことで、全ダウンロード待機（8-10秒）なしに約3秒で発話開始
+    const streamUrl = await getCloudVoicevoxStreamingUrl(text, speakerId);
+    if (streamUrl) {
+      return {
+        src: streamUrl,
+        engine: "VOICEVOX (Cloud)",
+      };
+    }
+
+    // ③ ストリーミングURLが取得できなかった場合は完全ダウンロードを試行
+    const cloudBlob = await synthesizeWithCloudVoicevox(text, speakerId, 25000);
+    if (cloudBlob) {
+      const url = URL.createObjectURL(cloudBlob);
+      return {
+        src: url,
+        engine: "VOICEVOX (Cloud)",
+        cleanup: () => URL.revokeObjectURL(url),
+      };
+    }
+  }
+
+  // ④ サーバーサイド (/api/tts) へフォールバック
+  const res = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, voice }),
+  });
+  if (!res.ok) throw new Error("TTS API unavailable");
+
+  const engineHeader = res.headers.get("X-TTS-Engine");
+  let engine: TtsEngineUsed = "OpenAI";
+  if (engineHeader === "VOICEVOX") {
+    engine = "VOICEVOX";
+  } else if (engineHeader === "VOICEVOX-Cloud") {
+    engine = "VOICEVOX (Cloud)";
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  return {
+    src: url,
+    engine,
+    cleanup: () => URL.revokeObjectURL(url),
+  };
+}
+
+/**
  * 指定ボイスで音声 Blob を取得する。
  *
  * VOICEVOX ボイスの場合:

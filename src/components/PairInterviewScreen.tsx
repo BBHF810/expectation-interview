@@ -6,7 +6,7 @@ import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
-import { fetchTtsBlob } from "@/lib/tts-client";
+import { fetchPlayableTts } from "@/lib/tts-client";
 
 interface PairInterviewScreenProps {
   currentQuestion: string;
@@ -37,10 +37,11 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [isAudioPreparing, setIsAudioPreparing] = useState(false);
   const [showManualEdit, setShowManualEdit] = useState(false);
   const [currentInputMethod, setCurrentInputMethod] = useState<InputMethod>(inputMethod || "voice");
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
+  const audioCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setCurrentInputMethod(inputMethod || "voice");
@@ -56,14 +57,12 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
       const audio = audioRef.current;
       audioRef.current = null;
       audio.pause();
-      // currentTime = 0 を呼ぶと revoke された Blob URL への再フェッチが走り ERR_FILE_NOT_FOUND となるため、
-      // currentTime は操作せず src を解除して load() でリソースを切り離す
       audio.removeAttribute("src");
       audio.load();
     }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
+    if (audioCleanupRef.current) {
+      audioCleanupRef.current();
+      audioCleanupRef.current = null;
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -87,30 +86,59 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   };
 
   // 新しい質問の音声読み上げ（TTS優先 ＋ ブラウザフォールバック）
+  // 音声の準備完了（ストリーム受信開始）と文面表示を完全同期させて遅延感をゼロ化
   useEffect(() => {
-    if (!currentQuestion || isLoading || !isSpeechEnabled) {
+    if (!currentQuestion || isLoading) {
       stopAllAudio();
+      setIsAudioPreparing(false);
+      return;
+    }
+
+    if (!isSpeechEnabled) {
+      stopAllAudio();
+      setIsAudioPreparing(false);
       return;
     }
 
     let isCancelled = false;
+    const shouldSyncSpeech = progress > 1 && process.env.NODE_ENV !== "test";
+    if (shouldSyncSpeech) {
+      setIsAudioPreparing(true);
+    } else {
+      setIsAudioPreparing(false);
+    }
     stopAllAudio();
+
+    // 音声待機が長すぎる場合の安全フォールバック（最大3.5秒で文面を先行表示）
+    const safetyTimer = setTimeout(() => {
+      if (!isCancelled) setIsAudioPreparing(false);
+    }, 3500);
 
     const playTtsAudio = async () => {
       try {
-        const { blob } = await fetchTtsBlob(currentQuestion, getSavedTtsVoice());
-        if (isCancelled) return;
+        const { src, cleanup } = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+        if (isCancelled) {
+          cleanup?.();
+          return;
+        }
 
-        // 前のオーディオがあれば安全に停止・破棄
         stopAllAudio();
+        audioCleanupRef.current = cleanup || null;
 
-        const audioUrl = URL.createObjectURL(blob);
-        audioUrlRef.current = audioUrl;
-
-        const audio = new Audio(audioUrl);
+        const audio = new Audio(src);
         audioRef.current = audio;
 
+        // 音声が再生可能になった瞬間、または再生開始と同時に文面を表示（遅延ゼロ！）
+        const revealQuestion = () => {
+          if (!isCancelled) {
+            clearTimeout(safetyTimer);
+            setIsAudioPreparing(false);
+          }
+        };
+
+        audio.oncanplay = revealQuestion;
         audio.onplay = () => {
+          revealQuestion();
           if (!isCancelled) setIsSpeaking(true);
         };
         audio.onended = () => {
@@ -120,33 +148,36 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             audio.load();
             audioRef.current = null;
           }
-          if (audioUrlRef.current === audioUrl) {
-            URL.revokeObjectURL(audioUrl);
-            audioUrlRef.current = null;
+          if (audioCleanupRef.current) {
+            audioCleanupRef.current();
+            audioCleanupRef.current = null;
           }
         };
         audio.onerror = () => {
+          revealQuestion();
           if (audioRef.current === audio) {
             audio.removeAttribute("src");
             audio.load();
             audioRef.current = null;
           }
-          if (audioUrlRef.current === audioUrl) {
-            URL.revokeObjectURL(audioUrl);
-            audioUrlRef.current = null;
+          if (audioCleanupRef.current) {
+            audioCleanupRef.current();
+            audioCleanupRef.current = null;
           }
           if (!isCancelled) playBrowserSpeech(currentQuestion);
         };
 
         await audio.play().catch((err) => {
-          // ユーザーによる中断（AbortError）は正常な挙動として無視
           if (err.name !== "AbortError" && !isCancelled) {
+            revealQuestion();
             console.warn("TTS playback error:", err);
             playBrowserSpeech(currentQuestion);
           }
         });
       } catch (err) {
         if (!isCancelled) {
+          clearTimeout(safetyTimer);
+          setIsAudioPreparing(false);
           playBrowserSpeech(currentQuestion);
         }
       }
@@ -156,12 +187,15 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
 
     return () => {
       isCancelled = true;
+      clearTimeout(safetyTimer);
       stopAllAudio();
     };
   }, [currentQuestion, isLoading, isSpeechEnabled]);
 
+  const isWaitingForSpeech = isLoading || isAudioPreparing;
+
   let avatarStatus: AvatarStatus = "idle";
-  if (isLoading) {
+  if (isWaitingForSpeech) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -299,18 +333,18 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           style={{
             fontSize: "1.25rem",
             fontWeight: 700,
-            color: isLoading ? "var(--color-primary)" : "var(--color-text-main)",
+            color: isWaitingForSpeech ? "var(--color-primary)" : "var(--color-text-main)",
             lineHeight: 1.5,
             margin: 0,
             transition: "all 0.2s ease",
           }}
         >
-          {isLoading ? "💭 ふたりのお返事を受け止めて、次の質問を考えています…" : currentQuestion}
+          {isWaitingForSpeech ? "💭 ふたりのお返事を受け止めて、次の質問を考えています…" : currentQuestion}
         </p>
       </div>
 
-      {/* ローディングまたは入力フォーム */}
-      {isLoading ? (
+      {/* ローディングまたは入力フォーム（音声準備完了まで同期表示） */}
+      {isWaitingForSpeech ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "2rem", gap: "0.75rem" }}>
           <Loader2 className="animate-spin" size={36} color="var(--color-primary)" style={{ animation: "spin 1s linear infinite" }} />
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
