@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAiClient } from "@/lib/openai";
-import { generateVoicevoxAudio } from "@/lib/voicevox";
+import { generateVoicevoxAudio, generateCloudVoicevoxAudio } from "@/lib/voicevox";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,13 +27,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // VOICEVOX は通常ブラウザ側（src/lib/tts-client.ts）で直接呼び出す。
-    // サーバー（Vercel）からは展示PCの 127.0.0.1 に届かないため、
-    // VOICEVOX_API_URL が明示的に設定されている場合（ローカル実行・自前サーバー）のみここで試行する。
-    const voicevoxResult =
+    // ① 自前/ローカル VOICEVOX URL が設定されている場合は優先実行
+    let voicevoxResult =
       isVoicevoxPreferred && process.env.VOICEVOX_API_URL
         ? await generateVoicevoxAudio(text, speakerId, 2500)
         : null;
+
+    let engineHeader = "VOICEVOX";
+
+    // ② ローカル接続できない場合、無料クラウドVOICEVOX Web API (tts.quest) をサーバー側でも試行
+    if (!voicevoxResult && isVoicevoxPreferred) {
+      voicevoxResult = await generateCloudVoicevoxAudio(text, speakerId, 5000);
+      if (voicevoxResult) {
+        engineHeader = "VOICEVOX-Cloud";
+      }
+    }
 
     if (voicevoxResult) {
       return new NextResponse(new Uint8Array(voicevoxResult.buffer), {
@@ -41,7 +49,7 @@ export async function POST(req: NextRequest) {
         headers: {
           "Content-Type": voicevoxResult.contentType,
           "Content-Length": voicevoxResult.buffer.length.toString(),
-          "X-TTS-Engine": "VOICEVOX",
+          "X-TTS-Engine": engineHeader,
           "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
         },
       });

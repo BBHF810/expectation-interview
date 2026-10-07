@@ -27,10 +27,48 @@ describe("ブラウザ側 TTS ヘルパー (fetchTtsBlob)", () => {
     expect(fetchMock.mock.calls.some((c) => String(c[0]).startsWith("/api/tts"))).toBe(false);
   });
 
-  it("VOICEVOX に接続できない場合は /api/tts（OpenAI）にフォールバックする", async () => {
+  it("ローカルVOICEVOXが未接続でも、クラウドVOICEVOX APIが利用可能な場合は VOICEVOX (Cloud) 音声を返す", async () => {
     const fetchMock = vi.fn(async (url: string) => {
-      if (url.startsWith("http://127.0.0.1")) throw new TypeError("Failed to fetch");
-      return new Response(new Blob(["mp3"]), { status: 200 });
+      if (url.startsWith("http://127.0.0.1")) throw new TypeError("Failed to connect to local");
+      if (url.includes("api.tts.quest/v3/voicevox/synthesis")) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            audioStatusUrl: "https://audio.tts.quest/status.json",
+            mp3DownloadUrl: "https://audio.tts.quest/audio.mp3",
+          }),
+          { status: 200 }
+        );
+      }
+      if (url.includes("audio.tts.quest/status.json")) {
+        return new Response(JSON.stringify({ isAudioReady: true }), { status: 200 });
+      }
+      if (url.includes("audio.tts.quest/audio.mp3")) {
+        return new Response(new Blob(["cloud-mp3"]), { status: 200 });
+      }
+      throw new Error("unexpected url " + url);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchTtsBlob("こんにちは", "voicevox:3");
+
+    expect(result.engine).toBe("VOICEVOX (Cloud)");
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).includes("api.tts.quest"))).toBe(true);
+    // /api/tts は呼ばれない
+    expect(fetchMock.mock.calls.some((c) => String(c[0]).startsWith("/api/tts"))).toBe(false);
+  });
+
+  it("ローカルもクラウドも失敗した場合は /api/tts（OpenAI）にフォールバックする", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("http://127.0.0.1")) throw new TypeError("Failed to fetch local");
+      if (url.includes("api.tts.quest")) throw new TypeError("Failed to fetch cloud");
+      if (url.startsWith("/api/tts")) {
+        return new Response(new Blob(["openai-mp3"]), {
+          status: 200,
+          headers: { "X-TTS-Engine": "OpenAI-TTS-HD" },
+        });
+      }
+      throw new Error("unexpected url " + url);
     });
     vi.stubGlobal("fetch", fetchMock);
 

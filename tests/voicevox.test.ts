@@ -25,6 +25,16 @@ describe("VOICEVOX 音声連携テスト", () => {
     delete process.env.VOICEVOX_API_URL;
   });
 
+  it("generateCloudVoicevoxAudio: APIエラー時は例外を投げず null を返す", async () => {
+    const fetchMock = vi.fn(async () => new Response("Internal Server Error", { status: 500 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { generateCloudVoicevoxAudio } = await import("@/lib/voicevox");
+    const result = await generateCloudVoicevoxAudio("テストです", 3, 500);
+    expect(result).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
   it("/api/tts: テキストが空の場合は 400 エラーを返す", async () => {
     const req = new NextRequest("http://localhost:3000/api/tts", {
       method: "POST",

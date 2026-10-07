@@ -449,20 +449,34 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                 gap: "0.75rem",
                 padding: "1rem 1.25rem",
                 borderRadius: "var(--radius-md)",
-                border: `1px solid ${voicevoxStatus === "ok" ? "#86EFAC" : voicevoxStatus === "ng" ? "#FCA5A5" : "var(--color-border)"}`,
-                background: voicevoxStatus === "ok" ? "#F0FDF4" : voicevoxStatus === "ng" ? "#FEF2F2" : "#F9FAFB",
+                border: "1px solid #BAE6FD",
+                background: "#F0F9FF",
                 fontSize: "0.875rem",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                  <strong style={{ color: voicevoxStatus === "ok" ? "#166534" : voicevoxStatus === "ng" ? "#B91C1C" : "#4B5563" }}>
-                    {voicevoxStatus === "checking" && "VOICEVOX：接続確認中…"}
-                    {voicevoxStatus === "ok" && `VOICEVOX：接続OK（v${voicevoxVersion}）`}
-                    {voicevoxStatus === "ng" && "VOICEVOX：このブラウザから接続できません（OpenAI音声で代替されます）"}
-                  </strong>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ fontSize: "1.2rem" }}>☁️</span>
+                    <strong style={{ color: "#0369A1", fontSize: "0.95rem" }}>
+                      クラウド VOICEVOX 自動連携：稼働中（ゼロ設定・操作不要）
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: "0.82rem", color: "#0C4A6E", lineHeight: 1.4 }}>
+                    {voicevoxStatus === "ok" ? (
+                      <span style={{ color: "#15803D", fontWeight: 700 }}>
+                        ⚡ 展示PCのローカル VOICEVOX（v{voicevoxVersion}）を検知しました。超高速（待ち時間なし）で合成されます。
+                      </span>
+                    ) : (
+                      <span>
+                        PCでアプリを起動していなくても、<strong>Vercelやスマホから直接ずんだもん・四国めたん等の自然な音声</strong>が自動合成・再生されます。
+                      </span>
+                    )}
+                  </div>
                   {lastEngine && (
-                    <span style={{ color: "#4B5563" }}>直前の試聴で再生された音声：<strong>{lastEngine === "VOICEVOX" ? "VOICEVOX" : "OpenAI HD"}</strong></span>
+                    <span style={{ color: "#475569", fontSize: "0.8rem", marginTop: "0.2rem" }}>
+                      直前の試聴で再生されたエンジン：<strong>{lastEngine === "VOICEVOX" ? "ローカル VOICEVOX (最速)" : lastEngine === "VOICEVOX (Cloud)" ? "クラウド VOICEVOX (Web API)" : "OpenAI HD (フォールバック)"}</strong>
+                    </span>
                   )}
                 </div>
                 <button
@@ -472,81 +486,63 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                   style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                 >
                   <RefreshCw size={14} />
-                  接続テスト
+                  ローカル検知テスト
                 </button>
               </div>
 
-              {/* 接続先URLの変更・保存 */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", paddingTop: "0.5rem", borderTop: "1px dashed rgba(0,0,0,0.1)" }}>
-                <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-main)" }}>
-                  VOICEVOX 接続先 URL:
-                </label>
-                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                  <input
-                    type="text"
-                    value={voicevoxUrlInput}
-                    onChange={(e) => setVoicevoxUrlInput(e.target.value)}
-                    placeholder="http://127.0.0.1:50021 または https://xxxx.trycloudflare.com"
-                    style={{
-                      flex: 1,
-                      minWidth: "260px",
-                      padding: "0.4rem 0.6rem",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--color-border)",
-                      fontSize: "0.85rem",
-                      fontFamily: "monospace",
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      saveBrowserVoicevoxUrl(voicevoxUrlInput);
-                      setUrlSavedMessage(true);
-                      setTimeout(() => setUrlSavedMessage(false), 2000);
-                      refreshVoicevoxStatus();
-                    }}
-                    className="btn btn-primary"
-                    style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
-                  >
-                    {urlSavedMessage ? "保存しました！" : "URL保存"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setVoicevoxUrlInput(DEFAULT_VOICEVOX_URL);
-                      saveBrowserVoicevoxUrl(DEFAULT_VOICEVOX_URL);
-                      refreshVoicevoxStatus();
-                    }}
-                    className="btn btn-secondary"
-                    style={{ padding: "0.4rem 0.6rem", fontSize: "0.8rem" }}
-                  >
-                    初期値
-                  </button>
-                </div>
-              </div>
-
-              {/* Mixed Content 注意喚起（HTTPSからHTTPへの直接アクセスの制限） */}
-              {isMixedContentRisk() && (
-                <div
-                  style={{
-                    background: "#FFFBEB",
-                    border: "1px solid #FDE68A",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "0.6rem 0.8rem",
-                    fontSize: "0.8rem",
-                    color: "#92400E",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <div style={{ fontWeight: 700, marginBottom: "0.2rem" }}>
-                    💡 HTTPS（Vercel）と ローカルVOICEVOX（HTTP）の通信について
+              {/* 高度な設定: ローカル接続先URL */}
+              <details style={{ fontSize: "0.8rem", color: "#475569" }}>
+                <summary style={{ cursor: "pointer", fontWeight: 600, color: "#0284C7" }}>
+                  ⚙️ 高度な設定（ローカルVOICEVOXのURL変更）
+                </summary>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px dashed rgba(0,0,0,0.1)" }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text-main)" }}>
+                    カスタム VOICEVOX URL（通常は変更不要）:
+                  </label>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    <input
+                      type="text"
+                      value={voicevoxUrlInput}
+                      onChange={(e) => setVoicevoxUrlInput(e.target.value)}
+                      placeholder="http://127.0.0.1:50021 または https://xxxx.trycloudflare.com"
+                      style={{
+                        flex: 1,
+                        minWidth: "260px",
+                        padding: "0.35rem 0.5rem",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--color-border)",
+                        fontSize: "0.8rem",
+                        fontFamily: "monospace",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        saveBrowserVoicevoxUrl(voicevoxUrlInput);
+                        setUrlSavedMessage(true);
+                        setTimeout(() => setUrlSavedMessage(false), 2000);
+                        refreshVoicevoxStatus();
+                      }}
+                      className="btn btn-primary"
+                      style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                    >
+                      {urlSavedMessage ? "保存完了" : "保存"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVoicevoxUrlInput(DEFAULT_VOICEVOX_URL);
+                        saveBrowserVoicevoxUrl(DEFAULT_VOICEVOX_URL);
+                        refreshVoicevoxStatus();
+                      }}
+                      className="btn btn-secondary"
+                      style={{ padding: "0.35rem 0.7rem", fontSize: "0.75rem" }}
+                    >
+                      初期値
+                    </button>
                   </div>
-                  ブラウザのセキュリティ（Mixed Content保護）により、HTTPSサイトからローカルの <code>http://127.0.0.1:50021</code> へのアクセスが遮断される場合があります。<br />
-                  <strong>最も確実な解決策（推奨）:</strong><br />
-                  1. 展示PCで <strong><code>http://localhost:3000</code></strong> を開いてご利用ください（同一ローカル環境のため制限なく100%確実に動作します）。<br />
-                  2. または、無料のCloudflare Tunnel（<code>npx -y cloudflared tunnel --url http://127.0.0.1:50021</code>）を実行して発行された <code>https://xxxx.trycloudflare.com</code> を上の接続先URLに貼り付けてください。
                 </div>
-              )}
+              </details>
             </div>
 
             {/* ボイスカード一覧 */}

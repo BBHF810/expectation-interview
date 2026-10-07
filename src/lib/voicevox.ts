@@ -56,6 +56,16 @@ export function getVoicevoxApiUrl(): string {
   return process.env.VOICEVOX_API_URL?.trim() || "http://127.0.0.1:50021";
 }
 
+function getTimeoutSignal(ms: number): AbortSignal | undefined {
+  if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+    return undefined;
+  }
+  if (typeof AbortController === "undefined") return undefined;
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 /**
  * VOICEVOX API を呼び出して音声を合成（WAV Buffer 返却）
  * 未起動・接続不可・タイムアウト時は null を返す
@@ -68,9 +78,7 @@ export async function generateVoicevoxAudio(
   const baseUrl = getVoicevoxApiUrl().replace(/\/$/, "");
 
   try {
-    const signal = typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
-      ? AbortSignal.timeout(timeoutMs)
-      : undefined;
+    const signal = getTimeoutSignal(timeoutMs);
 
     // 1. audio_query 生成
     const queryUrl = `${baseUrl}/audio_query?speaker=${speakerId}&text=${encodeURIComponent(text)}`;
@@ -117,6 +125,80 @@ export async function generateVoicevoxAudio(
   } catch (err: any) {
     // 接続拒否（未起動）、タイムアウト、Abort等の場合は安全にnullを返す
     console.warn("VOICEVOX is not available or timed out:", err?.message || err);
+    return null;
+  }
+}
+
+/**
+ * 無料公開クラウドVOICEVOX Web API (api.tts.quest) を呼び出して音声を取得
+ * Vercel上や、PCでVOICEVOXを起動していない環境でもゼロ設定で音声合成可能。
+ * 未取得・タイムアウト時は null を返す
+ */
+export async function generateCloudVoicevoxAudio(
+  text: string,
+  speakerId: number = 2,
+  timeoutMs: number = 6000
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  try {
+    const apiKey = process.env.VOICEVOX_QUEST_API_KEY?.trim();
+    let url = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
+    if (apiKey) {
+      url += `&key=${encodeURIComponent(apiKey)}`;
+    }
+
+    const startTime = Date.now();
+    const initRes = await fetch(url, {
+      signal: getTimeoutSignal(3000),
+    });
+    if (!initRes.ok) return null;
+    const initData = await initRes.json();
+    if (!initData || !initData.success) return null;
+
+    const statusUrl = initData.audioStatusUrl;
+    const mp3Url = initData.mp3DownloadUrl;
+    if (!mp3Url) return null;
+
+    // audioStatusUrl のポーリング（ステータスが完了するまで待機）
+    while (Date.now() - startTime < timeoutMs) {
+      if (statusUrl) {
+        const sRes = await fetch(statusUrl, {
+          signal: getTimeoutSignal(2000),
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          if (sData.isAudioReady) {
+            const audioRes = await fetch(mp3Url, {
+              signal: getTimeoutSignal(4000),
+            });
+            if (audioRes.ok) {
+              const arrayBuf = await audioRes.arrayBuffer();
+              return {
+                buffer: Buffer.from(arrayBuf),
+                contentType: "audio/mpeg",
+              };
+            }
+          }
+          if (sData.isAudioError) {
+            return null;
+          }
+        }
+      } else {
+        const audioRes = await fetch(mp3Url);
+        if (audioRes.ok) {
+          const arrayBuf = await audioRes.arrayBuffer();
+          return {
+            buffer: Buffer.from(arrayBuf),
+            contentType: "audio/mpeg",
+          };
+        }
+      }
+
+      await new Promise((r) => setTimeout(r, 400));
+    }
+
+    return null;
+  } catch (err: any) {
+    console.warn("Cloud VOICEVOX synthesis failed or timed out:", err?.message || err);
     return null;
   }
 }
