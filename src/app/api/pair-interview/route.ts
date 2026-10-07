@@ -194,7 +194,7 @@ ${
     : `${nameA}さんと${nameB}さんに対して、ふたりであった具体的な出来事について尋ねてください。`
 }
 質問文の冒頭には「${expectedSpeakerName}さん、」と呼びかけを入れてください。
-質問は80文字以内、1つの疑問文で簡潔にしてください。
+質問は30〜45文字以内の端的な1つの疑問文にしてください（iPad音声読み上げ遅延極小化のため）。
 必ず指定されたJSONスキーマに従って出力してください。`;
 
     const config = getGeminiConfig(120);
@@ -209,7 +209,7 @@ ${
         const openAiResult = await callOpenAiJson<any>({
           systemInstruction: `${PAIR_INTERVIEWER_SYSTEM_INSTRUCTION}\n\n【必須出力フォーマット】以下のJSONを出力してください:
 {
-  "nextQuestion": "80文字以内の次の質問文（冒頭に${expectedSpeakerName}さん、を含める）",
+  "nextQuestion": "30〜45文字以内の端的な次の質問文（冒頭に${expectedSpeakerName}さん、を含める）",
   "nextSpeaker": "${expectedNextSpeaker}",
   "safetyAction": "continue" | "stop"
 }`,

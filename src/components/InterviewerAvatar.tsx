@@ -7,11 +7,15 @@ export type AvatarStatus = "idle" | "speaking" | "listening" | "thinking";
 interface InterviewerAvatarProps {
   status: AvatarStatus;
   size?: number;
+  statusText?: string;
+  hideStatusBadge?: boolean;
 }
 
 export const InterviewerAvatar: React.FC<InterviewerAvatarProps> = ({
   status,
   size = 140,
+  statusText,
+  hideStatusBadge = false,
 }) => {
   return (
     <div
@@ -207,51 +211,58 @@ export const InterviewerAvatar: React.FC<InterviewerAvatarProps> = ({
         </svg>
       </div>
 
-      {/* 状態ラベルバッジ */}
-      <div
-        style={{
-          marginTop: "0.5rem",
-          padding: "0.25rem 0.85rem",
-          borderRadius: "9999px",
-          fontSize: "0.85rem",
-          fontWeight: 700,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.35rem",
-          background:
-            status === "speaking"
-              ? "#DCFCE7"
-              : status === "listening"
-              ? "#FEF3C7"
-              : status === "thinking"
-              ? "#F1F5F9"
-              : "#EFF6FF",
-          color:
-            status === "speaking"
-              ? "#15803D"
-              : status === "listening"
-              ? "#B45309"
-              : status === "thinking"
-              ? "#475569"
-              : "#1D4ED8",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-        }}
-      >
-        <span
+      {!hideStatusBadge && (
+        <div
           style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            backgroundColor: "currentColor",
-            display: "inline-block",
-            animation: status !== "idle" ? "avatar-pulse 1s infinite" : "none",
+            marginTop: "0.5rem",
+            padding: "0.25rem 0.85rem",
+            borderRadius: "9999px",
+            fontSize: "0.85rem",
+            fontWeight: 700,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.35rem",
+            background:
+              status === "speaking"
+                ? "#DCFCE7"
+                : status === "listening"
+                ? "#FEF3C7"
+                : status === "thinking"
+                ? "#F1F5F9"
+                : "#EFF6FF",
+            color:
+              status === "speaking"
+                ? "#15803D"
+                : status === "listening"
+                ? "#B45309"
+                : status === "thinking"
+                ? "#475569"
+                : "#1D4ED8",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
           }}
-        />
-        {status === "speaking" && "お話し中（聞いてね）"}
-        {status === "listening" && "あなたの声を聞いています…"}
-        {status === "thinking" && "質問を考えています…"}
-        {status === "idle" && "あなたのペースで話してください"}
-      </div>
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: "currentColor",
+              display: "inline-block",
+              animation: status !== "idle" ? "avatar-pulse 1s infinite" : "none",
+            }}
+          />
+          {statusText ? (
+            statusText
+          ) : (
+            <>
+              {status === "speaking" && "お話し中（聞いてね）"}
+              {status === "listening" && "あなたの声を聞いています…"}
+              {status === "thinking" && "質問を考えています…"}
+              {status === "idle" && "あなたのペースで話してください"}
+            </>
+          )}
+        </div>
+      )}
 
       <style>{`
         @keyframes avatar-breathe {

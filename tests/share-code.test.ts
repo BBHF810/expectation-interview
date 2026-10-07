@@ -71,4 +71,25 @@ describe("短縮QRコードURL生成・復元テスト", () => {
     expect(restored.animalA).toEqual(combo.animalA);
     expect(restored.animalB).toEqual(combo.animalB);
   });
+
+  it("パーソナライズされたオリジナル診断データ（episodeHighlight付き）が完全復元される", () => {
+    const customAnimal = {
+      animalEmoji: "🐶",
+      animalName: "手料理で喜ばせたい誠実なワンちゃんタイプ",
+      catchphrase: "想いを届けるまっすぐな愛",
+      description: "友人に手料理を振る舞った際、喜んでほしかったというお気持ちを大切にしていましたね。",
+      futureTrait: "オープンマインドな性格",
+      academicTrait: "高親和・ストレート表出型",
+      episodeHighlight: "手料理を作って友人に喜んでもらいたかった出来事",
+    };
+    const reflection = "温かい想いが伝わりました。";
+    const url = createSingleShareUrl(customAnimal, reflection);
+    const paramD = new URL(url).searchParams.get("d");
+    const restored = restoreShareData(paramD!);
+
+    expect(restored).toBeTruthy();
+    expect(restored.title).toBe("手料理で喜ばせたい誠実なワンちゃんタイプ");
+    expect(restored.description).toBe(customAnimal.description);
+    expect(restored.episodeHighlight).toBe("手料理を作って友人に喜んでもらいたかった出来事");
+  });
 });

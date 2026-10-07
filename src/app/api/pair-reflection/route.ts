@@ -33,6 +33,7 @@ const PairAnimalDiagnosisSchema = z.object({
   pairDescription: z.string(),
   futureRelationship: z.string().optional(),
   academicDynamic: z.string().optional(),
+  pairEpisodeHighlight: z.string().optional(),
 });
 
 const GeminiPairReflectionOutputSchema = z.object({
@@ -171,9 +172,12 @@ ${turnsContext}
   "pairAnimalDiagnosis": {
     "animalA": { "emoji": "絵文字", "name": "動物タイプ名" },
     "animalB": { "emoji": "絵文字", "name": "動物タイプ名" },
-    "pairTitle": "ペアタイトル (例: 寄り添いイルカ＆見守りフクロウ)",
+    "pairTitle": "エピソードに合わせたオリジナル称号 (例: 手料理を囲むナイスペア)",
     "pairCatchphrase": "ふたりのキャッチコピー",
-    "pairDescription": "ふたりの関係性の魅力や特徴についての温かい解説"
+    "pairDescription": "ふたりが実際に語った出来事や言葉を直接引用して解説した診断文（定型文は厳禁）",
+    "futureRelationship": "ふたりの未来の関係性タイプ",
+    "academicDynamic": "学術的相互適応ダイナミクス",
+    "pairEpisodeHighlight": "ふたりが語ってくれたエピソードの要約（例: 休日の過ごし方でお互いの希望を伝え合った出来事）"
   }
 }`,
           userPrompt: prompt,
@@ -236,6 +240,7 @@ ${turnsContext}
                       pairDescription: { type: "string" },
                       futureRelationship: { type: "string" },
                       academicDynamic: { type: "string" },
+                      pairEpisodeHighlight: { type: "string" },
                     },
                     required: ["animalA", "animalB", "pairTitle", "pairCatchphrase", "pairDescription"],
                   },

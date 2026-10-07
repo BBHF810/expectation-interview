@@ -94,23 +94,48 @@ export const PairReflectionScreen: React.FC<PairReflectionScreenProps> = ({
         {/* チラ見せバッジ */}
         <div
           style={{
-            display: "inline-flex",
+            display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            gap: "0.4rem",
-            padding: "0.4rem 1.1rem",
-            background: "#FFFFFF",
-            border: "1px solid #FED7AA",
-            borderRadius: "var(--radius-full)",
-            fontSize: "0.95rem",
-            fontWeight: 800,
-            color: "#C2410C",
-            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.05)",
+            gap: "0.5rem",
           }}
         >
-          <Sparkles size={16} color="#EA580C" />
-          <span>
-            ふたりのペア：【{pairAnimalDiagnosis.animalA.emoji} × {pairAnimalDiagnosis.animalB.emoji} {pairAnimalDiagnosis.pairTitle}】
-          </span>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.4rem",
+              padding: "0.4rem 1.1rem",
+              background: "#FFFFFF",
+              border: "1px solid #FED7AA",
+              borderRadius: "var(--radius-full)",
+              fontSize: "0.95rem",
+              fontWeight: 800,
+              color: "#C2410C",
+              boxShadow: "0 2px 5px rgba(0, 0, 0, 0.05)",
+            }}
+          >
+            <Sparkles size={16} color="#EA580C" />
+            <span>
+              ふたりのペア：【{pairAnimalDiagnosis.animalA.emoji} × {pairAnimalDiagnosis.animalB.emoji} {pairAnimalDiagnosis.pairTitle}】
+            </span>
+          </div>
+          {pairAnimalDiagnosis.pairEpisodeHighlight && (
+            <div
+              style={{
+                fontSize: "0.85rem",
+                color: "#475569",
+                background: "#FFFFFF",
+                border: "1px dashed #CBD5E1",
+                padding: "0.35rem 0.85rem",
+                borderRadius: "var(--radius-md)",
+                maxWidth: "360px",
+                lineHeight: 1.4,
+              }}
+            >
+              お話エピソード：「{pairAnimalDiagnosis.pairEpisodeHighlight}」
+            </div>
+          )}
         </div>
 
         {/* QRコード表示枠 */}

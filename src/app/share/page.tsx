@@ -107,6 +107,28 @@ function ShareContent() {
               </div>
             )}
 
+            {/* 今回語ってくれたエピソードハイライト */}
+            {parsedData.episodeHighlight && (
+              <div
+                style={{
+                  background: "#F8FAFC",
+                  border: "1px dashed #CBD5E1",
+                  borderRadius: "var(--radius-md)",
+                  padding: "0.75rem 1rem",
+                  margin: "0 0 1.25rem",
+                  textAlign: "left",
+                }}
+              >
+                <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "#64748B", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                  <span>💬</span>
+                  <span>あなたが語ってくれたエピソード</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#1E293B", lineHeight: 1.5 }}>
+                  「{parsedData.episodeHighlight}」
+                </div>
+              </div>
+            )}
+
             {parsedData.description && (
               <p
                 style={{
@@ -204,6 +226,28 @@ function ShareContent() {
                 }}
               >
                 “{parsedData.pairCatchphrase}”
+              </div>
+            )}
+
+            {/* ふたりが語ってくれたエピソードハイライト */}
+            {parsedData.pairEpisodeHighlight && (
+              <div
+                style={{
+                  background: "#F8FAFC",
+                  border: "1px dashed #CBD5E1",
+                  borderRadius: "var(--radius-md)",
+                  padding: "0.75rem 1rem",
+                  margin: "0 0 1.25rem",
+                  textAlign: "left",
+                }}
+              >
+                <div style={{ fontSize: "0.8rem", fontWeight: 800, color: "#64748B", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                  <span>💬</span>
+                  <span>ふたりが語ってくれたエピソード</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", fontWeight: 600, color: "#1E293B", lineHeight: 1.5 }}>
+                  「{parsedData.pairEpisodeHighlight}」
+                </div>
               </div>
             )}
 

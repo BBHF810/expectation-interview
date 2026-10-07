@@ -203,7 +203,7 @@ ${
         usedModel = getOpenAiModelName();
         const openAiResult = await callOpenAiJson<any>({
           systemInstruction: `${INTERVIEWER_SYSTEM_INSTRUCTION}\n\n【必須出力フォーマット】以下のキーを持つJSONを出力してください:
-- nextQuestion: 80文字以内の次の質問文
+- nextQuestion: 30〜45文字以内の端的な次の質問文（展示会場でのiPad音声読み上げ遅延極小化のため、長口舌は避け簡潔にすること）
 - questionPurpose: "event" | "expectation" | "outcome" | "reason" | "communication" | "feeling" のいずれか
 - safetyAction: "continue" または "stop"
 - detectedPartner (任意): 相手との関係性

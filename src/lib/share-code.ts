@@ -40,32 +40,40 @@ export function decodeSharePayload(str: string): any {
   }
 }
 
-/** シングル用：極小データに圧縮したURLを生成 */
+/** シングル用：回答内容が忠実に反映されたパーソナライズ診断URLを生成 */
 export function createSingleShareUrl(animalDiagnosis?: AnimalDiagnosis, reflection: string = ""): string {
   const baseUrl = getShareBaseUrl();
   const animalName = animalDiagnosis?.animalName || "素直なワンちゃんタイプ";
-  // 固定リストに含まれる場合はインデックス化してさらに短縮
-  const foundIdx = ANIMAL_DIAGNOSES.findIndex((d) => d.animalName === animalName);
+
+  // 固定マスタと「説明文まで完全一致（=AI不使用の静的フォールバック）」しているかを判定
+  const foundMasterIdx = ANIMAL_DIAGNOSES.findIndex(
+    (d) => d.animalName === animalName && d.description === animalDiagnosis?.description
+  );
 
   const payload: any = {
     m: "s",
-    r: reflection.slice(0, 160), // スマホ表示に十分な長さに最適化
+    r: reflection.slice(0, 100),
   };
 
-  if (foundIdx !== -1) {
-    payload.ai = foundIdx;
+  if (foundMasterIdx !== -1 && !animalDiagnosis?.episodeHighlight) {
+    // 静的フォールバック時はインデックスで超短縮
+    payload.ai = foundMasterIdx;
   } else {
-    payload.an = animalName;
+    // AI生成時はパーソナライズテキストをURLに完全保持
+    payload.an = animalName.slice(0, 30);
     payload.ae = animalDiagnosis?.animalEmoji || "🌱";
-    payload.ac = animalDiagnosis?.catchphrase || "";
-    payload.ad = animalDiagnosis?.description || "";
+    if (animalDiagnosis?.catchphrase) payload.ac = animalDiagnosis.catchphrase.slice(0, 30);
+    if (animalDiagnosis?.description) payload.ad = animalDiagnosis.description.slice(0, 120);
+    if (animalDiagnosis?.futureTrait) payload.af = animalDiagnosis.futureTrait.slice(0, 60);
+    if (animalDiagnosis?.academicTrait) payload.at = animalDiagnosis.academicTrait.slice(0, 30);
+    if (animalDiagnosis?.episodeHighlight) payload.ah = animalDiagnosis.episodeHighlight.slice(0, 60);
   }
 
   const encoded = encodeSharePayload(payload);
   return `${baseUrl}/share?d=${encoded}`;
 }
 
-/** ペア用：極小データに圧縮したURLを生成 */
+/** ペア用：ふたりの回答内容が忠実に反映されたペア診断URLを生成 */
 export function createPairShareUrl(params: {
   pairAnimalDiagnosis: PairAnimalDiagnosis;
   nameA: string;
@@ -77,27 +85,33 @@ export function createPairShareUrl(params: {
   const baseUrl = getShareBaseUrl();
   const { pairAnimalDiagnosis, nameA, nameB, perspectiveA, perspectiveB, reflection } = params;
 
-  const foundIdx = PAIR_ANIMAL_COMBOS.findIndex(
-    (c) => c.pairTitle === pairAnimalDiagnosis.pairTitle
+  // 固定マスタと「説明文まで完全一致（=AI不使用の静的フォールバック）」しているかを判定
+  const foundMasterIdx = PAIR_ANIMAL_COMBOS.findIndex(
+    (c) =>
+      c.pairTitle === pairAnimalDiagnosis.pairTitle &&
+      c.pairDescription === pairAnimalDiagnosis.pairDescription
   );
 
   const payload: any = {
     m: "p",
     nA: nameA.slice(0, 15),
     nB: nameB.slice(0, 15),
-    r: reflection.slice(0, 160),
-    pA: perspectiveA ? perspectiveA.slice(0, 70) : undefined,
-    pB: perspectiveB ? perspectiveB.slice(0, 70) : undefined,
+    r: reflection.slice(0, 100),
+    pA: perspectiveA ? perspectiveA.slice(0, 50) : undefined,
+    pB: perspectiveB ? perspectiveB.slice(0, 50) : undefined,
   };
 
-  if (foundIdx !== -1) {
-    payload.pi = foundIdx;
+  if (foundMasterIdx !== -1 && !pairAnimalDiagnosis.pairEpisodeHighlight) {
+    payload.pi = foundMasterIdx;
   } else {
-    payload.pt = pairAnimalDiagnosis.pairTitle;
-    payload.pc = pairAnimalDiagnosis.pairCatchphrase;
-    payload.pd = pairAnimalDiagnosis.pairDescription;
+    payload.pt = pairAnimalDiagnosis.pairTitle.slice(0, 30);
+    payload.pc = pairAnimalDiagnosis.pairCatchphrase.slice(0, 30);
+    payload.pd = pairAnimalDiagnosis.pairDescription.slice(0, 120);
     payload.aA = pairAnimalDiagnosis.animalA;
     payload.aB = pairAnimalDiagnosis.animalB;
+    if (pairAnimalDiagnosis.futureRelationship) payload.fr = pairAnimalDiagnosis.futureRelationship.slice(0, 60);
+    if (pairAnimalDiagnosis.academicDynamic) payload.ad = pairAnimalDiagnosis.academicDynamic.slice(0, 30);
+    if (pairAnimalDiagnosis.pairEpisodeHighlight) payload.ph = pairAnimalDiagnosis.pairEpisodeHighlight.slice(0, 60);
   }
 
   const encoded = encodeSharePayload(payload);
@@ -115,67 +129,57 @@ export function restoreShareData(rawD: string): any {
   }
 
   if (decoded.m === "s") {
-    // シングルモード復元
-    let animal: Partial<AnimalDiagnosis> = {};
-    if (typeof decoded.ai === "number" && ANIMAL_DIAGNOSES[decoded.ai]) {
-      animal = ANIMAL_DIAGNOSES[decoded.ai];
-    } else {
-      const match = ANIMAL_DIAGNOSES.find((d) => d.animalName === decoded.an);
-      if (match) {
-        animal = match;
-      } else {
-        animal = {
-          animalName: decoded.an || "コミュニケーション診断",
-          animalEmoji: decoded.ae || "🌱",
-          catchphrase: decoded.ac || "",
-          description: decoded.ad || "",
-        };
-      }
-    }
+    // シングルモード復元: ペイロード内のAI生成パーソナライズ文を最優先、なければマスタフォールバック
+    const fallbackMatch = typeof decoded.ai === "number" && ANIMAL_DIAGNOSES[decoded.ai]
+      ? ANIMAL_DIAGNOSES[decoded.ai]
+      : ANIMAL_DIAGNOSES.find((d) => d.animalName === decoded.an);
+
+    const title = decoded.an || fallbackMatch?.animalName || "コミュニケーション診断";
+    const emoji = decoded.ae || fallbackMatch?.animalEmoji || "🌱";
+    const catchphrase = decoded.ac || fallbackMatch?.catchphrase || "";
+    const description = decoded.ad || fallbackMatch?.description || "";
+    const futureTrait = decoded.af || fallbackMatch?.futureTrait;
+    const academicTrait = decoded.at || fallbackMatch?.academicTrait;
+    const episodeHighlight = decoded.ah;
 
     return {
       mode: "single",
-      title: animal.animalName,
-      emoji: animal.animalEmoji,
-      catchphrase: animal.catchphrase,
-      description: animal.description,
-      futureTrait: animal.futureTrait,
-      academicTrait: animal.academicTrait,
+      title,
+      emoji,
+      catchphrase,
+      description,
+      futureTrait,
+      academicTrait,
+      episodeHighlight,
       reflection: decoded.r || "",
     };
   } else if (decoded.m === "p") {
-    // ペアモード復元
-    let combo: Partial<PairAnimalDiagnosis> = {};
-    if (typeof decoded.pi === "number" && PAIR_ANIMAL_COMBOS[decoded.pi]) {
-      combo = PAIR_ANIMAL_COMBOS[decoded.pi];
-    } else {
-      const match = PAIR_ANIMAL_COMBOS.find((c) => c.pairTitle === decoded.pt);
-      if (match) {
-        combo = match;
-      } else {
-        combo = {
-          animalA: decoded.aA || { emoji: "🐰", name: "動物A" },
-          animalB: decoded.aB || { emoji: "🦉", name: "動物B" },
-          pairTitle: decoded.pt || `${decoded.nA} & ${decoded.nB} ペア`,
-          pairCatchphrase: decoded.pc || "",
-          pairDescription: decoded.pd || "",
-          futureRelationship: decoded.fr,
-          academicDynamic: decoded.ad,
-        };
-      }
-    }
+    // ペアモード復元: ペイロード内のAI生成パーソナライズ文を最優先
+    const fallbackCombo = typeof decoded.pi === "number" && PAIR_ANIMAL_COMBOS[decoded.pi]
+      ? PAIR_ANIMAL_COMBOS[decoded.pi]
+      : PAIR_ANIMAL_COMBOS.find((c) => c.pairTitle === decoded.pt);
+
+    const animalA = decoded.aA || fallbackCombo?.animalA || { emoji: "🐰", name: "動物A" };
+    const animalB = decoded.aB || fallbackCombo?.animalB || { emoji: "🦉", name: "動物B" };
+    const pairTitle = decoded.pt || fallbackCombo?.pairTitle || `${decoded.nA} & ${decoded.nB} ペア`;
+    const pairCatchphrase = decoded.pc || fallbackCombo?.pairCatchphrase || "";
+    const pairDescription = decoded.pd || fallbackCombo?.pairDescription || "";
+    const futureRelationship = decoded.fr || fallbackCombo?.futureRelationship;
+    const academicDynamic = decoded.ad || fallbackCombo?.academicDynamic;
+    const pairEpisodeHighlight = decoded.ph;
 
     return {
       mode: "pair",
       nameA: decoded.nA,
       nameB: decoded.nB,
-      animalA: combo.animalA,
-      animalB: combo.animalB,
-      pairTitle: combo.pairTitle,
-      pairCatchphrase: combo.pairCatchphrase,
-      pairDescription: combo.pairDescription,
-      futureRelationship: combo.futureRelationship,
-      academicDynamic: combo.academicDynamic,
+      animalA,
+      animalB,
+      pairTitle,
+      pairCatchphrase,
+      pairDescription,
+      futureRelationship,
+      academicDynamic,
+      pairEpisodeHighlight,
       perspectiveA: decoded.pA,
       perspectiveB: decoded.pB,
       reflection: decoded.r || "",

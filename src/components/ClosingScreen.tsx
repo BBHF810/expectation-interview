@@ -213,7 +213,11 @@ export const ClosingScreen: React.FC<ClosingScreenProps> = ({
 
       {/* 対面アバター */}
       <div style={{ margin: "0.5rem 0" }}>
-        <InterviewerAvatar status={avatarStatus} size={140} />
+        <InterviewerAvatar
+          status={avatarStatus}
+          size={140}
+          statusText={isSpeaking ? "お話し中（聞いてね）" : "お話しいただきありがとうございました！"}
+        />
       </div>
 
       {/* AIからのクロージングメッセージ吹き出し */}

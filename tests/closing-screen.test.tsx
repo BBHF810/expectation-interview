@@ -21,6 +21,9 @@ describe("ClosingScreen コンポーネント", () => {
     ).toBeDefined();
     expect(screen.getByText("AIインタビュアーからのメッセージ")).toBeDefined();
     expect(screen.getByText("診断結果のQRコードを見る")).toBeDefined();
+    // 「あなたのペースで話してください」が表示されておらず、感謝メッセージが表示されていること
+    expect(screen.queryByText("あなたのペースで話してください")).toBeNull();
+    expect(screen.getByText("お話しいただきありがとうございました！")).toBeDefined();
   });
 
   it("「診断結果のQRコードを見る」ボタンをクリックすると onProceedToResult が発火する", () => {

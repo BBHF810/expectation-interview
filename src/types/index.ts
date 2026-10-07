@@ -61,6 +61,7 @@ export interface AnimalDiagnosis {
   description: string;
   futureTrait?: string; // 未来の性格・これからの強み
   academicTrait?: string; // 学術的コミュニケーション分類軸
+  episodeHighlight?: string; // 利用者が語った具体的なエピソードの要約・抜粋
 }
 
 export interface ReflectionRequestBody {
@@ -128,6 +129,7 @@ export interface PairAnimalDiagnosis {
   pairDescription: string;
   futureRelationship?: string; // ふたりの未来の関係性タイプ
   academicDynamic?: string; // 学術的相互適応ダイナミクス
+  pairEpisodeHighlight?: string; // ふたりが語った具体的なエピソードの要約・抜粋
 }
 
 export interface PairReflectionRequestBody {

@@ -32,6 +32,7 @@ const AnimalDiagnosisSchema = z.object({
   description: z.string(),
   futureTrait: z.string().optional(),
   academicTrait: z.string().optional(),
+  episodeHighlight: z.string().optional(),
 });
 
 const GeminiReflectionOutputSchema = z.object({
@@ -171,9 +172,12 @@ ${turnsContext}
   "missingInformation": [],
   "animalDiagnosis": {
     "animalEmoji": "動物の絵文字 (例: 🐬)",
-    "animalName": "動物の名前タイプ (例: まごころイルカタイプ)",
-    "catchphrase": "キャッチフレーズ",
-    "description": "診断の説明（長所や相手への思いやり）"
+    "animalName": "回答エピソードを反映した独自の動物名 (例: 手料理で喜ばせたい誠実なワンちゃんタイプ)",
+    "catchphrase": "エピソードに即したキャッチフレーズ",
+    "description": "回答内容・エピソードを直接引用して解説した診断文（定型文は厳禁）",
+    "futureTrait": "これからの強み・活きる性格",
+    "academicTrait": "学術特性",
+    "episodeHighlight": "語ってくれたエピソードのハイライト要約（例: 友人と旅行の計画で一緒に調べてほしかったこと）"
   }
 }`,
           userPrompt: prompt,
@@ -231,6 +235,7 @@ ${turnsContext}
                       description: { type: "string" },
                       futureTrait: { type: "string" },
                       academicTrait: { type: "string" },
+                      episodeHighlight: { type: "string" },
                     },
                     required: ["animalEmoji", "animalName", "catchphrase", "description"],
                   },
