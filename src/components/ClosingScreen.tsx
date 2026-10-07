@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Volume2, VolumeX, RotateCcw, ArrowRight, Sparkles } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
+import { fetchTtsBlob } from "@/lib/tts-client";
 
 interface ClosingScreenProps {
   closingComment: string;
@@ -71,17 +72,7 @@ export const ClosingScreen: React.FC<ClosingScreenProps> = ({
 
     const playClosingTts = async () => {
       try {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: closingComment, voice: getSavedTtsVoice() }),
-        });
-
-        if (!res.ok) {
-          throw new Error("TTS API unavailable");
-        }
-
-        const blob = await res.blob();
+        const { blob } = await fetchTtsBlob(closingComment, getSavedTtsVoice());
         if (isCancelled) return;
 
         stopAllAudio();

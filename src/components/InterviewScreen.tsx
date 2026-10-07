@@ -6,6 +6,7 @@ import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
+import { fetchTtsBlob } from "@/lib/tts-client";
 
 interface InterviewScreenProps {
   currentQuestion: string;
@@ -110,17 +111,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     // 1. OpenAI TTS API 呼び出しを試行
     const playTtsAudio = async () => {
       try {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: currentQuestion, voice: getSavedTtsVoice() }),
-        });
-
-        if (!res.ok) {
-          throw new Error("TTS API unavailable");
-        }
-
-        const blob = await res.blob();
+        const { blob } = await fetchTtsBlob(currentQuestion, getSavedTtsVoice());
         if (isCancelled) return;
 
         // 前のオーディオがあれば安全に停止・破棄

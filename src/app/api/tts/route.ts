@@ -27,8 +27,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // VOICEVOX が優先設定、またはローカルにエンジンが待機しているか試行
-    const voicevoxResult = await generateVoicevoxAudio(text, speakerId, 2500);
+    // VOICEVOX は通常ブラウザ側（src/lib/tts-client.ts）で直接呼び出す。
+    // サーバー（Vercel）からは展示PCの 127.0.0.1 に届かないため、
+    // VOICEVOX_API_URL が明示的に設定されている場合（ローカル実行・自前サーバー）のみここで試行する。
+    const voicevoxResult =
+      isVoicevoxPreferred && process.env.VOICEVOX_API_URL
+        ? await generateVoicevoxAudio(text, speakerId, 2500)
+        : null;
 
     if (voicevoxResult) {
       return new NextResponse(new Uint8Array(voicevoxResult.buffer), {

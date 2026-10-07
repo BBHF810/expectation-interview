@@ -10,6 +10,7 @@ import {
   exportEpisodesAsJson,
 } from "@/lib/episode-storage";
 import { TTS_VOICES, TtsVoiceId, getSavedTtsVoice, saveTtsVoice, DEFAULT_TTS_VOICE } from "@/lib/tts-voices";
+import { fetchTtsBlob, checkLocalVoicevox, TtsEngineUsed } from "@/lib/tts-client";
 import { TheoryExplanationModal } from "./TheoryExplanationModal";
 
 interface AdminEpisodeManagerModalProps {
@@ -35,6 +36,22 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
+  const [voicevoxStatus, setVoicevoxStatus] = useState<"checking" | "ok" | "ng">("checking");
+  const [voicevoxVersion, setVoicevoxVersion] = useState<string | undefined>();
+  const [lastEngine, setLastEngine] = useState<TtsEngineUsed | null>(null);
+
+  const refreshVoicevoxStatus = async () => {
+    setVoicevoxStatus("checking");
+    const result = await checkLocalVoicevox();
+    setVoicevoxStatus(result.ok ? "ok" : "ng");
+    setVoicevoxVersion(result.version);
+  };
+
+  useEffect(() => {
+    if (isOpen && isAuthenticated && activeTab === "voice") {
+      refreshVoicevoxStatus();
+    }
+  }, [isOpen, isAuthenticated, activeTab]);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -82,17 +99,8 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
 
     try {
       const sampleText = "こんにちは！体験展示へようこそ。お話しできるのを楽しみにしています。";
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: sampleText, voice: voiceId }),
-      });
-
-      if (!res.ok) {
-        throw new Error("TTS generation failed");
-      }
-
-      const blob = await res.blob();
+      const { blob, engine } = await fetchTtsBlob(sampleText, voiceId);
+      setLastEngine(engine);
       const audioUrl = URL.createObjectURL(blob);
       audioUrlRef.current = audioUrl;
 
@@ -420,6 +428,42 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                 日本語に特化した<strong>VOICEVOX</strong>（四国めたん・青山龍星など）と、OpenAI HD音声を試聴・選択できます。
                 PCでVOICEVOXアプリが起動している時は完全自然な日本語音声で発話し、未起動時は自動的にOpenAI HDへフォールバックします。
               </p>
+            </div>
+
+            {/* VOICEVOX 接続状態 */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "0.75rem",
+                flexWrap: "wrap",
+                padding: "0.75rem 1rem",
+                borderRadius: "var(--radius-md)",
+                border: `1px solid ${voicevoxStatus === "ok" ? "#86EFAC" : voicevoxStatus === "ng" ? "#FCA5A5" : "var(--color-border)"}`,
+                background: voicevoxStatus === "ok" ? "#F0FDF4" : voicevoxStatus === "ng" ? "#FEF2F2" : "#F9FAFB",
+                fontSize: "0.875rem",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                <strong style={{ color: voicevoxStatus === "ok" ? "#166534" : voicevoxStatus === "ng" ? "#B91C1C" : "#4B5563" }}>
+                  {voicevoxStatus === "checking" && "VOICEVOX：接続確認中…"}
+                  {voicevoxStatus === "ok" && `VOICEVOX：接続OK（v${voicevoxVersion}）`}
+                  {voicevoxStatus === "ng" && "VOICEVOX：このブラウザから接続できません（OpenAI音声で代替されます）"}
+                </strong>
+                {voicevoxStatus === "ng" && (
+                  <span style={{ color: "#7F1D1D", lineHeight: 1.5 }}>
+                    ①このPCでVOICEVOXを起動 ②VOICEVOXの設定でこのサイトのURLを許可 ③ブラウザの「ローカルネットワークへのアクセス」を許可、を確認してください。
+                  </span>
+                )}
+                {lastEngine && (
+                  <span style={{ color: "#4B5563" }}>直前の試聴で再生された音声：{lastEngine === "VOICEVOX" ? "VOICEVOX" : "OpenAI"}</span>
+                )}
+              </div>
+              <button type="button" onClick={refreshVoicevoxStatus} className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}>
+                <RefreshCw size={14} />
+                再確認
+              </button>
             </div>
 
             {/* ボイスカード一覧 */}
