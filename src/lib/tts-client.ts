@@ -8,8 +8,35 @@
 
 export type TtsEngineUsed = "VOICEVOX" | "OpenAI";
 
+const CUSTOM_VOICEVOX_URL_KEY = "expectation_voicevox_url";
+export const DEFAULT_VOICEVOX_URL = "http://127.0.0.1:50021";
+
 export function getBrowserVoicevoxUrl(): string {
-  return (process.env.NEXT_PUBLIC_VOICEVOX_URL || "http://127.0.0.1:50021").replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    try {
+      const custom = localStorage.getItem(CUSTOM_VOICEVOX_URL_KEY);
+      if (custom && custom.trim() !== "") {
+        return custom.trim().replace(/\/$/, "");
+      }
+    } catch {}
+  }
+  return (process.env.NEXT_PUBLIC_VOICEVOX_URL || DEFAULT_VOICEVOX_URL).replace(/\/$/, "");
+}
+
+export function saveBrowserVoicevoxUrl(url: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!url || url.trim() === "" || url.trim() === DEFAULT_VOICEVOX_URL) {
+      localStorage.removeItem(CUSTOM_VOICEVOX_URL_KEY);
+    } else {
+      localStorage.setItem(CUSTOM_VOICEVOX_URL_KEY, url.trim().replace(/\/$/, ""));
+    }
+  } catch {}
+}
+
+export function isMixedContentRisk(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.protocol === "https:" && getBrowserVoicevoxUrl().startsWith("http://");
 }
 
 function parseVoicevoxSpeaker(voice: string): number | null {

@@ -10,7 +10,15 @@ import {
   exportEpisodesAsJson,
 } from "@/lib/episode-storage";
 import { TTS_VOICES, TtsVoiceId, getSavedTtsVoice, saveTtsVoice, DEFAULT_TTS_VOICE } from "@/lib/tts-voices";
-import { fetchTtsBlob, checkLocalVoicevox, TtsEngineUsed } from "@/lib/tts-client";
+import {
+  fetchTtsBlob,
+  checkLocalVoicevox,
+  TtsEngineUsed,
+  getBrowserVoicevoxUrl,
+  saveBrowserVoicevoxUrl,
+  isMixedContentRisk,
+  DEFAULT_VOICEVOX_URL,
+} from "@/lib/tts-client";
 import { TheoryExplanationModal } from "./TheoryExplanationModal";
 
 interface AdminEpisodeManagerModalProps {
@@ -39,6 +47,8 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   const [voicevoxStatus, setVoicevoxStatus] = useState<"checking" | "ok" | "ng">("checking");
   const [voicevoxVersion, setVoicevoxVersion] = useState<string | undefined>();
   const [lastEngine, setLastEngine] = useState<TtsEngineUsed | null>(null);
+  const [voicevoxUrlInput, setVoicevoxUrlInput] = useState<string>(DEFAULT_VOICEVOX_URL);
+  const [urlSavedMessage, setUrlSavedMessage] = useState(false);
 
   const refreshVoicevoxStatus = async () => {
     setVoicevoxStatus("checking");
@@ -49,6 +59,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
 
   useEffect(() => {
     if (isOpen && isAuthenticated && activeTab === "voice") {
+      setVoicevoxUrlInput(getBrowserVoicevoxUrl());
       refreshVoicevoxStatus();
     }
   }, [isOpen, isAuthenticated, activeTab]);
@@ -430,40 +441,112 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
               </p>
             </div>
 
-            {/* VOICEVOX 接続状態 */}
+            {/* VOICEVOX 接続状態 & 接続先URL設定 */}
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                flexDirection: "column",
                 gap: "0.75rem",
-                flexWrap: "wrap",
-                padding: "0.75rem 1rem",
+                padding: "1rem 1.25rem",
                 borderRadius: "var(--radius-md)",
                 border: `1px solid ${voicevoxStatus === "ok" ? "#86EFAC" : voicevoxStatus === "ng" ? "#FCA5A5" : "var(--color-border)"}`,
                 background: voicevoxStatus === "ok" ? "#F0FDF4" : voicevoxStatus === "ng" ? "#FEF2F2" : "#F9FAFB",
                 fontSize: "0.875rem",
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                <strong style={{ color: voicevoxStatus === "ok" ? "#166534" : voicevoxStatus === "ng" ? "#B91C1C" : "#4B5563" }}>
-                  {voicevoxStatus === "checking" && "VOICEVOX：接続確認中…"}
-                  {voicevoxStatus === "ok" && `VOICEVOX：接続OK（v${voicevoxVersion}）`}
-                  {voicevoxStatus === "ng" && "VOICEVOX：このブラウザから接続できません（OpenAI音声で代替されます）"}
-                </strong>
-                {voicevoxStatus === "ng" && (
-                  <span style={{ color: "#7F1D1D", lineHeight: 1.5 }}>
-                    ①このPCでVOICEVOXを起動 ②VOICEVOXの設定でこのサイトのURLを許可 ③ブラウザの「ローカルネットワークへのアクセス」を許可、を確認してください。
-                  </span>
-                )}
-                {lastEngine && (
-                  <span style={{ color: "#4B5563" }}>直前の試聴で再生された音声：{lastEngine === "VOICEVOX" ? "VOICEVOX" : "OpenAI"}</span>
-                )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                  <strong style={{ color: voicevoxStatus === "ok" ? "#166534" : voicevoxStatus === "ng" ? "#B91C1C" : "#4B5563" }}>
+                    {voicevoxStatus === "checking" && "VOICEVOX：接続確認中…"}
+                    {voicevoxStatus === "ok" && `VOICEVOX：接続OK（v${voicevoxVersion}）`}
+                    {voicevoxStatus === "ng" && "VOICEVOX：このブラウザから接続できません（OpenAI音声で代替されます）"}
+                  </strong>
+                  {lastEngine && (
+                    <span style={{ color: "#4B5563" }}>直前の試聴で再生された音声：<strong>{lastEngine === "VOICEVOX" ? "VOICEVOX" : "OpenAI HD"}</strong></span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={refreshVoicevoxStatus}
+                  className="btn btn-secondary"
+                  style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+                >
+                  <RefreshCw size={14} />
+                  接続テスト
+                </button>
               </div>
-              <button type="button" onClick={refreshVoicevoxStatus} className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}>
-                <RefreshCw size={14} />
-                再確認
-              </button>
+
+              {/* 接続先URLの変更・保存 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", paddingTop: "0.5rem", borderTop: "1px dashed rgba(0,0,0,0.1)" }}>
+                <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-main)" }}>
+                  VOICEVOX 接続先 URL:
+                </label>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <input
+                    type="text"
+                    value={voicevoxUrlInput}
+                    onChange={(e) => setVoicevoxUrlInput(e.target.value)}
+                    placeholder="http://127.0.0.1:50021 または https://xxxx.trycloudflare.com"
+                    style={{
+                      flex: 1,
+                      minWidth: "260px",
+                      padding: "0.4rem 0.6rem",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--color-border)",
+                      fontSize: "0.85rem",
+                      fontFamily: "monospace",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      saveBrowserVoicevoxUrl(voicevoxUrlInput);
+                      setUrlSavedMessage(true);
+                      setTimeout(() => setUrlSavedMessage(false), 2000);
+                      refreshVoicevoxStatus();
+                    }}
+                    className="btn btn-primary"
+                    style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+                  >
+                    {urlSavedMessage ? "保存しました！" : "URL保存"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVoicevoxUrlInput(DEFAULT_VOICEVOX_URL);
+                      saveBrowserVoicevoxUrl(DEFAULT_VOICEVOX_URL);
+                      refreshVoicevoxStatus();
+                    }}
+                    className="btn btn-secondary"
+                    style={{ padding: "0.4rem 0.6rem", fontSize: "0.8rem" }}
+                  >
+                    初期値
+                  </button>
+                </div>
+              </div>
+
+              {/* Mixed Content 注意喚起（HTTPSからHTTPへの直接アクセスの制限） */}
+              {isMixedContentRisk() && (
+                <div
+                  style={{
+                    background: "#FFFBEB",
+                    border: "1px solid #FDE68A",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "0.6rem 0.8rem",
+                    fontSize: "0.8rem",
+                    color: "#92400E",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, marginBottom: "0.2rem" }}>
+                    💡 HTTPS（Vercel）と ローカルVOICEVOX（HTTP）の通信について
+                  </div>
+                  ブラウザのセキュリティ（Mixed Content保護）により、HTTPSサイトからローカルの <code>http://127.0.0.1:50021</code> へのアクセスが遮断される場合があります。<br />
+                  <strong>最も確実な解決策（推奨）:</strong><br />
+                  1. 展示PCで <strong><code>http://localhost:3000</code></strong> を開いてご利用ください（同一ローカル環境のため制限なく100%確実に動作します）。<br />
+                  2. または、無料のCloudflare Tunnel（<code>npx -y cloudflared tunnel --url http://127.0.0.1:50021</code>）を実行して発行された <code>https://xxxx.trycloudflare.com</code> を上の接続先URLに貼り付けてください。
+                </div>
+              )}
             </div>
 
             {/* ボイスカード一覧 */}
