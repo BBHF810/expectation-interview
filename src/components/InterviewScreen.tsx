@@ -14,10 +14,21 @@ interface InterviewScreenProps {
   isLoading: boolean;
   fallbackUsed: boolean;
   inputMethod: InputMethod;
+  audioStreamingUrl?: string;
   onSubmitAnswer: (answer: string, isSkipped: boolean, skipReason?: "dont_know" | "no_answer") => void;
   onFinishEarly: () => void;
   onReset: () => void;
   isSimple: boolean;
+}
+
+// iPad / iOS Safari の Autoplay 制限を解除するためのアンロック処理
+function unlockAudioOnUserAction() {
+  if (typeof window === "undefined") return;
+  try {
+    const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    dummy.volume = 0.01;
+    dummy.play().then(() => dummy.pause()).catch(() => {});
+  } catch {}
 }
 
 export const InterviewScreen: React.FC<InterviewScreenProps> = ({
@@ -26,6 +37,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   isLoading,
   fallbackUsed,
   inputMethod,
+  audioStreamingUrl,
   onSubmitAnswer,
   onFinishEarly,
   onReset,
@@ -121,14 +133,24 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     }
     stopAllAudio();
 
-    // 音声待機が長すぎる場合の安全フォールバック（最大3.5秒で文面を先行表示）
+    // 音声待機が長すぎる場合の安全フォールバック（最大2.0秒で文面を先行表示）
     const safetyTimer = setTimeout(() => {
       if (!isCancelled) setIsAudioPreparing(false);
-    }, 3500);
+    }, 2000);
 
     const playTtsAudio = async () => {
       try {
-        const { src, cleanup } = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+        let src: string;
+        let cleanup: (() => void) | undefined;
+
+        if (audioStreamingUrl) {
+          src = audioStreamingUrl;
+        } else {
+          const res = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+          src = res.src;
+          cleanup = res.cleanup;
+        }
+
         if (isCancelled) {
           cleanup?.();
           return;
@@ -202,7 +224,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
       clearTimeout(safetyTimer);
       stopAllAudio();
     };
-  }, [currentQuestion, isLoading, isSpeechEnabled]);
+  }, [currentQuestion, isLoading, isSpeechEnabled, audioStreamingUrl]);
 
   const isWaitingForSpeech = isLoading || isAudioPreparing;
 
@@ -219,12 +241,14 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
+    unlockAudioOnUserAction();
     stopAllAudio();
     onSubmitAnswer(answer.trim(), false);
   };
 
   const handleSkip = (reason: "dont_know" | "no_answer") => {
     if (isLoading) return;
+    unlockAudioOnUserAction();
     stopAllAudio();
     onSubmitAnswer(reason === "dont_know" ? "（思いつかない）" : "（答えたくない）", true, reason);
   };

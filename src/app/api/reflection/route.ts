@@ -114,10 +114,14 @@ export async function POST(req: NextRequest) {
         fallbackUsed: true,
         errorType: "NO_API_KEY",
       });
+      const fallbackSnippet = allAnswers[0] ? `『${allAnswers[0].slice(0, 18)}』とお話ししてくださり、` : "";
+      const fallbackClosing =
+        `お話ししてくださり、ありがとうございました！${fallbackSnippet}あなたのお気持ちや出来事がとてもよく伝わってきました。診断結果をお渡ししますね！`;
       return NextResponse.json({
         expected: fallback.expected,
         actual: fallback.actual,
         reflection: fallback.reflection,
+        closingComment: fallbackClosing,
         safetyAction: "continue",
         missingInformation: [],
         animalDiagnosis: fallback.animalDiagnosis,
@@ -150,7 +154,11 @@ export async function POST(req: NextRequest) {
 ${turnsContext}
 
 【依頼】
-上記の対話から「expected」「actual」「reflection（100〜180文字の中立的まとめ）」「safetyAction」「missingInformation」「animalDiagnosis（親しみやすい動物タイプ診断）」をJSONスキーマに従って出力してください。`;
+上記の対話から「expected」「actual」「reflection（100〜180文字の中立的まとめ）」「closingComment（80〜120文字の温かい音声コメント）」「safetyAction」「missingInformation」「animalDiagnosis（親しみやすい動物タイプ診断）」をJSONスキーマに従って出力してください。
+
+【最重要指示】
+・closingComment、reflection、および animalDiagnosis には、参加者が話してくれた具体的な言葉やエピソード（誰とのどんな出来事か、どうしてほしかったか等）を文中で必ず直接引用・言及してください。
+・「あなたのペースで話してください」「お話ししてくださりありがとうございました」のみで終わる抽象的な定型文は絶対に避けてください。`;
 
     const config = getGeminiConfig(300);
 
@@ -240,7 +248,7 @@ ${turnsContext}
                     required: ["animalEmoji", "animalName", "catchphrase", "description"],
                   },
                 },
-                required: ["expected", "actual", "reflection", "safetyAction", "missingInformation"],
+                required: ["expected", "actual", "reflection", "closingComment", "safetyAction", "missingInformation"],
               },
               maxOutputTokens: config.maxOutputTokens,
               temperature: config.temperature,
@@ -307,9 +315,10 @@ ${turnsContext}
       fallbackUsed: false,
     });
 
+    const firstAnsSnippet = allAnswers[0] ? `『${allAnswers[0].slice(0, 18)}』というお話、` : "";
     const closingComment =
       data.closingComment ||
-      `お話ししてくださり、ありがとうございました！${
+      `お話ししてくださり、ありがとうございました！${firstAnsSnippet}${
         partner && partner !== "相手" ? `${partner}さんとの` : ""
       }エピソードを教えていただき、とても嬉しかったです。あなたの診断結果をお渡ししますね！`;
 
@@ -343,8 +352,9 @@ ${turnsContext}
       errorType: err?.message || err?.name || "GEMINI_ERROR",
     });
 
+    const fallbackSnippet = answers[0] ? `『${answers[0].slice(0, 18)}』とお話ししてくださり、` : "";
     const fallbackClosing =
-      "お話ししてくださり、ありがとうございました！あなたのお気持ちや出来事がとてもよく伝わってきました。診断結果をお渡ししますね！";
+      `お話ししてくださり、ありがとうございました！${fallbackSnippet}あなたのお気持ちや出来事がとてもよく伝わってきました。診断結果をお渡ししますね！`;
 
     return NextResponse.json({
       expected: fallback.expected,

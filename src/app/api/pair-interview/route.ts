@@ -7,6 +7,7 @@ import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackPairQuestion, getInitialPairQuestion } from "@/lib/pair-fallbacks";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { ExpectationType } from "@/types";
+import { getFastCloudVoicevoxStreamingUrl } from "@/lib/voicevox";
 
 const PairTurnSchema = z.object({
   questionNumber: z.number(),
@@ -23,6 +24,7 @@ const PairInterviewRequestSchema = z.object({
   relationship: z.string().max(50),
   expectationType: z.enum(["matched", "mismatched", "neutral"]),
   currentTurnSpeaker: z.enum(["A", "B"]),
+  voice: z.string().max(50).optional(),
   conversationHistory: z.array(PairTurnSchema).max(4),
 });
 
@@ -322,6 +324,13 @@ ${
     const nextSpeaker = "A" as const;
     const nextSpeakerName = nameA;
 
+    // VOICEVOX Cloud ボイスの場合は、サーバー側で先行してストリーミングURLを取得（iPad等での待ち時間を極小化）
+    let audioStreamingUrl: string | undefined = undefined;
+    if (cleanQuestion && parsedData?.voice?.startsWith("voicevox:")) {
+      const speakerId = parseInt(parsedData.voice.split(":")[1], 10) || 3;
+      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(cleanQuestion, speakerId, 1200)) || undefined;
+    }
+
     logSafeRequest({
       requestId,
       endpoint: "/api/pair-interview",
@@ -339,6 +348,7 @@ ${
       isComplete: false,
       safetyAction: "continue",
       fallbackUsed: false,
+      audioStreamingUrl,
     });
   } catch (err: any) {
     const nameA = parsedData?.nameA || "参加者1";

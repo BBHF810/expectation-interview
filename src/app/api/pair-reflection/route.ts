@@ -109,10 +109,15 @@ export async function POST(req: NextRequest) {
         fallbackUsed: true,
         errorType: "NO_API_KEY",
       });
+      const firstAnswer = conversationHistory[0]?.answer;
+      const fallbackSnippet = firstAnswer ? `『${firstAnswer.slice(0, 18)}』とお話ししてくださり、` : "";
+      const fallbackClosing =
+        `おふたりでお話ししてくださり、ありがとうございました！${fallbackSnippet}${nameA}さんと${nameB}さんの思いがとてもよく伝わってきました。ふたりの診断結果をお渡ししますね！`;
       return NextResponse.json({
         perspectiveA: fallback.perspectiveA,
         perspectiveB: fallback.perspectiveB,
         reflection: fallback.reflection,
+        closingComment: fallbackClosing,
         pairAnimalDiagnosis: fallback.pairAnimalDiagnosis,
         safetyAction: "continue",
         fallbackUsed: true,
@@ -148,9 +153,14 @@ ${turnsContext}
 1. perspectiveA: ${nameA}さんから見た期待・思い
 2. perspectiveB: ${nameB}さんから見た受け止め・状況
 3. reflection: ふたりへの温かい中立的なメッセージ（100〜180文字程度）
-4. pairAnimalDiagnosis: ふたりの関わり方を2匹の動物に例えるお楽しみエンタメ診断
-5. safetyAction: "continue" | "stop"
-をJSONスキーマに従って出力してください。`;
+4. closingComment: ふたりへ語りかける温かい音声コメント（80〜120文字程度）
+5. pairAnimalDiagnosis: ふたりの関わり方を2匹の動物に例えるお楽しみエンタメ診断
+6. safetyAction: "continue" | "stop"
+をJSONスキーマに従って出力してください。
+
+【最重要指示】
+・closingComment、reflection、および pairAnimalDiagnosis（pairTitle, pairDescription）には、${nameA}さんと${nameB}さんが実際に話してくれた具体的な言葉や出来事を必ず直接引用・言及してください。
+・「あなたのペースで話してください」「お話ししてくださりありがとうございました」のみで終わる定型挨拶は絶対に避けてください。`;
 
     const config = getGeminiConfig(300);
 
@@ -245,7 +255,7 @@ ${turnsContext}
                     required: ["animalA", "animalB", "pairTitle", "pairCatchphrase", "pairDescription"],
                   },
                 },
-                required: ["perspectiveA", "perspectiveB", "reflection", "safetyAction"],
+                required: ["perspectiveA", "perspectiveB", "reflection", "closingComment", "safetyAction"],
               },
               maxOutputTokens: config.maxOutputTokens,
               temperature: config.temperature,
@@ -311,9 +321,10 @@ ${turnsContext}
       fallbackUsed: false,
     });
 
+    const firstPairSnippet = conversationHistory[0]?.answer ? `『${conversationHistory[0].answer.slice(0, 18)}』というお話、` : "";
     const closingComment =
       data.closingComment ||
-      `おふたりでお話ししてくださり、ありがとうございました！${nameA}さんと${nameB}さんの素直なやり取りがとても素敵でした。ふたりの診断結果をお渡ししますね！`;
+      `おふたりでお話ししてくださり、ありがとうございました！${firstPairSnippet}${nameA}さんと${nameB}さんの素直なやり取りがとても素敵でした。ふたりの診断結果をお渡ししますね！`;
 
     return NextResponse.json({
       perspectiveA: data.perspectiveA,
@@ -342,8 +353,9 @@ ${turnsContext}
       errorType: err?.message || err?.name || "GEMINI_ERROR",
     });
 
+    const fallbackSnippet = history[0]?.answer ? `『${history[0].answer.slice(0, 18)}』とお話ししてくださり、` : "";
     const fallbackClosing =
-      `おふたりでお話ししてくださり、ありがとうございました！${nameA}さんと${nameB}さんの思いがとてもよく伝わってきました。ふたりの診断結果をお渡ししますね！`;
+      `おふたりでお話ししてくださり、ありがとうございました！${fallbackSnippet}${nameA}さんと${nameB}さんの思いがとてもよく伝わってきました。ふたりの診断結果をお渡ししますね！`;
 
     return NextResponse.json({
       perspectiveA: fallback.perspectiveA,

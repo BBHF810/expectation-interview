@@ -202,3 +202,29 @@ export async function generateCloudVoicevoxAudio(
     return null;
   }
 }
+
+/**
+ * クラウドVOICEVOXの即時ストリーミングURLを取得（約0.2〜0.5秒で返却）
+ * 失敗時やタイムアウト時は安全に null を返す
+ */
+export async function getFastCloudVoicevoxStreamingUrl(
+  text: string,
+  speakerId: number = 3,
+  timeoutMs = 1200
+): Promise<string | null> {
+  if (!text || text.trim() === "") return null;
+  try {
+    const apiKey = process.env.VOICEVOX_QUEST_API_KEY?.trim();
+    let url = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`;
+    if (apiKey) {
+      url += `&key=${encodeURIComponent(apiKey)}`;
+    }
+    const res = await fetch(url, { signal: getTimeoutSignal(timeoutMs) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.success || !data.mp3StreamingUrl) return null;
+    return data.mp3StreamingUrl;
+  } catch {
+    return null;
+  }
+}

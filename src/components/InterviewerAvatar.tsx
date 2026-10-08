@@ -258,7 +258,7 @@ export const InterviewerAvatar: React.FC<InterviewerAvatarProps> = ({
               {status === "speaking" && "お話し中（聞いてね）"}
               {status === "listening" && "あなたの声を聞いています…"}
               {status === "thinking" && "質問を考えています…"}
-              {status === "idle" && "あなたのペースで話してください"}
+              {status === "idle" && "準備完了"}
             </>
           )}
         </div>

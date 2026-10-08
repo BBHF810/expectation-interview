@@ -33,6 +33,7 @@ export interface InterviewRequestBody {
   partner?: string;
   isCare?: CareStatus;
   expectationType?: ExpectationType;
+  voice?: string;
   conversationHistory: Array<{
     question: string;
     answer: string;
@@ -52,6 +53,7 @@ export interface InterviewResponseData {
   detectedPartner?: string;
   detectedExpectationType?: ExpectationType;
   detectedIsCare?: CareStatus;
+  audioStreamingUrl?: string;
 }
 
 export interface AnimalDiagnosis {
@@ -108,6 +110,7 @@ export interface PairInterviewRequestBody {
   relationship: string;
   expectationType: ExpectationType;
   currentTurnSpeaker: "A" | "B";
+  voice?: string;
   conversationHistory: PairTurn[];
 }
 
@@ -119,6 +122,7 @@ export interface PairInterviewResponseData {
   isComplete: boolean;
   safetyAction: SafetyAction;
   fallbackUsed: boolean;
+  audioStreamingUrl?: string;
 }
 
 export interface PairAnimalDiagnosis {

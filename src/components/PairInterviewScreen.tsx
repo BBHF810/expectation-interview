@@ -16,9 +16,20 @@ interface PairInterviewScreenProps {
   isLoading: boolean;
   fallbackUsed: boolean;
   inputMethod?: InputMethod;
+  audioStreamingUrl?: string;
   onSubmitAnswer: (answer: string, isSkipped: boolean) => void;
   onFinishEarly: () => void;
   onReset: () => void;
+}
+
+// iPad / iOS Safari の Autoplay 制限を解除するためのアンロック処理
+function unlockAudioOnUserAction() {
+  if (typeof window === "undefined") return;
+  try {
+    const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    dummy.volume = 0.01;
+    dummy.play().then(() => dummy.pause()).catch(() => {});
+  } catch {}
 }
 
 export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
@@ -29,6 +40,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   isLoading,
   fallbackUsed,
   inputMethod = "voice",
+  audioStreamingUrl,
   onSubmitAnswer,
   onFinishEarly,
   onReset,
@@ -109,14 +121,24 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
     }
     stopAllAudio();
 
-    // 音声待機が長すぎる場合の安全フォールバック（最大3.5秒で文面を先行表示）
+    // 音声待機が長すぎる場合の安全フォールバック（最大2.0秒で文面を先行表示）
     const safetyTimer = setTimeout(() => {
       if (!isCancelled) setIsAudioPreparing(false);
-    }, 3500);
+    }, 2000);
 
     const playTtsAudio = async () => {
       try {
-        const { src, cleanup } = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+        let src: string;
+        let cleanup: (() => void) | undefined;
+
+        if (audioStreamingUrl) {
+          src = audioStreamingUrl;
+        } else {
+          const res = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+          src = res.src;
+          cleanup = res.cleanup;
+        }
+
         if (isCancelled) {
           cleanup?.();
           return;
@@ -190,7 +212,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
       clearTimeout(safetyTimer);
       stopAllAudio();
     };
-  }, [currentQuestion, isLoading, isSpeechEnabled]);
+  }, [currentQuestion, isLoading, isSpeechEnabled, audioStreamingUrl]);
 
   const isWaitingForSpeech = isLoading || isAudioPreparing;
 
@@ -206,12 +228,14 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
+    unlockAudioOnUserAction();
     stopAllAudio();
     onSubmitAnswer(answer.trim(), false);
   };
 
   const handleSkip = () => {
     if (isLoading) return;
+    unlockAudioOnUserAction();
     stopAllAudio();
     onSubmitAnswer("（スキップ）", true);
   };

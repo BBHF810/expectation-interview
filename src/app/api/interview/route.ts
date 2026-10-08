@@ -7,6 +7,7 @@ import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackQuestion, getInitialSingleQuestion } from "@/lib/fallbacks";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { AgeGroup, CareStatus, ExpectationType } from "@/types";
+import { getFastCloudVoicevoxStreamingUrl } from "@/lib/voicevox";
 
 const InterviewRequestSchema = z.object({
   ageGroup: z.enum(["under_10", "11_30", "31_plus", "no_answer"]),
@@ -14,6 +15,7 @@ const InterviewRequestSchema = z.object({
   partner: z.string().max(50).optional(),
   isCare: z.enum(["yes", "no", "no_answer"]).optional(),
   expectationType: z.enum(["matched", "mismatched", "neutral"]).optional(),
+  voice: z.string().max(50).optional(),
   conversationHistory: z.array(
     z.object({
       question: z.string().max(300),
@@ -337,6 +339,13 @@ ${
 
     const isFinished = data.shouldFinish === true;
 
+    // VOICEVOX Cloud ボイスの場合は、サーバー側で先行してストリーミングURLを取得（iPad等での待ち時間を極小化）
+    let audioStreamingUrl: string | undefined = undefined;
+    if (!isFinished && cleanQuestion && parsedData?.voice?.startsWith("voicevox:")) {
+      const speakerId = parseInt(parsedData.voice.split(":")[1], 10) || 3;
+      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(cleanQuestion, speakerId, 1200)) || undefined;
+    }
+
     return NextResponse.json({
       nextQuestion: isFinished ? "" : cleanQuestion,
       questionPurpose: data.questionPurpose,
@@ -347,6 +356,7 @@ ${
       detectedPartner: data.detectedPartner,
       detectedExpectationType: data.detectedExpectationType,
       detectedIsCare: data.detectedIsCare,
+      audioStreamingUrl,
     });
   } catch (err: any) {
     const expType = parsedData?.expectationType || "neutral";

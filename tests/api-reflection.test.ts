@@ -27,6 +27,8 @@ describe("振り返りAPI (/api/reflection)", () => {
     expect(data.expected).toBeTruthy();
     expect(data.actual).toBeTruthy();
     expect(data.reflection).toBeTruthy();
+    expect(data.closingComment).toBeTruthy();
+    expect(data.closingComment).toMatch(/お話ししてくださり/i);
     expect(data.safetyAction).toBe("continue");
     expect(data.animalDiagnosis).toBeTruthy();
     expect(data.animalDiagnosis.animalName).toBeTruthy();

@@ -34,6 +34,7 @@ import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal"
 import { ANIMAL_DIAGNOSES, getInitialSingleQuestion, getSmartFallbackQuestion } from "@/lib/fallbacks";
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
 import { saveEpisodeLocally } from "@/lib/episode-storage";
+import { getSavedTtsVoice } from "@/lib/tts-voices";
 import { CollectedEpisode } from "@/types";
 
 export default function Home() {
@@ -50,6 +51,7 @@ export default function Home() {
   const [expectationType, setExpectationType] = useState<ExpectationType>("neutral");
   const [turns, setTurns] = useState<DialogTurn[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
+  const [singleAudioStreamingUrl, setSingleAudioStreamingUrl] = useState<string | undefined>(undefined);
   const [currentProgress, setCurrentProgress] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fallbackUsed, setFallbackUsed] = useState<boolean>(false);
@@ -76,6 +78,7 @@ export default function Home() {
   const [pairExpectationType, setPairExpectationType] = useState<ExpectationType>("neutral");
   const [pairTurns, setPairTurns] = useState<PairTurn[]>([]);
   const [pairCurrentQuestion, setPairCurrentQuestion] = useState<string>("");
+  const [pairAudioStreamingUrl, setPairAudioStreamingUrl] = useState<string | undefined>(undefined);
   const [pairCurrentSpeaker, setPairCurrentSpeaker] = useState<"A" | "B">("A");
   const [pairCurrentSpeakerName, setPairCurrentSpeakerName] = useState<string>("Aさん");
   const [pairProgress, setPairProgress] = useState<number>(1);
@@ -106,6 +109,7 @@ export default function Home() {
     setExpectationType("neutral");
     setTurns([]);
     setCurrentQuestion("");
+    setSingleAudioStreamingUrl(undefined);
     setCurrentProgress(1);
     setIsLoading(false);
     setFallbackUsed(false);
@@ -124,6 +128,7 @@ export default function Home() {
     setPairExpectationType("neutral");
     setPairTurns([]);
     setPairCurrentQuestion("");
+    setPairAudioStreamingUrl(undefined);
     setPairCurrentSpeaker("A");
     setPairCurrentSpeakerName("Aさん");
     setPairProgress(1);
@@ -205,6 +210,7 @@ export default function Home() {
           partner: partner || undefined,
           isCare: isCare !== "no" ? isCare : undefined,
           expectationType: expectationType !== "neutral" ? expectationType : undefined,
+          voice: getSavedTtsVoice(),
           conversationHistory: nextHistory.map((t) => ({
             question: t.question,
             answer: t.answer,
@@ -240,6 +246,7 @@ export default function Home() {
       }
 
       setCurrentQuestion(data.nextQuestion);
+      setSingleAudioStreamingUrl(data.audioStreamingUrl);
       setCurrentProgress(data.progress);
       if (data.fallbackUsed) setFallbackUsed(true);
     } catch (err) {
@@ -247,6 +254,7 @@ export default function Home() {
       const prevAnswers = nextHistory.map((t) => t.answer).filter(Boolean);
       const fallbackQ = getSmartFallbackQuestion(prevAnswers, isSimple);
       setCurrentQuestion(fallbackQ);
+      setSingleAudioStreamingUrl(undefined);
       setCurrentProgress(nextHistory.length + 1);
       setFallbackUsed(true);
     } finally {
@@ -448,6 +456,7 @@ export default function Home() {
             relationship: pairRelationship,
             expectationType: pairExpectationType,
             currentTurnSpeaker: "A",
+            voice: getSavedTtsVoice(),
             conversationHistory: nextHistory,
           }),
         });
@@ -466,6 +475,7 @@ export default function Home() {
         }
 
         setPairCurrentQuestion(data.nextQuestion);
+        setPairAudioStreamingUrl(data.audioStreamingUrl);
         setPairCurrentSpeaker("A");
         setPairCurrentSpeakerName(pairNameA);
         setPairProgress(2);
@@ -473,6 +483,7 @@ export default function Home() {
       } catch (err) {
         const fallback = getFallbackPairQuestion(pairNameA, pairNameB, 2, pairExpectationType);
         setPairCurrentQuestion(fallback.question);
+        setPairAudioStreamingUrl(undefined);
         setPairCurrentSpeaker("A");
         setPairCurrentSpeakerName(pairNameA);
         setPairProgress(2);
@@ -649,6 +660,7 @@ export default function Home() {
           isLoading={isLoading}
           fallbackUsed={fallbackUsed}
           inputMethod={inputMethod}
+          audioStreamingUrl={singleAudioStreamingUrl}
           onSubmitAnswer={handleSingleAnswerSubmit}
           onFinishEarly={() => fetchSingleReflection(turns)}
           onReset={handleReset}
@@ -748,6 +760,7 @@ export default function Home() {
           isLoading={isLoading}
           fallbackUsed={fallbackUsed}
           inputMethod={inputMethod}
+          audioStreamingUrl={pairAudioStreamingUrl}
           onSubmitAnswer={handlePairAnswerSubmit}
           onFinishEarly={() => fetchPairReflection(pairTurns)}
           onReset={handleReset}
