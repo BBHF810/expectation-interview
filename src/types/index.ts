@@ -162,6 +162,8 @@ export type ScreenState =
   | "REFLECTION"
   | "SAFETY"
   | "PAIR_SETUP"
+  | "PAIR_AGE_A"
+  | "PAIR_AGE_B"
   | "PAIR_EXPECTATION"
   | "PAIR_INTERVIEW"
   | "PAIR_CLOSING"

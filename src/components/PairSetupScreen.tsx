@@ -3,19 +3,24 @@
 import React, { useState } from "react";
 import { ArrowLeft, ArrowRight, Users, Sparkles } from "lucide-react";
 
-import { ageToAgeGroup } from "@/types";
-
 interface PairSetupScreenProps {
-  onNext: (nameA: string, nameB: string, relationship: string, ageA: number | null, ageB: number | null) => void;
+  initialNameA?: string;
+  initialNameB?: string;
+  initialRelationship?: string;
+  onNext: (nameA: string, nameB: string, relationship: string) => void;
   onBack: () => void;
 }
 
-export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack }) => {
-  const [nameA, setNameA] = useState("Aさん");
-  const [nameB, setNameB] = useState("Bさん");
-  const [ageA, setAgeA] = useState<number | null>(null);
-  const [ageB, setAgeB] = useState<number | null>(null);
-  const [relationship, setRelationship] = useState("友だち");
+export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
+  initialNameA = "Aさん",
+  initialNameB = "Bさん",
+  initialRelationship = "友だち",
+  onNext,
+  onBack,
+}) => {
+  const [nameA, setNameA] = useState(initialNameA);
+  const [nameB, setNameB] = useState(initialNameB);
+  const [relationship, setRelationship] = useState(initialRelationship);
   const [customRelationship, setCustomRelationship] = useState("");
 
   const relationshipOptions = [
@@ -34,7 +39,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
     const finalRelationship = relationship === "その他"
       ? (customRelationship.trim() || "その他")
       : relationship;
-    onNext(cleanA, cleanB, finalRelationship, ageA, ageB);
+    onNext(cleanA, cleanB, finalRelationship);
   };
 
   return (
@@ -60,7 +65,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         {/* ふたりのお名前入力 */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <div
@@ -68,7 +73,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
               background: "#EFF6FF",
               border: "2px solid #BFDBFE",
               borderRadius: "var(--radius-md)",
-              padding: "1rem",
+              padding: "1.25rem",
             }}
           >
             <label
@@ -78,7 +83,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
                 fontWeight: 700,
                 color: "#1D4ED8",
                 marginBottom: "0.5rem",
-                fontSize: "0.95rem",
+                fontSize: "1rem",
               }}
             >
               👤 ひとりめのニックネーム
@@ -92,66 +97,14 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
               required
               style={{
                 width: "100%",
-                padding: "0.6rem 0.8rem",
+                padding: "0.75rem 0.9rem",
                 borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--color-border)",
-                fontSize: "1rem",
+                fontSize: "1.05rem",
                 fontWeight: 600,
-                marginBottom: "0.6rem",
+                backgroundColor: "#FFFFFF",
               }}
             />
-            <label
-              htmlFor="age-a"
-              style={{
-                display: "block",
-                fontWeight: 600,
-                color: "#1E3A8A",
-                marginBottom: "0.25rem",
-                fontSize: "0.85rem",
-              }}
-            >
-              年齢（任意）
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <input
-                id="age-a"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={120}
-                value={ageA ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setAgeA(v === "" ? null : Number(v));
-                }}
-                placeholder="例: 25"
-                style={{
-                  flex: 1,
-                  padding: "0.45rem 0.6rem",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--color-border)",
-                  fontSize: "0.9rem",
-                  backgroundColor: "#FFFFFF",
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setAgeA(null)}
-                style={{
-                  padding: "0.45rem 0.6rem",
-                  borderRadius: "var(--radius-sm)",
-                  border: ageA === null ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                  fontSize: "0.8rem",
-                  backgroundColor: ageA === null ? "var(--color-primary-light)" : "#FFFFFF",
-                  color: ageA === null ? "var(--color-primary)" : "var(--color-text-main)",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  fontWeight: ageA === null ? 700 : 400,
-                }}
-              >
-                答えない
-              </button>
-            </div>
           </div>
 
           <div
@@ -159,7 +112,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
               background: "#FEF3C7",
               border: "2px solid #FDE68A",
               borderRadius: "var(--radius-md)",
-              padding: "1rem",
+              padding: "1.25rem",
             }}
           >
             <label
@@ -169,7 +122,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
                 fontWeight: 700,
                 color: "#B45309",
                 marginBottom: "0.5rem",
-                fontSize: "0.95rem",
+                fontSize: "1rem",
               }}
             >
               👤 ふたりめのニックネーム
@@ -179,101 +132,49 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
               type="text"
               value={nameB}
               onChange={(e) => setNameB(e.target.value.slice(0, 20))}
-              placeholder="例: はなこ、はーちゃん"
+              placeholder="例: はなこ、いっちゃん"
               required
               style={{
                 width: "100%",
-                padding: "0.6rem 0.8rem",
+                padding: "0.75rem 0.9rem",
                 borderRadius: "var(--radius-sm)",
                 border: "1px solid var(--color-border)",
-                fontSize: "1rem",
+                fontSize: "1.05rem",
                 fontWeight: 600,
-                marginBottom: "0.6rem",
+                backgroundColor: "#FFFFFF",
               }}
             />
-            <label
-              htmlFor="age-b"
-              style={{
-                display: "block",
-                fontWeight: 600,
-                color: "#78350F",
-                marginBottom: "0.25rem",
-                fontSize: "0.85rem",
-              }}
-            >
-              年齢（任意）
-            </label>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-              <input
-                id="age-b"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={120}
-                value={ageB ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setAgeB(v === "" ? null : Number(v));
-                }}
-                placeholder="例: 25"
-                style={{
-                  flex: 1,
-                  padding: "0.45rem 0.6rem",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--color-border)",
-                  fontSize: "0.9rem",
-                  backgroundColor: "#FFFFFF",
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setAgeB(null)}
-                style={{
-                  padding: "0.45rem 0.6rem",
-                  borderRadius: "var(--radius-sm)",
-                  border: ageB === null ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                  fontSize: "0.8rem",
-                  backgroundColor: ageB === null ? "var(--color-primary-light)" : "#FFFFFF",
-                  color: ageB === null ? "var(--color-primary)" : "var(--color-text-main)",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  fontWeight: ageB === null ? 700 : 400,
-                }}
-              >
-                答えない
-              </button>
-            </div>
           </div>
         </div>
 
-        {/* 関係性の選択 */}
+        {/* ふたりの関係性 */}
         <div>
-          <label style={{ display: "block", fontWeight: 700, marginBottom: "0.5rem", fontSize: "0.95rem" }}>
-            ふたりのご関係
+          <label
+            style={{
+              display: "block",
+              fontWeight: 700,
+              marginBottom: "0.5rem",
+              fontSize: "0.95rem",
+            }}
+          >
+            🤝 ふたりの関係性
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.5rem" }}>
-            {relationshipOptions.map((opt) => {
-              const isSelected = relationship === opt;
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setRelationship(opt)}
-                  className="btn"
-                  style={{
-                    minHeight: "44px",
-                    padding: "0.5rem 0.75rem",
-                    fontSize: "0.9rem",
-                    borderRadius: "var(--radius-md)",
-                    backgroundColor: isSelected ? "var(--color-primary)" : "var(--color-surface-subtle)",
-                    color: isSelected ? "#FFFFFF" : "var(--color-text-main)",
-                    border: isSelected ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
-                  }}
-                >
-                  {opt}
-                </button>
-              );
-            })}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>
+            {relationshipOptions.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setRelationship(opt)}
+                className={`btn ${relationship === opt ? "btn-primary" : "btn-outline"}`}
+                style={{
+                  padding: "0.6rem 0.5rem",
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                }}
+              >
+                {opt}
+              </button>
+            ))}
           </div>
 
           {relationship === "その他" && (
@@ -281,8 +182,8 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
               <input
                 type="text"
                 value={customRelationship}
-                onChange={(e) => setCustomRelationship(e.target.value.slice(0, 30))}
-                placeholder="具体的な関係性（例: サークルの先輩後輩、同僚など）"
+                onChange={(e) => setCustomRelationship(e.target.value.slice(0, 20))}
+                placeholder="例: 先輩と後輩、同僚、サークルの仲間"
                 style={{
                   width: "100%",
                   padding: "0.6rem 0.8rem",
@@ -295,14 +196,40 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({ onNext, onBack
           )}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginTop: "1rem" }}>
+        {/* 案内バナー */}
+        <div
+          style={{
+            background: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            borderRadius: "var(--radius-md)",
+            padding: "0.75rem 1rem",
+            fontSize: "0.85rem",
+            color: "#166534",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <Sparkles size={18} color="#16A34A" style={{ flexShrink: 0 }} />
+          <span>
+            設定したニックネームでAIが対話を進行し、最後におふたりの関係性診断をお届けします。
+          </span>
+        </div>
+
+        {/* ナビゲーションボタン */}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginTop: "0.5rem" }}>
           <button type="button" onClick={onBack} className="btn btn-secondary">
             <ArrowLeft size={20} />
             もどる
           </button>
 
-          <button type="submit" className="btn btn-primary" style={{ minWidth: "160px" }}>
-            次へ
+          <button
+            type="submit"
+            disabled={!nameA.trim() || !nameB.trim()}
+            className="btn btn-primary"
+            style={{ minWidth: "160px" }}
+          >
+            次へ（年齢入力へ）
             <ArrowRight size={20} />
           </button>
         </div>

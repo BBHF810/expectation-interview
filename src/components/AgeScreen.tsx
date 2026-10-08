@@ -3,12 +3,21 @@ import { AgeGroup, ageToAgeGroup } from "@/types";
 import { ArrowLeft, ArrowRight, AlertCircle, Plus, Minus } from "lucide-react";
 
 interface AgeScreenProps {
+  title?: string;
+  subtitle?: string;
+  initialAge?: number | null;
   onSelect: (age: number | null, ageGroup: AgeGroup) => void;
   onBack: () => void;
 }
 
-export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
-  const [age, setAge] = useState<number | null>(null);
+export const AgeScreen: React.FC<AgeScreenProps> = ({
+  title = "あなたの年齢を教えてください",
+  subtitle = "あなたに合わせた、話しやすい言葉づかいで質問するために使用します。",
+  initialAge = null,
+  onSelect,
+  onBack,
+}) => {
+  const [age, setAge] = useState<number | null>(initialAge);
   const [noAnswer, setNoAnswer] = useState(false);
 
   // 年代クイック選択
@@ -20,7 +29,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
   const handleStep = (delta: number) => {
     setNoAnswer(false);
     setAge((prev) => {
-      const current = prev ?? 20;
+      const current = prev ?? 25;
       return Math.min(Math.max(current + delta, 1), 120);
     });
   };
@@ -41,10 +50,11 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
   const canProceed = noAnswer || age !== null;
   const currentAgeGroup = noAnswer ? "no_answer" : ageToAgeGroup(age);
 
+  // 年代選択時の代表年齢（〜9: 5, 10~: 15, 20~: 25, 30~: 35, 40~: 45, 50~: 55）
   const quickDecades = [
-    { label: "10代以下", age: 10 },
-    { label: "10代", age: 18 },
-    { label: "20代", age: 21 },
+    { label: "〜9歳", age: 5 },
+    { label: "10代", age: 15 },
+    { label: "20代", age: 25 },
     { label: "30代", age: 35 },
     { label: "40代", age: 45 },
     { label: "50代〜", age: 55 },
@@ -52,9 +62,9 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
 
   return (
     <div className="card" style={{ maxWidth: "560px", margin: "0 auto" }}>
-      <h2 className="title" style={{ textAlign: "center" }}>あなたの年齢を教えてください</h2>
+      <h2 className="title" style={{ textAlign: "center" }}>{title}</h2>
       <p className="subtitle" style={{ textAlign: "center" }}>
-        あなたに合わせた、話しやすい言葉づかいで質問するために使用します。
+        {subtitle}
       </p>
 
       {/* 年代ボタン選択 */}
@@ -67,8 +77,8 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
             const isSelected =
               !noAnswer &&
               age !== null &&
-              (d.label === "10代以下"
-                ? age <= 10
+              (d.label === "〜9歳"
+                ? age <= 9
                 : d.label === "50代〜"
                 ? age >= 50
                 : Math.floor(age / 10) === Math.floor(d.age / 10));

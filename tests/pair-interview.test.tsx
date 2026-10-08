@@ -33,7 +33,7 @@ describe("ふたりで体験するモードのテスト", () => {
     fireEvent.click(otherBtn);
 
     // 自由入力欄が表示される
-    const customInput = screen.getByPlaceholderText(/具体的な関係性/i);
+    const customInput = screen.getByPlaceholderText(/先輩と後輩/i);
     expect(customInput).toBeInTheDocument();
 
     // 入力して送信
@@ -44,9 +44,7 @@ describe("ふたりで体験するモードのテスト", () => {
     expect(handleNext).toHaveBeenCalledWith(
       "Aさん",
       "Bさん",
-      "サークルの先輩後輩",
-      null,
-      null
+      "サークルの先輩後輩"
     );
   });
 
@@ -126,5 +124,58 @@ describe("ふたりで体験するモードのテスト", () => {
     expect(data.pairAnimalDiagnosis.animalA).toBeTruthy();
     expect(data.pairAnimalDiagnosis.animalB).toBeTruthy();
     expect(data.pairAnimalDiagnosis.pairTitle).toBeTruthy();
+  });
+
+  it("ふたりモードの画面遷移: ニックネーム入力 → Aさん年齢 → Bさん年齢 → 期待タイプ選択 と順次遷移する", async () => {
+    // Pageコンポーネントを直接インポートして全体の遷移を検証
+    const Page = (await import("@/app/page")).default;
+    render(<Page />);
+
+    // 1. WelcomeScreen -> ふたりで体験する
+    const startPairBtn = screen.getByRole("button", { name: /ふたりで体験する/i });
+    fireEvent.click(startPairBtn);
+
+    // 2. ConsentScreen -> 同意して次へ
+    const consentCheck = screen.getByRole("checkbox");
+    fireEvent.click(consentCheck);
+    const consentNext = screen.getByRole("button", { name: /次へ/i });
+    fireEvent.click(consentNext);
+
+    // 3. PairSetupScreen -> 次へ（年齢入力へ）
+    expect(screen.getByText(/ふたりのことを教えてください/i)).toBeInTheDocument();
+    const setupNext = screen.getByRole("button", { name: /次へ（年齢入力へ）/i });
+    fireEvent.click(setupNext);
+
+    // 4. PAIR_AGE_A -> Aさんの年齢を教えてください
+    expect(screen.getByText("Aさんの年齢を教えてください")).toBeInTheDocument();
+    const btn20sA = screen.getByRole("button", { name: "20代" });
+    fireEvent.click(btn20sA);
+    const ageANext = screen.getByRole("button", { name: /次へ/i });
+    fireEvent.click(ageANext);
+
+    // 5. PAIR_AGE_B -> Bさんの年齢を教えてください
+    expect(screen.getByText("Bさんの年齢を教えてください")).toBeInTheDocument();
+    const btn30sB = screen.getByRole("button", { name: "30代" });
+    fireEvent.click(btn30sB);
+    const ageBNext = screen.getByRole("button", { name: /次へ/i });
+    fireEvent.click(ageBNext);
+
+    // 6. PAIR_EXPECTATION -> ふたりの間であった最近の出来事について
+    expect(screen.getByText(/ふたりの間であった最近の出来事について/i)).toBeInTheDocument();
+
+    // 7. もどるボタンで PAIR_AGE_B に戻る
+    const backToAgeB = screen.getByRole("button", { name: /もどる/i });
+    fireEvent.click(backToAgeB);
+    expect(screen.getByText("Bさんの年齢を教えてください")).toBeInTheDocument();
+
+    // 8. もどるボタンで PAIR_AGE_A に戻る
+    const backToAgeA = screen.getByRole("button", { name: /もどる/i });
+    fireEvent.click(backToAgeA);
+    expect(screen.getByText("Aさんの年齢を教えてください")).toBeInTheDocument();
+
+    // 9. もどるボタンで PAIR_SETUP に戻る
+    const backToSetup = screen.getByRole("button", { name: /もどる/i });
+    fireEvent.click(backToSetup);
+    expect(screen.getByText(/ふたりのことを教えてください/i)).toBeInTheDocument();
   });
 });

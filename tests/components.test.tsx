@@ -119,7 +119,7 @@ describe("UIコンポーネントテスト", () => {
     expect(screen.getByText(/声でお話しください/i)).toBeInTheDocument();
   });
 
-  it("年齢選択画面: 初期状態では未回答で次へが無効、年代ボタンまたは答えない選択で有効化される", () => {
+  it("年齢選択画面: 初期状態では未回答で次へが無効、年代ボタンまたは答えない選択で有効化される（20代→25歳）", () => {
     const handleSelect = vi.fn();
     const handleBack = vi.fn();
 
@@ -129,19 +129,41 @@ describe("UIコンポーネントテスト", () => {
     expect(nextBtn).toBeDisabled();
     expect(screen.getByText("--")).toBeInTheDocument();
 
-    // 「20代」をタップ
+    // 「20代」をタップ（統一された代表年齢 25歳）
     const btn20s = screen.getByRole("button", { name: "20代" });
     fireEvent.click(btn20s);
 
     expect(nextBtn).toBeEnabled();
-    expect(screen.getByText("21")).toBeInTheDocument();
+    expect(screen.getByText("25")).toBeInTheDocument();
 
-    // ＋ボタンで1歳増やす
+    // ＋ボタンで1歳増やす（26歳）
     const plusBtn = screen.getByRole("button", { name: /年齢を1歳増やす/i });
     fireEvent.click(plusBtn);
-    expect(screen.getByText("22")).toBeInTheDocument();
+    expect(screen.getByText("26")).toBeInTheDocument();
 
     fireEvent.click(nextBtn);
-    expect(handleSelect).toHaveBeenCalledWith(22, "11_30");
+    expect(handleSelect).toHaveBeenCalledWith(26, "11_30");
+  });
+
+  it("年齢選択画面: カスタムタイトルと初期年齢が正しく反映される（ふたりモード対応）", () => {
+    const handleSelect = vi.fn();
+    const handleBack = vi.fn();
+
+    render(
+      <AgeScreen
+        title="Aさんの年齢を教えてください"
+        initialAge={35}
+        onSelect={handleSelect}
+        onBack={handleBack}
+      />
+    );
+
+    expect(screen.getByText("Aさんの年齢を教えてください")).toBeInTheDocument();
+    expect(screen.getByText("35")).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole("button", { name: /次へ/i });
+    expect(nextBtn).toBeEnabled();
+    fireEvent.click(nextBtn);
+    expect(handleSelect).toHaveBeenCalledWith(35, "31_plus");
   });
 });

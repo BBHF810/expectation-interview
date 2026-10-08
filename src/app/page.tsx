@@ -678,17 +678,54 @@ export default function Home() {
       {/* --- ふたりモード用画面 --- */}
       {screen === "PAIR_SETUP" && (
         <PairSetupScreen
-          onNext={(nA, nB, rel, aA, aB) => {
+          initialNameA={pairNameA}
+          initialNameB={pairNameB}
+          initialRelationship={pairRelationship}
+          onNext={(nA, nB, rel) => {
             setPairNameA(nA);
             setPairNameB(nB);
             setPairRelationship(rel);
-            setPairAgeA(aA);
-            setPairAgeB(aB);
-            setScreen("PAIR_EXPECTATION");
+            setScreen("PAIR_AGE_A");
           }}
           onBack={() => setScreen("CONSENT")}
         />
       )}
+
+      {screen === "PAIR_AGE_A" && (() => {
+        const displayNameA = pairNameA.endsWith("さん") || pairNameA.endsWith("ちゃん") || pairNameA.endsWith("くん")
+          ? pairNameA
+          : `${pairNameA}さん`;
+        return (
+          <AgeScreen
+            title={`${displayNameA}の年齢を教えてください`}
+            subtitle={`${displayNameA}に合わせた、話しやすい言葉づかいで質問するために使用します。`}
+            initialAge={pairAgeA}
+            onSelect={(selectedAge) => {
+              setPairAgeA(selectedAge);
+              setScreen("PAIR_AGE_B");
+            }}
+            onBack={() => setScreen("PAIR_SETUP")}
+          />
+        );
+      })()}
+
+      {screen === "PAIR_AGE_B" && (() => {
+        const displayNameB = pairNameB.endsWith("さん") || pairNameB.endsWith("ちゃん") || pairNameB.endsWith("くん")
+          ? pairNameB
+          : `${pairNameB}さん`;
+        return (
+          <AgeScreen
+            title={`${displayNameB}の年齢を教えてください`}
+            subtitle={`${displayNameB}に合わせた、話しやすい言葉づかいで質問するために使用します。`}
+            initialAge={pairAgeB}
+            onSelect={(selectedAge) => {
+              setPairAgeB(selectedAge);
+              setScreen("PAIR_EXPECTATION");
+            }}
+            onBack={() => setScreen("PAIR_AGE_A")}
+          />
+        );
+      })()}
 
       {screen === "PAIR_EXPECTATION" && (
         <PairExpectationScreen
@@ -698,7 +735,7 @@ export default function Home() {
             setPairExpectationType(exp);
             setScreen("INPUT_METHOD_SELECT");
           }}
-          onBack={() => setScreen("PAIR_SETUP")}
+          onBack={() => setScreen("PAIR_AGE_B")}
         />
       )}
 
