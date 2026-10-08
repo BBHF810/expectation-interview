@@ -50,14 +50,16 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
   const canProceed = noAnswer || age !== null;
   const currentAgeGroup = noAnswer ? "no_answer" : ageToAgeGroup(age);
 
-  // 年代選択時の代表年齢（〜9: 5, 10~: 15, 20~: 25, 30~: 35, 40~: 45, 50~: 55）
+  // 年代選択時の代表年齢（〜9: 5, 10~: 15, 20~: 25, 30~: 35, 40~: 45, 50~: 55, 60~: 65, 70~: 75）
   const quickDecades = [
     { label: "〜9歳", age: 5 },
     { label: "10代", age: 15 },
     { label: "20代", age: 25 },
     { label: "30代", age: 35 },
     { label: "40代", age: 45 },
-    { label: "50代〜", age: 55 },
+    { label: "50代", age: 55 },
+    { label: "60代", age: 65 },
+    { label: "70代〜", age: 75 },
   ];
 
   return (
@@ -79,8 +81,8 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
               age !== null &&
               (d.label === "〜9歳"
                 ? age <= 9
-                : d.label === "50代〜"
-                ? age >= 50
+                : d.label.endsWith("〜")
+                ? age >= Math.floor(d.age / 10) * 10
                 : Math.floor(age / 10) === Math.floor(d.age / 10));
 
             return (

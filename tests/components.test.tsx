@@ -166,4 +166,26 @@ describe("UIコンポーネントテスト", () => {
     fireEvent.click(nextBtn);
     expect(handleSelect).toHaveBeenCalledWith(35, "31_plus");
   });
+
+  it("年齢選択画面: 60代（65歳）と70代〜（75歳）が正しく選択できる", () => {
+    const handleSelect = vi.fn();
+    const handleBack = vi.fn();
+
+    render(<AgeScreen onSelect={handleSelect} onBack={handleBack} />);
+
+    // 60代ボタンをタップ
+    const btn60s = screen.getByRole("button", { name: "60代" });
+    fireEvent.click(btn60s);
+    expect(screen.getByText("65")).toBeInTheDocument();
+
+    // 70代〜ボタンをタップ
+    const btn70s = screen.getByRole("button", { name: "70代〜" });
+    fireEvent.click(btn70s);
+    expect(screen.getByText("75")).toBeInTheDocument();
+
+    const nextBtn = screen.getByRole("button", { name: /次へ/i });
+    expect(nextBtn).toBeEnabled();
+    fireEvent.click(nextBtn);
+    expect(handleSelect).toHaveBeenCalledWith(75, "31_plus");
+  });
 });
