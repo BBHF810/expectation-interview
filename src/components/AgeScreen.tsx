@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AgeGroup, ageToAgeGroup } from "@/types";
-import { ArrowLeft, ArrowRight, AlertCircle, Delete, Plus, Minus } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Plus, Minus } from "lucide-react";
 
 interface AgeScreenProps {
   onSelect: (age: number | null, ageGroup: AgeGroup) => void;
@@ -8,39 +8,13 @@ interface AgeScreenProps {
 }
 
 export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
-  const [age, setAge] = useState<number | null>(20); // 来場者に最も多い20歳をデフォルトにして連打負担を軽減
+  const [age, setAge] = useState<number | null>(null);
   const [noAnswer, setNoAnswer] = useState(false);
 
   // 年代クイック選択
   const handleQuickAge = (targetAge: number) => {
     setNoAnswer(false);
     setAge(targetAge);
-  };
-
-  // テンキー入力
-  const handleKeypadPress = (num: number) => {
-    setNoAnswer(false);
-    if (age === null) {
-      setAge(num);
-    } else {
-      const newStr = `${age}${num}`;
-      const parsed = parseInt(newStr, 10);
-      if (parsed <= 120) {
-        setAge(parsed);
-      }
-    }
-  };
-
-  // 1文字削除
-  const handleBackspace = () => {
-    setNoAnswer(false);
-    if (age === null) return;
-    const str = age.toString();
-    if (str.length <= 1) {
-      setAge(null);
-    } else {
-      setAge(parseInt(str.slice(0, -1), 10));
-    }
   };
 
   const handleStep = (delta: number) => {
@@ -68,6 +42,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
   const currentAgeGroup = noAnswer ? "no_answer" : ageToAgeGroup(age);
 
   const quickDecades = [
+    { label: "10代以下", age: 10 },
     { label: "10代", age: 18 },
     { label: "20代", age: 21 },
     { label: "30代", age: 35 },
@@ -82,222 +57,168 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({ onSelect, onBack }) => {
         あなたに合わせた、話しやすい言葉づかいで質問するために使用します。
       </p>
 
-      {/* 年代クイックジャンプボタン */}
-      <div style={{ marginBottom: "1.25rem" }}>
-        <div style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", marginBottom: "0.4rem", textAlign: "center" }}>
-          タップして年代をすばやく選択：
+      {/* 年代ボタン選択 */}
+      <div style={{ marginBottom: "1.75rem" }}>
+        <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--color-text-main)", marginBottom: "0.6rem", textAlign: "center" }}>
+          年代をタップして選択：
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
-          {quickDecades.map((d) => (
-            <button
-              key={d.label}
-              type="button"
-              onClick={() => handleQuickAge(d.age)}
-              className="btn btn-outline"
-              style={{
-                padding: "0.4rem 0.8rem",
-                fontSize: "0.9rem",
-                borderRadius: "var(--radius-full)",
-                border: "1px solid var(--color-primary-border)",
-                backgroundColor: !noAnswer && age !== null && Math.floor(age / 10) === Math.floor(d.age / 10)
-                  ? "var(--color-primary-light)"
-                  : "#FFFFFF",
-                fontWeight: 600,
-              }}
-            >
-              {d.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", gap: "0.6rem", justifyContent: "center", flexWrap: "wrap", maxWidth: "460px", margin: "0 auto" }}>
+          {quickDecades.map((d) => {
+            const isSelected =
+              !noAnswer &&
+              age !== null &&
+              (d.label === "10代以下"
+                ? age <= 10
+                : d.label === "50代〜"
+                ? age >= 50
+                : Math.floor(age / 10) === Math.floor(d.age / 10));
+
+            return (
+              <button
+                key={d.label}
+                type="button"
+                onClick={() => handleQuickAge(d.age)}
+                className={`btn ${isSelected ? "btn-primary" : "btn-outline"}`}
+                style={{
+                  padding: "0.55rem 1.1rem",
+                  fontSize: "1rem",
+                  borderRadius: "var(--radius-full)",
+                  fontWeight: 700,
+                  boxShadow: isSelected ? "0 2px 8px rgba(37, 99, 235, 0.25)" : "none",
+                }}
+              >
+                {d.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={handleNoAnswer}
+            className={`btn ${noAnswer ? "btn-primary" : "btn-outline"}`}
+            style={{
+              padding: "0.55rem 1.1rem",
+              fontSize: "1rem",
+              borderRadius: "var(--radius-full)",
+              fontWeight: 700,
+              color: noAnswer ? "#FFFFFF" : "var(--color-text-muted)",
+              borderColor: noAnswer ? "var(--color-primary)" : "var(--color-border)",
+            }}
+          >
+            答えない
+          </button>
         </div>
       </div>
 
-      {/* 年齢表示 & 増減コントロール */}
+      {/* 年齢数値表示 & ＋／− 微調整コントロール */}
       <div
         style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "1rem",
-          margin: "1rem 0",
+          background: "#F8FAFC",
+          borderRadius: "var(--radius-lg)",
+          padding: "1.25rem",
+          marginBottom: "1.75rem",
+          border: "1px solid #E2E8F0",
         }}
       >
-        <button
-          type="button"
-          onClick={() => handleStep(-1)}
-          className="btn btn-secondary"
-          style={{
-            width: "52px",
-            height: "52px",
-            padding: 0,
-            borderRadius: "var(--radius-full)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          aria-label="年齢を1歳減らす"
-        >
-          <Minus size={24} />
-        </button>
-
-        {/* 年齢数値表示枠（ズレのないFlexboxレイアウト） */}
+        <div style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", textAlign: "center", marginBottom: "0.5rem" }}>
+          {age !== null
+            ? "＋ / − ボタンで1歳ずつ調整できます"
+            : "上の年代を選ぶか、＋ / − で年齢を設定してください"}
+        </div>
         <div
           style={{
             display: "flex",
-            alignItems: "baseline",
             justifyContent: "center",
-            gap: "0.4rem",
-            minWidth: "150px",
-            height: "72px",
-            padding: "0.5rem 1rem",
-            background: noAnswer ? "var(--color-surface-subtle)" : "#FFFFFF",
-            border: `2px solid ${
-              noAnswer ? "var(--color-border)" : age !== null ? "var(--color-primary)" : "var(--color-border)"
-            }`,
-            borderRadius: "var(--radius-md)",
-            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.04)",
+            alignItems: "center",
+            gap: "1.25rem",
           }}
         >
-          <span
+          <button
+            type="button"
+            onClick={() => handleStep(-1)}
+            className="btn btn-secondary"
             style={{
-              fontSize: "2.5rem",
-              fontWeight: 800,
-              color: noAnswer ? "var(--color-text-muted)" : "var(--color-text-main)",
-              lineHeight: 1,
+              width: "56px",
+              height: "56px",
+              padding: 0,
+              borderRadius: "var(--radius-full)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.06)",
+            }}
+            aria-label="年齢を1歳減らす"
+          >
+            <Minus size={26} />
+          </button>
+
+          {/* 年齢数値表示枠 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "center",
+              gap: "0.4rem",
+              minWidth: "160px",
+              height: "76px",
+              padding: "0.5rem 1.25rem",
+              background: noAnswer ? "var(--color-surface-subtle)" : "#FFFFFF",
+              border: `2px solid ${
+                noAnswer
+                  ? "var(--color-border)"
+                  : age !== null
+                  ? "var(--color-primary)"
+                  : "var(--color-border)"
+              }`,
+              borderRadius: "var(--radius-md)",
+              boxShadow: "inset 0 2px 4px rgba(0,0,0,0.04)",
             }}
           >
-            {noAnswer ? "未回答" : age ?? "--"}
-          </span>
-          {!noAnswer && (
             <span
               style={{
-                fontSize: "1.25rem",
-                fontWeight: 700,
-                color: "var(--color-text-muted)",
+                fontSize: "2.75rem",
+                fontWeight: 800,
+                color: noAnswer
+                  ? "var(--color-text-muted)"
+                  : age !== null
+                  ? "var(--color-text-main)"
+                  : "#94A3B8",
+                lineHeight: 1,
               }}
             >
-              歳
+              {noAnswer ? "未回答" : age ?? "--"}
             </span>
-          )}
-        </div>
+            {!noAnswer && age !== null && (
+              <span
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: 700,
+                  color: "var(--color-text-muted)",
+                }}
+              >
+                歳
+              </span>
+            )}
+          </div>
 
-        <button
-          type="button"
-          onClick={() => handleStep(1)}
-          className="btn btn-secondary"
-          style={{
-            width: "52px",
-            height: "52px",
-            padding: 0,
-            borderRadius: "var(--radius-full)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          aria-label="年齢を1歳増やす"
-        >
-          <Plus size={24} />
-        </button>
-      </div>
-
-      {/* タブレット・スマホでも押しやすい画面内テンキー */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          gap: "0.5rem",
-          maxWidth: "280px",
-          margin: "1rem auto 1.5rem",
-        }}
-      >
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
           <button
-            key={n}
             type="button"
-            onClick={() => handleKeypadPress(n)}
-            className="btn"
+            onClick={() => handleStep(1)}
+            className="btn btn-secondary"
             style={{
-              height: "48px",
-              fontSize: "1.25rem",
-              fontWeight: 700,
-              backgroundColor: "#F8FAFC",
-              border: "1px solid #E2E8F0",
-              borderRadius: "var(--radius-md)",
-              color: "var(--color-text-main)",
+              width: "56px",
+              height: "56px",
+              padding: 0,
+              borderRadius: "var(--radius-full)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.06)",
             }}
+            aria-label="年齢を1歳増やす"
           >
-            {n}
+            <Plus size={26} />
           </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => {
-            setNoAnswer(false);
-            setAge(null);
-          }}
-          className="btn"
-          style={{
-            height: "48px",
-            fontSize: "0.85rem",
-            fontWeight: 600,
-            backgroundColor: "#F1F5F9",
-            border: "1px solid #E2E8F0",
-            borderRadius: "var(--radius-md)",
-            color: "var(--color-text-muted)",
-          }}
-        >
-          クリア
-        </button>
-        <button
-          type="button"
-          onClick={() => handleKeypadPress(0)}
-          className="btn"
-          style={{
-            height: "48px",
-            fontSize: "1.25rem",
-            fontWeight: 700,
-            backgroundColor: "#F8FAFC",
-            border: "1px solid #E2E8F0",
-            borderRadius: "var(--radius-md)",
-            color: "var(--color-text-main)",
-          }}
-        >
-          0
-        </button>
-        <button
-          type="button"
-          onClick={handleBackspace}
-          className="btn"
-          style={{
-            height: "48px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#F1F5F9",
-            border: "1px solid #E2E8F0",
-            borderRadius: "var(--radius-md)",
-            color: "var(--color-text-muted)",
-          }}
-          aria-label="1文字消去"
-        >
-          <Delete size={20} />
-        </button>
-      </div>
-
-      {/* 答えたくないボタン */}
-      <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
-        <button
-          type="button"
-          onClick={handleNoAnswer}
-          className={`option-card ${noAnswer ? "selected" : ""}`}
-          style={{
-            display: "inline-block",
-            padding: "0.5rem 1.25rem",
-            fontSize: "0.95rem",
-            margin: "0 auto",
-          }}
-        >
-          答えたくない
-        </button>
+        </div>
       </div>
 
       {age !== null && !noAnswer && currentAgeGroup === "under_10" && (

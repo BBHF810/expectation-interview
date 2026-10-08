@@ -26,9 +26,10 @@ const InterviewRequestSchema = z.object({
 });
 
 const GeminiInterviewOutputSchema = z.object({
-  nextQuestion: z.string().min(1).max(80),
-  questionPurpose: z.enum(["event", "expectation", "outcome", "reason", "communication", "feeling"]),
+  nextQuestion: z.string().max(80).default(""),
+  questionPurpose: z.enum(["event", "expectation", "outcome", "reason", "communication", "feeling"]).default("feeling"),
   safetyAction: z.enum(["continue", "stop"]),
+  shouldFinish: z.boolean().optional(),
   detectedPartner: z.string().optional(),
   detectedExpectationType: z.enum(["matched", "mismatched", "neutral"]).optional(),
   detectedIsCare: z.enum(["yes", "no"]).optional(),
@@ -208,7 +209,8 @@ ${
 - safetyAction: "continue" または "stop"
 - detectedPartner (任意): 相手との関係性
 - detectedExpectationType (任意): "matched" | "mismatched" | "neutral"
-- detectedIsCare (任意): "yes" | "no"`,
+- detectedIsCare (任意): "yes" | "no"
+- shouldFinish (任意): boolean。出来事や期待、気持ちが十分に語られ、無理に質問を続けずインタビューを終了する場合は true`,
           userPrompt,
           model: usedModel,
           temperature: 0.2,
@@ -252,6 +254,7 @@ ${
                     type: "string",
                     enum: ["continue", "stop"],
                   },
+                  shouldFinish: { type: "boolean" },
                   detectedPartner: { type: "string" },
                   detectedExpectationType: {
                     type: "string",
@@ -332,11 +335,13 @@ ${
       fallbackUsed: false,
     });
 
+    const isFinished = data.shouldFinish === true;
+
     return NextResponse.json({
-      nextQuestion: cleanQuestion,
+      nextQuestion: isFinished ? "" : cleanQuestion,
       questionPurpose: data.questionPurpose,
-      progress: nextProgress,
-      isComplete: false,
+      progress: isFinished ? historyCount : nextProgress,
+      isComplete: isFinished,
       safetyAction: "continue",
       fallbackUsed: false,
       detectedPartner: data.detectedPartner,

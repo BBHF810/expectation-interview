@@ -7,6 +7,7 @@ import { PartnerScreen } from "@/components/PartnerScreen";
 import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewerAvatar } from "@/components/InterviewerAvatar";
 import { InterviewScreen } from "@/components/InterviewScreen";
+import { AgeScreen } from "@/components/AgeScreen";
 import "@testing-library/jest-dom";
 
 describe("UIコンポーネントテスト", () => {
@@ -116,5 +117,31 @@ describe("UIコンポーネントテスト", () => {
 
     // 再び音声UIが表示される
     expect(screen.getByText(/声でお話しください/i)).toBeInTheDocument();
+  });
+
+  it("年齢選択画面: 初期状態では未回答で次へが無効、年代ボタンまたは答えない選択で有効化される", () => {
+    const handleSelect = vi.fn();
+    const handleBack = vi.fn();
+
+    render(<AgeScreen onSelect={handleSelect} onBack={handleBack} />);
+
+    const nextBtn = screen.getByRole("button", { name: /次へ/i });
+    expect(nextBtn).toBeDisabled();
+    expect(screen.getByText("--")).toBeInTheDocument();
+
+    // 「20代」をタップ
+    const btn20s = screen.getByRole("button", { name: "20代" });
+    fireEvent.click(btn20s);
+
+    expect(nextBtn).toBeEnabled();
+    expect(screen.getByText("21")).toBeInTheDocument();
+
+    // ＋ボタンで1歳増やす
+    const plusBtn = screen.getByRole("button", { name: /年齢を1歳増やす/i });
+    fireEvent.click(plusBtn);
+    expect(screen.getByText("22")).toBeInTheDocument();
+
+    fireEvent.click(nextBtn);
+    expect(handleSelect).toHaveBeenCalledWith(22, "11_30");
   });
 });
