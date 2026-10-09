@@ -13,11 +13,22 @@ export function getShareBaseUrl(): string {
   return "https://expectation-interview.vercel.app";
 }
 
-/** Base64URL 安全エンコード */
+/**
+ * Base64URL 安全エンコード
+ * 非推奨の escape / unescape を使わず、TextEncoder / Buffer を用いて UTF-8・絵文字を安全に変換
+ */
 export function encodeSharePayload(obj: any): string {
   try {
     const jsonStr = JSON.stringify(obj);
-    const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(jsonStr, "utf-8").toString("base64url");
+    }
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binStr = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binStr += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binStr);
     return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   } catch (e) {
     console.error("Failed to encode share payload", e);
@@ -25,14 +36,27 @@ export function encodeSharePayload(obj: any): string {
   }
 }
 
-/** Base64URL デコード */
+/**
+ * Base64URL デコード
+ * 非推奨の escape / unescape を使わず、TextDecoder / Buffer を用いて UTF-8・絵文字を安全に復元
+ */
 export function decodeSharePayload(str: string): any {
   try {
+    if (!str || typeof str !== "string") return null;
+    if (typeof Buffer !== "undefined") {
+      const jsonStr = Buffer.from(str, "base64url").toString("utf-8");
+      return JSON.parse(jsonStr);
+    }
     let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
     while (b64.length % 4) {
       b64 += "=";
     }
-    const jsonStr = decodeURIComponent(escape(atob(b64)));
+    const binStr = atob(b64);
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) {
+      bytes[i] = binStr.charCodeAt(i);
+    }
+    const jsonStr = new TextDecoder().decode(bytes);
     return JSON.parse(jsonStr);
   } catch (e) {
     console.error("Failed to decode share payload", e);

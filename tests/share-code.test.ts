@@ -19,6 +19,18 @@ describe("短縮QRコードURL生成・復元テスト", () => {
     expect(decoded).toEqual(original);
   });
 
+  it("絵文字や特殊日本語（サロゲートペア）を含むオブジェクトも破損なく安全に往復する", () => {
+    const complex = {
+      title: "🐶手料理で喜ばせたい誠実なワンちゃんタイプ✨💖",
+      description: "友だちに手料理を振る舞った出来事🍵〜（笑）！",
+      emoji: "🐕‍🦺",
+    };
+    const encoded = encodeSharePayload(complex);
+    expect(encoded).not.toMatch(/[+/=]/);
+    const decoded = decodeSharePayload(encoded);
+    expect(decoded).toEqual(complex);
+  });
+
   it("シングルモード: 短縮URLが生成され、長さが200文字以下に抑えられ、復元できる", () => {
     const animal = ANIMAL_DIAGNOSES[0];
     const reflection = "文化祭で友人と一緒に成功させた素敵な出来事でした。相手への信頼が伝わってきます。";

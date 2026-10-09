@@ -1,12 +1,12 @@
 import OpenAI from "openai";
 
-const DEFAULT_OPENAI_MODEL = "gpt-6.1-sol";
+const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 
 export function getOpenAiModelName(): string {
   const envModel = process.env.OPENAI_MODEL?.trim();
   if (envModel && envModel.length > 0) {
     const lower = envModel.toLowerCase();
-    // gpt6.1sol, gpt-6.1sol, gpt6.1-sol などの表記揺れを公式ID "gpt-6.1-sol" に正規化
+    // gpt6.1sol, gpt-6.1sol, gpt6.1-sol などの表記揺れがあれば正規化
     if (lower === "gpt6.1sol" || lower === "gpt-6.1sol" || lower === "gpt6.1-sol") {
       return "gpt-6.1-sol";
     }

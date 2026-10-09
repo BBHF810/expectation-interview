@@ -12,9 +12,9 @@ describe("OpenAI モデル選択と正規化テスト", () => {
     }
   });
 
-  it("環境変数が未設定の場合はデフォルトで gpt-6.1-sol を返す", () => {
+  it("環境変数が未設定の場合はデフォルトで gpt-4o-mini を返す", () => {
     delete process.env.OPENAI_MODEL;
-    expect(getOpenAiModelName()).toBe("gpt-6.1-sol");
+    expect(getOpenAiModelName()).toBe("gpt-4o-mini");
   });
 
   it("gpt6.1sol の表記揺れを gpt-6.1-sol に正規化する", () => {

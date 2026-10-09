@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { DevConsoleViewer } from "@/components/DevConsoleViewer";
 
 export const metadata: Metadata = {
   title: "AIに話して見つける、すれ違いのカタチ",
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="ja">
       <body>
         <main className="container">{children}</main>
+        <DevConsoleViewer />
       </body>
     </html>
   );
