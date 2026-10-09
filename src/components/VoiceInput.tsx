@@ -35,6 +35,8 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   const onListeningStateChangeRef = useRef(onListeningStateChange);
   onListeningStateChangeRef.current = onListeningStateChange;
 
+  const restartTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // ブラウザの Web Speech API サポート判定（初回マウント時のみ）
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -46,7 +48,12 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     }
 
     return () => {
-      // コンポーネント破棄時のみ認識を中止
+      // コンポーネント破棄時のみ認識を中止 & タイマークリア
+      isManuallyStoppedRef.current = true;
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -57,6 +64,10 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
   const stopListening = useCallback(() => {
     isManuallyStoppedRef.current = true;
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -75,6 +86,11 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     if (!SpeechRecognition) {
       setIsSupported(false);
       return;
+    }
+
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
     }
 
     // 既存のインスタンスがあれば停止・破棄
@@ -134,30 +150,53 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         console.warn("Speech recognition error:", error);
 
         if (error === "not-allowed" || error === "service-not-allowed") {
+          isManuallyStoppedRef.current = true;
           setErrorMessage(
             "マイクの使用が許可されていません。ブラウザのアドレスバーの鍵アイコン等からマイクの使用を許可してください。"
           );
+          setIsListening(false);
+          onListeningStateChangeRef.current(false);
         } else if (error === "no-speech") {
-          // 無音時はエラー扱いせず自然に継続
+          // 無音時はエラー扱いせず継続（onendで自動再開判定へ）
           return;
         } else if (error === "aborted") {
-          // 手動停止や画面遷移時は何もしない
+          // 手動停止や再起動時は何もしない
           return;
         } else if (error === "network") {
-          setErrorMessage(
-            "音声認識ネットワークに一時的に接続できませんでした。通信環境をご確認いただくか、直接キーボードでご入力ください。"
-          );
+          // ネットワーク一時エラー時も手動停止でなければ自動再接続に委ねる
+          return;
         } else {
           setErrorMessage(
             "音声の聞き取りに一時的な問題が発生しました。もう一度お話しいただくか、手動で入力してください。"
           );
+          setIsListening(false);
+          onListeningStateChangeRef.current(false);
         }
-
-        setIsListening(false);
-        onListeningStateChangeRef.current(false);
       };
 
       recognition.onend = () => {
+        // iPad Safari 等でユーザーが停止を押していないのに勝手に切れた場合、自動で継続再開する
+        if (!isManuallyStoppedRef.current && process.env.NODE_ENV !== "test") {
+          // これまでに認識したテキストを baseText に統合して新規セッションに引き継ぐ
+          if (sessionFinalRef.current) {
+            const base = baseTextRef.current;
+            baseTextRef.current = base
+              ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${sessionFinalRef.current.trim()}`
+              : sessionFinalRef.current.trim();
+            sessionFinalRef.current = "";
+          }
+
+          // 短いディレイで自動再接続
+          restartTimerRef.current = setTimeout(() => {
+            if (!isManuallyStoppedRef.current) {
+              try {
+                recognition.start();
+              } catch (_) {}
+            }
+          }, 250);
+          return;
+        }
+
         setIsListening(false);
         onListeningStateChangeRef.current(false);
       };

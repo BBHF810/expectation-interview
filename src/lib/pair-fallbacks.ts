@@ -62,15 +62,24 @@ export function getInitialPairQuestion(params: {
   relationship?: string;
   expectationType?: ExpectationType;
 }): { question: string; nextSpeaker: "A"; nextSpeakerName: string } {
-  const { nameA } = params;
+  const { nameA, expectationType } = params;
 
   const displayNameA =
     nameA.endsWith("さん") || nameA.endsWith("ちゃん") || nameA.endsWith("くん")
       ? nameA
       : `${nameA}さん`;
 
+  let questionText: string;
+  if (expectationType === "matched") {
+    questionText = `${displayNameA}、お互いに気持ちがぴったり合って嬉しかったことや、笑顔になれた出来事など、2人の間に起きた素敵なエピソードを教えてください。（些細なことでも構いません）`;
+  } else if (expectationType === "mismatched") {
+    questionText = `${displayNameA}、思っていたのと違ったり、少しすれちがったり勘違いしていた出来事など、2人の間に起きたエピソードを教えてください。（些細なことでも構いません）`;
+  } else {
+    questionText = `${displayNameA}、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）`;
+  }
+
   return {
-    question: `${displayNameA}、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）`,
+    question: questionText,
     nextSpeaker: "A",
     nextSpeakerName: nameA,
   };

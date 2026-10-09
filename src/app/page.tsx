@@ -172,33 +172,41 @@ export default function Home() {
   const handleInputMethodSelect = (method: InputMethod) => {
     setInputMethod(method);
     if (mode === "single") {
-      const initialQ = getInitialSingleQuestion({ ageGroup, age, expectationType });
-      setCurrentQuestion(initialQ.question);
+      let q = currentQuestion;
+      if (!q) {
+        const initialQ = getInitialSingleQuestion({ ageGroup, age, expectationType });
+        q = initialQ.question;
+        setCurrentQuestion(q);
+      }
       setCurrentProgress(1);
       setFallbackUsed(false);
       setIsLoading(false);
       // 万が一プリフェッチ完了前の場合は即座にキャッシュ問い合わせ
       if (!singleAudioStreamingUrl) {
-        prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
+        prefetchStreamingUrl(q, getSavedTtsVoice()).then((url) => {
           if (url) setSingleAudioStreamingUrl(url);
         });
       }
       setScreen("INTERVIEW");
     } else {
-      const initialQ = getInitialPairQuestion({
-        nameA: pairNameA,
-        nameB: pairNameB,
-        relationship: pairRelationship,
-        expectationType: pairExpectationType,
-      });
-      setPairCurrentQuestion(initialQ.question);
-      setPairCurrentSpeaker(initialQ.nextSpeaker);
-      setPairCurrentSpeakerName(initialQ.nextSpeakerName);
+      let q = pairCurrentQuestion;
+      if (!q) {
+        const initialQ = getInitialPairQuestion({
+          nameA: pairNameA,
+          nameB: pairNameB,
+          relationship: pairRelationship,
+          expectationType: pairExpectationType,
+        });
+        q = initialQ.question;
+        setPairCurrentQuestion(q);
+        setPairCurrentSpeaker(initialQ.nextSpeaker);
+        setPairCurrentSpeakerName(initialQ.nextSpeakerName);
+      }
       setPairProgress(1);
       setFallbackUsed(false);
       setIsLoading(false);
       if (!pairAudioStreamingUrl) {
-        prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
+        prefetchStreamingUrl(q, getSavedTtsVoice()).then((url) => {
           if (url) setPairAudioStreamingUrl(url);
         });
       }

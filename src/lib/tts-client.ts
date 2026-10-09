@@ -220,9 +220,9 @@ const streamingUrlCache = new Map<string, Promise<string | null>>();
 export async function getCloudVoicevoxStreamingUrl(
   text: string,
   speakerId: number,
-  timeoutMs = 6000
+  timeoutMs = 3000
 ): Promise<string | null> {
-  const cacheKey = `${speakerId}:${text}`;
+  const cacheKey = `${speakerId}:${text.trim()}`;
   const existing = streamingUrlCache.get(cacheKey);
   if (existing) {
     return existing;

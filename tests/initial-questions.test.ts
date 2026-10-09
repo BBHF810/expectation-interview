@@ -67,7 +67,7 @@ describe("初期固定質問の選定ロジック", () => {
   });
 
   describe("ふたり用モード (getInitialPairQuestion)", () => {
-    it("参加者名への呼びかけを含み、指定のエピソード想起質問になる", () => {
+    it("一致事例（matched）では、気持ちがぴったり合って嬉しかったことや笑顔になれたエピソードを聞く固定質問になる", () => {
       const q = getInitialPairQuestion({
         nameA: "たろう",
         nameB: "はなこ",
@@ -75,13 +75,13 @@ describe("初期固定質問の選定ロジック", () => {
         expectationType: "matched",
       });
       expect(q.question).toBe(
-        "たろうさん、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）"
+        "たろうさん、お互いに気持ちがぴったり合って嬉しかったことや、笑顔になれた出来事など、2人の間に起きた素敵なエピソードを教えてください。（些細なことでも構いません）"
       );
       expect(q.nextSpeaker).toBe("A");
       expect(q.nextSpeakerName).toBe("たろう");
     });
 
-    it("敬称（さん・ちゃん・くん）が既に含まれる場合は重複しない", () => {
+    it("不一致事例（mismatched）では、思っていたのと違ったりすれ違ったエピソードを聞く固定質問になり、敬称も重複しない", () => {
       const qChan = getInitialPairQuestion({
         nameA: "ユウちゃん",
         nameB: "ケンくん",
@@ -89,7 +89,19 @@ describe("初期固定質問の選定ロジック", () => {
         expectationType: "mismatched",
       });
       expect(qChan.question).toBe(
-        "ユウちゃん、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）"
+        "ユウちゃん、思っていたのと違ったり、少しすれちがったり勘違いしていた出来事など、2人の間に起きたエピソードを教えてください。（些細なことでも構いません）"
+      );
+    });
+
+    it("中立・両方（neutral）では、笑いあった出来事や勘違いしていた出来事の両方を聞く固定質問になる", () => {
+      const qNeutral = getInitialPairQuestion({
+        nameA: "たろう",
+        nameB: "はなこ",
+        relationship: "友だち",
+        expectationType: "neutral",
+      });
+      expect(qNeutral.question).toBe(
+        "たろうさん、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）"
       );
     });
   });

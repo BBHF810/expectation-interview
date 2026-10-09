@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOpenAiClient } from "@/lib/openai";
 import { generateVoicevoxAudio, generateCloudVoicevoxAudio } from "@/lib/voicevox";
 
+// サーバーサイド・インメモリ音声キャッシュ（固定質問等の再生成待機ゼロ化）
+const ttsAudioCache = new Map<string, { buffer: Buffer; contentType: string; engine: string }>();
+const MAX_CACHE_SIZE = 100;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -9,6 +13,21 @@ export async function POST(req: NextRequest) {
 
     if (!text || typeof text !== "string" || text.trim() === "") {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
+    }
+
+    // 0. キャッシュヒット判定（同一テキスト・ボイスは0msで返却）
+    const cacheKey = `${voice}:${voicevoxSpeaker ?? ""}:${text.trim()}`;
+    const cached = ttsAudioCache.get(cacheKey);
+    if (cached) {
+      return new NextResponse(new Uint8Array(cached.buffer), {
+        status: 200,
+        headers: {
+          "Content-Type": cached.contentType,
+          "Content-Length": cached.buffer.length.toString(),
+          "X-TTS-Engine": `${cached.engine}-Cached`,
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+        },
+      });
     }
 
     // 1. VOICEVOX の呼び出しを最優先で試行
@@ -35,15 +54,25 @@ export async function POST(req: NextRequest) {
 
     let engineHeader = "VOICEVOX";
 
-    // ② ローカル接続できない場合、無料クラウドVOICEVOX Web API (tts.quest) をサーバー側でも試行
+    // ② ローカル接続できない場合、無料クラウドVOICEVOX Web API (tts.quest) をサーバー側でも試行（2.5秒で見切り）
     if (!voicevoxResult && isVoicevoxPreferred) {
-      voicevoxResult = await generateCloudVoicevoxAudio(text, speakerId, 5000);
+      voicevoxResult = await generateCloudVoicevoxAudio(text, speakerId, 2500);
       if (voicevoxResult) {
         engineHeader = "VOICEVOX-Cloud";
       }
     }
 
     if (voicevoxResult) {
+      if (ttsAudioCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = ttsAudioCache.keys().next().value;
+        if (firstKey) ttsAudioCache.delete(firstKey);
+      }
+      ttsAudioCache.set(cacheKey, {
+        buffer: voicevoxResult.buffer,
+        contentType: voicevoxResult.contentType,
+        engine: engineHeader,
+      });
+
       return new NextResponse(new Uint8Array(voicevoxResult.buffer), {
         status: 200,
         headers: {
@@ -82,6 +111,16 @@ export async function POST(req: NextRequest) {
     });
 
     const buffer = Buffer.from(await response.arrayBuffer());
+
+    if (ttsAudioCache.size >= MAX_CACHE_SIZE) {
+      const firstKey = ttsAudioCache.keys().next().value;
+      if (firstKey) ttsAudioCache.delete(firstKey);
+    }
+    ttsAudioCache.set(cacheKey, {
+      buffer,
+      contentType: "audio/mpeg",
+      engine: "OpenAI-TTS-HD",
+    });
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
