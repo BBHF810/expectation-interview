@@ -90,6 +90,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
+    setIsListening(false);
     stopAllAudio();
     unlockAudioOnUserAction();
     onSubmitAnswer(answer.trim(), false);
@@ -97,6 +98,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
 
   const handleSkip = (reason: "dont_know" | "no_answer") => {
     if (isLoading) return;
+    setIsListening(false);
     stopAllAudio();
     unlockAudioOnUserAction();
     onSubmitAnswer(reason === "dont_know" ? "（思いつかない）" : "（答えたくない）", true, reason);
@@ -437,6 +439,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                   )}
                 </div>
                 <VoiceInput
+                  key={`voice-input-${progress}`}
                   currentText={answer}
                   onTranscriptChange={(newText) => setAnswer(newText)}
                   onListeningStateChange={(active) => {

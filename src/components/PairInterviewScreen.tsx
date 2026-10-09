@@ -78,6 +78,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
+    setIsListening(false);
     stopAllAudio();
     unlockAudioOnUserAction();
     onSubmitAnswer(answer.trim(), false);
@@ -85,6 +86,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
 
   const handleSkip = () => {
     if (isLoading) return;
+    setIsListening(false);
     stopAllAudio();
     unlockAudioOnUserAction();
     onSubmitAnswer("（スキップ）", true);
@@ -412,6 +414,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   )}
                 </div>
                 <VoiceInput
+                  key={`pair-voice-input-${progress}-${currentSpeaker}`}
                   currentText={answer}
                   onTranscriptChange={(newText) => setAnswer(newText)}
                   onListeningStateChange={(active) => {

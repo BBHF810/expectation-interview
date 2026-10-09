@@ -66,8 +66,7 @@ export function useSpeechPlayback({
       audio.onerror = null;
       try {
         audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
+        audio.currentTime = 0;
       } catch {}
     }
     if (cleanupRef.current) {
@@ -172,6 +171,9 @@ export function useSpeechPlayback({
         finished = true;
         clearTimeout(stallTimer);
         detach();
+        try {
+          audio.pause();
+        } catch {}
         if (alive()) setIsSpeaking(false);
         if (cleanupRef.current) {
           cleanupRef.current();

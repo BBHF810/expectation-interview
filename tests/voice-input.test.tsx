@@ -265,4 +265,56 @@ describe("VoiceInput コンポーネント", () => {
       screen.getByText(/マイクの接続で問題が発生しました/i)
     ).toBeInTheDocument();
   });
+
+  it("認識中に disabled が true に変化した場合、認識を中止してリスニング状態を解除する", () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn();
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    const handleListeningChange = vi.fn();
+
+    const { rerender } = render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={handleListeningChange}
+        disabled={false}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    fireEvent.click(micButton);
+
+    expect(handleListeningChange).toHaveBeenCalledWith(true);
+    expect(mockInstance.abort).not.toHaveBeenCalled();
+
+    // disabled を true に更新（回答送信時をシミュレート）
+    rerender(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={handleListeningChange}
+        disabled={true}
+      />
+    );
+
+    expect(mockInstance.abort).toHaveBeenCalled();
+    expect(handleListeningChange).toHaveBeenCalledWith(false);
+  });
 });
