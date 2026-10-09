@@ -79,7 +79,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
 
   // アバターの状態を決定
   let avatarStatus: AvatarStatus = "idle";
-  if (isWaitingForSpeech) {
+  if (isWaitingForSpeech && progress > 1) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -249,7 +249,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech ? (
+          {isWaitingForSpeech && progress > 1 ? (
             "💭 お答えを受け止めて、次の質問を考えています…"
           ) : isSimple ? (
             <FuriganaText text={currentQuestion} />
@@ -259,7 +259,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
         </p>
 
         {/* 自動再生制限（iPad Safari 等）でタップ待ちの場合の親切なガイドボタン */}
-        {audioNeedsTap && !isWaitingForSpeech && (
+        {audioNeedsTap && (!isWaitingForSpeech || progress === 1) && (
           <div style={{ marginTop: "0.75rem" }}>
             <button
               type="button"

@@ -67,7 +67,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const isWaitingForSpeech = isLoading || isAudioPreparing;
 
   let avatarStatus: AvatarStatus = "idle";
-  if (isWaitingForSpeech) {
+  if (isWaitingForSpeech && progress > 1) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -249,7 +249,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech ? (
+          {isWaitingForSpeech && progress > 1 ? (
             "💭 ふたりのお返事を受け止めて、次の質問を考えています…"
           ) : (
             <FuriganaText text={currentQuestion} />
@@ -257,7 +257,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         </p>
 
         {/* 自動再生制限（iPad Safari 等）でタップ待ちの場合の親切なガイドボタン */}
-        {audioNeedsTap && !isWaitingForSpeech && (
+        {audioNeedsTap && (!isWaitingForSpeech || progress === 1) && (
           <div style={{ marginTop: "0.75rem" }}>
             <button
               type="button"
