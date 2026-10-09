@@ -41,7 +41,7 @@ export function useSpeechPlayback({
   enabled,
   blocked = false,
   preferredSrc,
-  revealTimeoutMs = 1500,
+  revealTimeoutMs = 15000,
   stallTimeoutMs = 25000,
 }: UseSpeechPlaybackOptions) {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -159,8 +159,9 @@ export function useSpeechPlayback({
         if (!started) fail();
       }, stallTimeoutMs);
 
-      audio.oncanplay = reveal;
-      audio.onplay = reveal;
+      // 音声が実際にスピーカーから流れ始めた瞬間（onplaying）に文面を同期表示する
+      audio.oncanplay = null;
+      audio.onplay = null;
       audio.onplaying = () => {
         started = true;
         clearTimeout(stallTimer);

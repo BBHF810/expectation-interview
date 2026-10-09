@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { ExpectationType } from "@/types";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import { FuriganaText } from "./FuriganaText";
 
 interface ExpectationScreenProps {
   onSelect: (exp: ExpectationType) => void;
@@ -20,7 +19,7 @@ export const ExpectationScreen: React.FC<ExpectationScreenProps> = ({
     <div className="card" style={{ maxWidth: "600px", margin: "0 auto" }}>
       <h2 className="title" style={{ textAlign: "center" }}>
         {isSimple ? (
-          <FuriganaText text="最近（さいきん）あったことについて" />
+          "さいきんあったことについて"
         ) : (
           "身近な人との最近の出来事について"
         )}
@@ -29,9 +28,9 @@ export const ExpectationScreen: React.FC<ExpectationScreenProps> = ({
       <p className="subtitle" style={{ textAlign: "center", lineHeight: 1.6 }}>
         {isSimple ? (
           <>
-            お友（とも）だちや家族（かぞく）と遊（あそ）んだこと、お話（はな）ししたことなど、心（こころ）にのこっていることを1つ思（おも）い浮（う）かべてみてね。
+            お友だちやかぞくと遊んだこと、お話ししたことなど、心にのこっていることを1つ思い浮かべてみてね。
             <br />
-            <strong>そのとき、お互（たが）いの気持ち（きもち）はどうだったかな？</strong>
+            <strong>そのとき、お互いのきもちはどうだったかな？</strong>
           </>
         ) : (
           <>

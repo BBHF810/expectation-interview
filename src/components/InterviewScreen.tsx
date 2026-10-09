@@ -79,7 +79,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
 
   // アバターの状態を決定
   let avatarStatus: AvatarStatus = "idle";
-  if (isWaitingForSpeech && progress > 1) {
+  if (isWaitingForSpeech) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -261,8 +261,10 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech && progress > 1 ? (
-            "💭 お答えを受け止めて、次の質問を考えています…"
+          {isWaitingForSpeech ? (
+            progress > 1
+              ? "💭 お答えを受け止めて、次の質問を考えています…"
+              : "💭 質問を準備しています…"
           ) : isSimple ? (
             <FuriganaText text={currentQuestion} />
           ) : (

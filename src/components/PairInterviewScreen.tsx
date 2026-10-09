@@ -67,7 +67,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const isWaitingForSpeech = isLoading || isAudioPreparing;
 
   let avatarStatus: AvatarStatus = "idle";
-  if (isWaitingForSpeech && progress > 1) {
+  if (isWaitingForSpeech) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -262,8 +262,10 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech && progress > 1 ? (
-            "💭 ふたりのお返事を受け止めて、次の質問を考えています…"
+          {isWaitingForSpeech ? (
+            progress > 1
+              ? "💭 ふたりのお返事を受け止めて、次の質問を考えています…"
+              : "💭 質問を準備しています…"
           ) : (
             <FuriganaText text={currentQuestion} />
           )}
