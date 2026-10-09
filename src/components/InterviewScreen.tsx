@@ -75,9 +75,9 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     preferredSrc: audioStreamingUrl,
   });
 
-  // アバターの状態を決定
+  // アバターの状態を決定（テキスト表示後は思考中を解除し、ユーザーが即座に入力できる状態であることを表現）
   let avatarStatus: AvatarStatus = "idle";
-  if (isLoading || isAudioPreparing) {
+  if (isLoading) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";

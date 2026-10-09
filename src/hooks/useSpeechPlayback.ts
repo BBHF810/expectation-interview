@@ -18,7 +18,7 @@ interface UseSpeechPlaybackOptions {
   enabled: boolean;
   /** true の間は再生しない（質問生成中など） */
   blocked?: boolean;
-  /** 先行取得済みの音声URL（再生開始時点で存在すれば使用。後から届いても再生をやり直さない） */
+  /** 先行取得済みの音声URL（再生開始時点で存在すれば使用） */
   preferredSrc?: string;
   /** 音声準備中に文面を隠す最大時間 */
   revealTimeoutMs?: number;
@@ -32,9 +32,8 @@ const isTestEnv = () => typeof process !== "undefined" && process.env?.NODE_ENV 
  * 質問・締めコメントの読み上げを一元管理するフック。
  *
  * - アプリ共通の Audio 要素を使い回す（iOS の自動再生制限対策）
- * - クラウドVOICEVOX → サーバーTTS → ブラウザ標準読み上げ の順に自動フォールバック
- * - 再生が始まらない（ストリームが詰まる）場合も一定時間で次の手段へ切り替える
- * - 自動再生がブロックされた場合は needsTap=true を返し、タップで再生できるようにする
+ * - ユーザーがマイクボタンを押した瞬間に、進行中のTTS通信および再生を即時・完全に遮断（バージイン対応）
+ * - NotAllowedError 発生時も即座にアンロックし、UIをブロックしない
  */
 export function useSpeechPlayback({
   text,
@@ -42,7 +41,7 @@ export function useSpeechPlayback({
   blocked = false,
   preferredSrc,
   revealTimeoutMs = 3000,
-  stallTimeoutMs = 10000,
+  stallTimeoutMs = 8000,
 }: UseSpeechPlaybackOptions) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -54,9 +53,22 @@ export function useSpeechPlayback({
 
   const sessionRef = useRef(0);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
+  /**
+   * すべての音声を同期的かつ完全に停止・破棄する（バージイン用）
+   */
   const stop = useCallback(() => {
     sessionRef.current += 1;
+
+    // 進行中のフェッチ通信を即時中断
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current.abort();
+      } catch {}
+      abortControllerRef.current = null;
+    }
+
     const audio = getSharedAudio();
     if (audio) {
       audio.onplay = null;
@@ -71,15 +83,20 @@ export function useSpeechPlayback({
         audio.load();
       } catch {}
     }
+
     if (cleanupRef.current) {
-      cleanupRef.current();
+      try {
+        cleanupRef.current();
+      } catch {}
       cleanupRef.current = null;
     }
+
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
       } catch {}
     }
+
     setIsSpeaking(false);
     setIsPreparing(false);
   }, []);
@@ -102,19 +119,21 @@ export function useSpeechPlayback({
     const session = sessionRef.current;
     const alive = () => sessionRef.current === session;
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setNeedsTap(false);
     setIsPreparing(true);
 
     const revealTimer = setTimeout(() => {
       if (alive()) setIsPreparing(false);
     }, revealTimeoutMs);
+
     const reveal = () => {
       clearTimeout(revealTimer);
       if (alive()) setIsPreparing(false);
     };
 
-    // 体験の途中で勝手に声が変わるのを防ぐため、ロボット機械音声へのフォールバックは廃止。
-    // 音声生成・再生に失敗した場合は、別の声で喋らせず、タップで再試行できるようにする。
     const onPlaybackFailed = () => {
       reveal();
       if (!alive()) return;
@@ -129,7 +148,11 @@ export function useSpeechPlayback({
         source.cleanup?.();
         return;
       }
-      if (cleanupRef.current) cleanupRef.current();
+      if (cleanupRef.current) {
+        try {
+          cleanupRef.current();
+        } catch {}
+      }
       cleanupRef.current = source.cleanup ?? null;
 
       let started = false;
@@ -160,7 +183,6 @@ export function useSpeechPlayback({
         if (!started) fail();
       }, stallTimeoutMs);
 
-      // 音声が実際にスピーカーから流れ始めた瞬間（onplaying）に文面を同期表示する
       audio.oncanplay = null;
       audio.onplay = null;
       audio.onplaying = () => {
@@ -175,10 +197,14 @@ export function useSpeechPlayback({
         detach();
         try {
           audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
         } catch {}
         if (alive()) setIsSpeaking(false);
         if (cleanupRef.current) {
-          cleanupRef.current();
+          try {
+            cleanupRef.current();
+          } catch {}
           cleanupRef.current = null;
         }
       };
@@ -198,7 +224,7 @@ export function useSpeechPlayback({
           p.catch((err: any) => {
             if (!alive() || err?.name === "AbortError") return;
             if (err?.name === "NotAllowedError") {
-              // 自動再生がブロックされた → タップを促す
+              // 自動再生がブロックされた → 即座にアンロックしてタップを促す
               finished = true;
               clearTimeout(stallTimer);
               detach();
@@ -240,11 +266,9 @@ export function useSpeechPlayback({
           source.cleanup?.();
           return;
         }
-        // ストリーミングURLの再生に失敗した場合はサーバーTTS（同一ボイス）へ、サーバー由来で失敗した場合は再試行を促す
         const isFromServer = source.src.startsWith("blob:") && source.engine !== "VOICEVOX";
         playSource(source, isFromServer ? onPlaybackFailed : tryServerTts);
       } catch {
-        // fetchPlayableTts 失敗時はサーバーTTSを試行
         tryServerTts();
       }
     })();
@@ -253,7 +277,7 @@ export function useSpeechPlayback({
       clearTimeout(revealTimer);
       stop();
     };
-    // preferredSrc は意図的に依存に含めない（後から届いても再生をやり直さない）
+    // preferredSrc は意図的に依存に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, enabled, blocked, replayToken, stop, revealTimeoutMs, stallTimeoutMs]);
 

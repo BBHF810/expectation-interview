@@ -65,7 +65,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   });
 
   let avatarStatus: AvatarStatus = "idle";
-  if (isLoading || isAudioPreparing) {
+  if (isLoading) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
