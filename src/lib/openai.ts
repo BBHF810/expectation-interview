@@ -24,7 +24,10 @@ export function getOpenAiClient(): OpenAI | null {
   if (apiKey === "") {
     return null;
   }
-  return new OpenAI({ apiKey });
+  return new OpenAI({
+    apiKey,
+    dangerouslyAllowBrowser: process.env.NODE_ENV === "test",
+  });
 }
 
 export function isOpenAiConfigured(): boolean {
@@ -54,17 +57,23 @@ export async function callOpenAiJson<T>(params: {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const isReasoningModel = model.startsWith("o1") || model.startsWith("o3");
+    const requestPayload: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
+      model,
+      messages: [
+        { role: "system", content: params.systemInstruction },
+        { role: "user", content: params.userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      max_completion_tokens: params.maxTokens ?? 500,
+    };
+
+    if (!isReasoningModel) {
+      requestPayload.temperature = params.temperature ?? 0.3;
+    }
+
     const response = await client.chat.completions.create(
-      {
-        model,
-        messages: [
-          { role: "system", content: params.systemInstruction },
-          { role: "user", content: params.userPrompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: params.temperature ?? 0.3,
-        max_tokens: params.maxTokens ?? 500,
-      },
+      requestPayload,
       { signal: controller.signal }
     );
 
