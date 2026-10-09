@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AgeGroup,
   CareStatus,
@@ -35,6 +35,7 @@ import { ANIMAL_DIAGNOSES, getInitialSingleQuestion, getSmartFallbackQuestion } 
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
 import { saveEpisodeLocally } from "@/lib/episode-storage";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
+import { prefetchStreamingUrl, warmupInitialSingleQuestions } from "@/lib/tts-client";
 import { CollectedEpisode } from "@/types";
 
 export default function Home() {
@@ -42,6 +43,11 @@ export default function Home() {
   const [mode, setMode] = useState<ExperienceMode>("single");
   const [inputMethod, setInputMethod] = useState<InputMethod>("voice");
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  // 初回固定質問の事前ウォームアップ（初回読み上げ遅延ゼロ化）
+  useEffect(() => {
+    warmupInitialSingleQuestions(getSavedTtsVoice());
+  }, []);
 
   // 一人モード用ステート
   const [age, setAge] = useState<number | null>(null);
@@ -141,10 +147,18 @@ export default function Home() {
     });
   };
 
-  // 年齢選択 → 入力方式選択へ遷移
+  // 年齢選択 → 入力方式選択へ遷移（この待機時間中に初回質問の音声を先行取得！）
   const handleAgeSelect = (selectedAge: number | null, selectedAgeGroup: AgeGroup) => {
     setAge(selectedAge);
     setAgeGroup(selectedAgeGroup);
+    const initialQ = getInitialSingleQuestion({ ageGroup: selectedAgeGroup });
+    setCurrentQuestion(initialQ.question);
+    // バックグラウンドで即座にストリーミングURLを先行ロード
+    prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
+      if (url) {
+        setSingleAudioStreamingUrl(url);
+      }
+    });
     setScreen("INPUT_METHOD_SELECT");
   };
 
@@ -157,6 +171,12 @@ export default function Home() {
       setCurrentProgress(1);
       setFallbackUsed(false);
       setIsLoading(false);
+      // 万が一プリフェッチ完了前の場合は即座にキャッシュ問い合わせ
+      if (!singleAudioStreamingUrl) {
+        prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
+          if (url) setSingleAudioStreamingUrl(url);
+        });
+      }
       setScreen("INTERVIEW");
     } else {
       const initialQ = getInitialPairQuestion({
@@ -171,6 +191,11 @@ export default function Home() {
       setPairProgress(1);
       setFallbackUsed(false);
       setIsLoading(false);
+      if (!pairAudioStreamingUrl) {
+        prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
+          if (url) setPairAudioStreamingUrl(url);
+        });
+      }
       setScreen("PAIR_INTERVIEW");
     }
   };
@@ -426,18 +451,22 @@ export default function Home() {
     if (turnCount === 1) {
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
-      setPairCurrentQuestion(
-        `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき${pairNameB}さんはどんな状況だったり、どう思っていましたか？`
-      );
+      const nextQ = `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき${pairNameB}さんはどんな状況だったり、どう思っていましたか？`;
+      setPairCurrentQuestion(nextQ);
+      prefetchStreamingUrl(nextQ, getSavedTtsVoice()).then((url) => {
+        if (url) setPairAudioStreamingUrl(url);
+      });
       return;
     }
 
     if (turnCount === 3) {
       setPairCurrentSpeaker("B");
       setPairCurrentSpeakerName(pairNameB);
-      setPairCurrentQuestion(
-        `${pairNameB}さん、${pairNameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${pairNameA}さんに伝えたいことはありますか？`
-      );
+      const nextQ = `${pairNameB}さん、${pairNameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${pairNameA}さんに伝えたいことはありますか？`;
+      setPairCurrentQuestion(nextQ);
+      prefetchStreamingUrl(nextQ, getSavedTtsVoice()).then((url) => {
+        if (url) setPairAudioStreamingUrl(url);
+      });
       return;
     }
 
@@ -480,6 +509,10 @@ export default function Home() {
         setPairCurrentSpeakerName(pairNameA);
         setPairProgress(2);
         if (data.fallbackUsed) setFallbackUsed(true);
+
+        // ターン4（Bさんへの定型バトンタッチ）の音声も先行ウォームアップ
+        const qB2 = `${pairNameB}さん、${pairNameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${pairNameA}さんに伝えたいことはありますか？`;
+        prefetchStreamingUrl(qB2, getSavedTtsVoice()).catch(() => {});
       } catch (err) {
         const fallback = getFallbackPairQuestion(pairNameA, pairNameB, 2, pairExpectationType);
         setPairCurrentQuestion(fallback.question);
@@ -745,6 +778,25 @@ export default function Home() {
           nameB={pairNameB}
           onSelect={(exp) => {
             setPairExpectationType(exp);
+            const initialQ = getInitialPairQuestion({
+              nameA: pairNameA,
+              nameB: pairNameB,
+              relationship: pairRelationship,
+              expectationType: exp,
+            });
+            setPairCurrentQuestion(initialQ.question);
+            setPairCurrentSpeaker(initialQ.nextSpeaker);
+            setPairCurrentSpeakerName(initialQ.nextSpeakerName);
+            // バックグラウンドで即座にストリーミングURLを先行ロード
+            prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
+              if (url) {
+                setPairAudioStreamingUrl(url);
+              }
+            });
+            // ターン2の質問（Bさんへの定型バトンタッチ）もついでに先行ウォームアップ
+            const qB1 = `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき${pairNameB}さんはどんな状況だったり、どう思っていましたか？`;
+            prefetchStreamingUrl(qB1, getSavedTtsVoice()).catch(() => {});
+
             setScreen("INPUT_METHOD_SELECT");
           }}
           onBack={() => setScreen("PAIR_AGE_B")}

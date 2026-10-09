@@ -76,6 +76,20 @@ function getTimeoutSignal(ms: number): AbortSignal | undefined {
   return controller.signal;
 }
 
+/** iPad / iOS Safari の Autoplay 制限を解除するための共通アンロック処理 */
+export function unlockAudioOnUserAction(): void {
+  if (typeof window === "undefined") return;
+  if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") return;
+  try {
+    const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
+    dummy.volume = 0.01;
+    const p = dummy.play();
+    if (p !== undefined) {
+      p.then(() => dummy.pause()).catch(() => {});
+    }
+  } catch {}
+}
+
 /** ブラウザから手元の VOICEVOX で音声合成。失敗時は null */
 export async function synthesizeWithLocalVoicevox(
   text: string,
@@ -196,6 +210,9 @@ export async function checkCloudVoicevox(): Promise<boolean> {
   }
 }
 
+// ストリーミングURLのインメモリキャッシュ（重複取得・待機を防止）
+const streamingUrlCache = new Map<string, Promise<string | null>>();
+
 /**
  * クラウドVOICEVOXのストリーミング再生用URLを即座に取得（約0.3秒で返却）
  * 失敗時は null
@@ -205,21 +222,72 @@ export async function getCloudVoicevoxStreamingUrl(
   speakerId: number,
   timeoutMs = 6000
 ): Promise<string | null> {
-  try {
-    const initRes = await fetch(
-      `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
-      {
-        signal: getTimeoutSignal(timeoutMs),
-      }
-    );
-    if (!initRes.ok) return null;
-    const initData = await initRes.json();
-    if (!initData || !initData.success || !initData.mp3StreamingUrl) return null;
-    return initData.mp3StreamingUrl;
-  } catch (err) {
-    console.warn("[TTS] クラウドストリーミングURL取得失敗:", err);
-    return null;
+  const cacheKey = `${speakerId}:${text}`;
+  const existing = streamingUrlCache.get(cacheKey);
+  if (existing) {
+    return existing;
   }
+
+  const fetchPromise = (async () => {
+    try {
+      const initRes = await fetch(
+        `https://api.tts.quest/v3/voicevox/synthesis?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
+        {
+          signal: getTimeoutSignal(timeoutMs),
+        }
+      );
+      if (!initRes.ok) return null;
+      const initData = await initRes.json();
+      if (!initData || !initData.success || !initData.mp3StreamingUrl) return null;
+      const url = initData.mp3StreamingUrl as string;
+
+      // ブラウザ環境であれば先行バッファリングを促す
+      if (typeof window !== "undefined" && typeof Audio !== "undefined") {
+        try {
+          const preloadAudio = new Audio();
+          preloadAudio.preload = "auto";
+          preloadAudio.src = url;
+        } catch {}
+      }
+
+      return url;
+    } catch (err) {
+      console.warn("[TTS] クラウドストリーミングURL取得失敗:", err);
+      return null;
+    }
+  })();
+
+  streamingUrlCache.set(cacheKey, fetchPromise);
+  // 失敗時はキャッシュから削除して再試行可能にする
+  fetchPromise.then((url) => {
+    if (!url) streamingUrlCache.delete(cacheKey);
+  });
+
+  return fetchPromise;
+}
+
+/**
+ * 音声ストリーミングURLを先行取得（プリフェッチ）してキャッシュに保存する。
+ * 事前に呼んでおくことで、画面遷移時に即座にストリーミングURLが利用可能になる。
+ */
+export async function prefetchStreamingUrl(
+  text: string,
+  voice: string
+): Promise<string | null> {
+  const speakerId = parseVoicevoxSpeaker(voice);
+  if (speakerId === null) return null;
+  return getCloudVoicevoxStreamingUrl(text, speakerId);
+}
+
+/**
+ * 一人モードの初回固定質問の音声を先行ウォームアップする。
+ * アプリ起動時や待機時間に呼ぶことで、初回質問の音声遅延を完全ゼロにする。
+ */
+export function warmupInitialSingleQuestions(voice: string): void {
+  const q1 = "おともだちやかぞくとのあいだで、心にのこっていることをおしえてくれる？ だれとの、どんな出来事だったかな？";
+  const q2 = "身近な人との間で、印象に残っている出来事を教えてください。誰との出来事で、どんなことがありましたか？";
+  prefetchStreamingUrl(q1, voice).catch(() => {});
+  prefetchStreamingUrl(q2, voice).catch(() => {});
 }
 
 export interface TtsPlayableAudio {
@@ -240,6 +308,19 @@ export async function fetchPlayableTts(
   const speakerId = parseVoicevoxSpeaker(voice);
 
   if (speakerId !== null) {
+    // ⓪ 先行プリフェッチ済みキャッシュがある場合は最優先で即時返却（待機ゼロ）
+    const cacheKey = `${speakerId}:${text}`;
+    const cachedPromise = streamingUrlCache.get(cacheKey);
+    if (cachedPromise) {
+      const cachedUrl = await cachedPromise;
+      if (cachedUrl) {
+        return {
+          src: cachedUrl,
+          engine: "VOICEVOX (Cloud)",
+        };
+      }
+    }
+
     // ① ローカル環境・カスタムURL時のみローカルを試行
     if (shouldTryLocalVoicevox()) {
       const localBlob = await synthesizeWithLocalVoicevox(text, speakerId);
@@ -253,8 +334,7 @@ export async function fetchPlayableTts(
       }
     }
 
-    // ② 無料クラウド VOICEVOX のストリーミングURLを最優先で取得（約0.3秒）
-    // ブラウザの Audio 要素に直接渡すことで、全ダウンロード待機（8-10秒）なしに約3秒で発話開始
+    // ② 無料クラウド VOICEVOX のストリーミングURLを最優先で取得（キャッシュがあれば即時返却）
     const streamUrl = await getCloudVoicevoxStreamingUrl(text, speakerId);
     if (streamUrl) {
       return {

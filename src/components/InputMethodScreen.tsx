@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { InputMethod } from "@/types";
 import { Mic, Keyboard, ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
+import { unlockAudioOnUserAction } from "@/lib/tts-client";
 
 interface InputMethodScreenProps {
   onSelect: (method: InputMethod) => void;
@@ -118,7 +119,10 @@ export const InputMethodScreen: React.FC<InputMethodScreenProps> = ({ onSelect, 
 
         <button
           type="button"
-          onClick={() => onSelect(selectedMethod)}
+          onClick={() => {
+            unlockAudioOnUserAction();
+            onSelect(selectedMethod);
+          }}
           className="btn btn-primary"
           style={{ minWidth: "160px" }}
         >

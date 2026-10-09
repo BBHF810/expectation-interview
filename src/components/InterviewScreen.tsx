@@ -6,7 +6,7 @@ import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
-import { fetchPlayableTts } from "@/lib/tts-client";
+import { fetchPlayableTts, unlockAudioOnUserAction } from "@/lib/tts-client";
 
 interface InterviewScreenProps {
   currentQuestion: string;
@@ -19,16 +19,6 @@ interface InterviewScreenProps {
   onFinishEarly: () => void;
   onReset: () => void;
   isSimple: boolean;
-}
-
-// iPad / iOS Safari の Autoplay 制限を解除するためのアンロック処理
-function unlockAudioOnUserAction() {
-  if (typeof window === "undefined") return;
-  try {
-    const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-    dummy.volume = 0.01;
-    dummy.play().then(() => dummy.pause()).catch(() => {});
-  } catch {}
 }
 
 export const InterviewScreen: React.FC<InterviewScreenProps> = ({
@@ -125,7 +115,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     }
 
     let isCancelled = false;
-    const shouldSyncSpeech = progress > 1 && process.env.NODE_ENV !== "test";
+    const shouldSyncSpeech = process.env.NODE_ENV !== "test";
     if (shouldSyncSpeech) {
       setIsAudioPreparing(true);
     } else {
@@ -133,10 +123,10 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     }
     stopAllAudio();
 
-    // 音声待機が長すぎる場合の安全フォールバック（最大2.0秒で文面を先行表示）
+    // 音声待機が長すぎる場合の安全フォールバック（最大1.5秒で文面を先行表示）
     const safetyTimer = setTimeout(() => {
       if (!isCancelled) setIsAudioPreparing(false);
-    }, 2000);
+    }, 1500);
 
     const playTtsAudio = async () => {
       try {

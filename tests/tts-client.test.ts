@@ -88,4 +88,33 @@ describe("ブラウザ側 TTS ヘルパー (fetchTtsBlob)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/tts");
   });
+
+  it("prefetchStreamingUrl はストリーミングURLを取得し、2回目以降はキャッシュから即時返却してfetchを重複実行しない", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("api.tts.quest/v3/voicevox/synthesis")) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            mp3StreamingUrl: "https://audio.tts.quest/streaming-123.mp3",
+          }),
+          { status: 200 }
+        );
+      }
+      throw new Error("unexpected url: " + url);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { prefetchStreamingUrl, fetchPlayableTts } = await import("@/lib/tts-client");
+    const testText = "テスト先行プリフェッチ質問";
+    const url1 = await prefetchStreamingUrl(testText, "voicevox:3");
+
+    expect(url1).toBe("https://audio.tts.quest/streaming-123.mp3");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 2回目（fetchPlayableTts 経由）: キャッシュが再利用され、追加fetchは発生しない
+    const playable = await fetchPlayableTts(testText, "voicevox:3");
+    expect(playable.src).toBe("https://audio.tts.quest/streaming-123.mp3");
+    expect(playable.engine).toBe("VOICEVOX (Cloud)");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
