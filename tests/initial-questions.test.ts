@@ -35,53 +35,30 @@ describe("初期固定質問の選定ロジック", () => {
   });
 
   describe("ふたり用モード (getInitialPairQuestion)", () => {
-    it("参加者名と相手名が質問文に含まれ、Aへの問いかけになる", () => {
+    it("参加者名への呼びかけを含み、指定のエピソード想起質問になる", () => {
       const q = getInitialPairQuestion({
         nameA: "たろう",
         nameB: "はなこ",
         relationship: "友だち",
         expectationType: "matched",
       });
-      expect(q.question).toContain("たろうさん、まずは");
-      expect(q.question).toContain("はなこさんとの間で");
-      expect(q.question).toContain("気持ちが通じ合った場面");
+      expect(q.question).toBe(
+        "たろうさん、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）"
+      );
       expect(q.nextSpeaker).toBe("A");
       expect(q.nextSpeakerName).toBe("たろう");
     });
 
-    it("関係性（親子、夫婦、恋人、兄弟）に応じた表現が付与される", () => {
-      const qParent = getInitialPairQuestion({
-        nameA: "ケン",
-        nameB: "ユウ",
-        relationship: "親子",
+    it("敬称（さん・ちゃん・くん）が既に含まれる場合は重複しない", () => {
+      const qChan = getInitialPairQuestion({
+        nameA: "ユウちゃん",
+        nameB: "ケンくん",
+        relationship: "きょうだい",
         expectationType: "mismatched",
       });
-      expect(qParent.question).toContain("ケンさん、まずは親子のユウさんとの間で");
-      expect(qParent.question).toContain("すれ違ってしまった");
-
-      const qSpouse = getInitialPairQuestion({
-        nameA: "ソラ",
-        nameB: "ウミ",
-        relationship: "夫婦",
-        expectationType: "neutral",
-      });
-      expect(qSpouse.question).toContain("ソラさん、まずはご夫婦のウミさんとの間で");
-
-      const qLover = getInitialPairQuestion({
-        nameA: "レン",
-        nameB: "リン",
-        relationship: "恋人",
-        expectationType: "matched",
-      });
-      expect(qLover.question).toContain("レンさん、まずは恋人のリンさんとの間で");
-
-      const qCustom = getInitialPairQuestion({
-        nameA: "ミホ",
-        nameB: "サキ",
-        relationship: "先輩後輩",
-        expectationType: "matched",
-      });
-      expect(qCustom.question).toContain("ミホさん、まずは先輩後輩のサキさんとの間で");
+      expect(qChan.question).toBe(
+        "ユウちゃん、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）"
+      );
     });
   });
 

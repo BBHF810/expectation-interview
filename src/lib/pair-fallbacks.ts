@@ -118,55 +118,26 @@ export function getFallbackPairQuestion(
 }
 
 /**
- * 登録情報（参加者名、相手名、関係性、期待タイプ）に応じた最初の固定質問を選定
+ * 登録情報（参加者名）に応じたふたりモードの最初の質問
  */
 export function getInitialPairQuestion(params: {
   nameA: string;
-  nameB: string;
-  relationship: string;
-  expectationType: ExpectationType;
+  nameB?: string;
+  relationship?: string;
+  expectationType?: ExpectationType;
 }): { question: string; nextSpeaker: "A"; nextSpeakerName: string } {
-  const { nameA, nameB, relationship, expectationType } = params;
+  const { nameA } = params;
 
-  // 関係性の表現の微調整
-  let relContext = "";
-  if (relationship.includes("友")) {
-    relContext = "友だちの";
-  } else if (relationship.includes("親子")) {
-    relContext = "親子の";
-  } else if (relationship.includes("兄弟") || relationship.includes("きょうだい")) {
-    relContext = "きょうだいの";
-  } else if (relationship.includes("夫婦")) {
-    relContext = "ご夫婦の";
-  } else if (relationship.includes("恋人")) {
-    relContext = "恋人の";
-  } else if (relationship.includes("パートナー")) {
-    relContext = "パートナーの";
-  } else if (relationship.includes("家族")) {
-    relContext = "ご家族の";
-  } else if (relationship && relationship !== "その他") {
-    relContext = `${relationship}の`;
-  }
+  const displayNameA =
+    nameA.endsWith("さん") || nameA.endsWith("ちゃん") || nameA.endsWith("くん")
+      ? nameA
+      : `${nameA}さん`;
 
-  if (expectationType === "matched") {
-    return {
-      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、印象に残っている嬉しかった出来事や気持ちが通じ合った場面について教えていただけますか？ どんなことがありましたか？`,
-      nextSpeaker: "A",
-      nextSpeakerName: nameA,
-    };
-  } else if (expectationType === "mismatched") {
-    return {
-      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、「思っていたのと違ったな」と感じたり、少しすれ違ってしまった具体的な出来事を教えていただけますか？ どんな場面でしたか？`,
-      nextSpeaker: "A",
-      nextSpeakerName: nameA,
-    };
-  } else {
-    return {
-      question: `${nameA}さん、まずは${relContext}${nameB}さんとの間で、印象に残っている具体的な出来事について教えていただけますか？ どんな場面でしたか？`,
-      nextSpeaker: "A",
-      nextSpeakerName: nameA,
-    };
-  }
+  return {
+    question: `${displayNameA}、お互いに笑いあった出来事や勘違いしていた出来事など、何か２人の間に起きたエピソードを教えてください。（些細な出来事でも構いません）`,
+    nextSpeaker: "A",
+    nextSpeakerName: nameA,
+  };
 }
 
 export function getFallbackPairReflection(
