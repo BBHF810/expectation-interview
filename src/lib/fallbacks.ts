@@ -238,22 +238,27 @@ export function formatPartnerReferral(partner: string, isSimple: boolean = false
 }
 
 /**
- * 年齢グループに応じた汎用的オープナー質問を返す
+ * 年齢グループおよび実年齢に応じた汎用的オープナー質問を返す
+ * 14歳以下の場合は子ども向けモードの質問文を返す
  */
 export function getInitialSingleQuestion(params: {
   ageGroup: AgeGroup;
+  age?: number | null;
 }): FallbackQuestion {
-  const { ageGroup } = params;
+  const { ageGroup, age } = params;
 
-  if (ageGroup === "under_10") {
+  // 14歳以下の場合は子ども向け
+  const isSimple = age !== undefined && age !== null ? age <= 14 : ageGroup === "under_10";
+
+  if (isSimple) {
     return {
       question:
-        "おともだちやかぞくに対して、きみが「これをやってほしいな」とおもったことや、「これをしたらよろこんでくれるかな」とおもった出来事はあるかな？ だれとの、どんな出来事だったかおしえてね。",
+        "おともだちやかぞくに対して、きみが「これをやってほしいな」とおもったことや、「これをしたらよろこんでくれるかな」とおもったことはあるかな？ だれとの、どんなことだったかおしえてね。",
       purpose: "event",
     };
   }
 
-  // 11_30, 31_plus, no_answer は共通（身近な人の具体例と感情の手がかり入り）
+  // 15歳以上（11_30, 31_plus, no_answer）は共通（身近な人の具体例と感情の手がかり入り）
   return {
     question:
       "身近な人（友だち・家族・恋人・職場の仲間など）とのやり取りで、「思っていたのと違ってモヤッとしたこと」や「期待以上に嬉しかったこと」など、印象に残っている出来事はありますか？ 誰とのどんな場面でしたか？",
@@ -324,7 +329,7 @@ export function getFallbackReflection(
   let reflection = "";
   if (type === "matched") {
     reflection = isSimple
-      ? "おたがいのきもちがぴったり合って、とてもうれしいじかんになりましたね。相手にたいする素直なおもいが、しっかり伝わったたいせつな出来事です。"
+      ? "おたがいのきもちがぴったり合って、とてもうれしいじかんになりましたね。相手にたいする素直なおもいが、しっかり伝わったたいせつなことです。"
       : "相手への期待と実際の行動が重なり、気持ちが通じ合った場面でした。互いの意図が自然に伝わった温かいやり取りの記録です。";
   } else if (type === "mismatched") {
     reflection = isSimple
@@ -332,7 +337,7 @@ export function getFallbackReflection(
       : "相手に望んでいたことと実際の行動にすれ違いが生じた場面でした。期待を抱くことも、お互いの受け止め方に差が生まれることも、人と人との関わりにおいて自然なことです。";
   } else {
     reflection = isSimple
-      ? "うまくいったところも、すこしちがったところもあったようですね。相手との関わりの中で、いろいろな感じかたをしたたいせつな出来事です。"
+      ? "うまくいったところも、すこしちがったところもあったようですね。相手との関わりの中で、いろいろな感じかたをしたたいせつなことです。"
       : "期待がかなった面と、予想とは異なった面の両方があった出来事でした。状況や相手の受け止め方によって多様な側面が見えた場面です。";
   }
 

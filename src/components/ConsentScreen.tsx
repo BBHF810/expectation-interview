@@ -85,6 +85,14 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({ onConsent, onBack 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
+            <strong>保護者の方へ（未成年の方のご利用）：</strong>
+            未成年（お子様）が体験される場合は、必ず保護者（親権者）の方が本内容をご確認・ご同意のうえで体験を開始してください。
+          </span>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+          <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
+          <span>
             <strong>研究への活用：</strong>
             お話しいただいた内容は、個人を特定できない統計情報として、人と人との気持ちの通い合い（相互期待感）に関する学術研究に活用させていただきます。
           </span>
@@ -132,10 +140,10 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({ onConsent, onBack 
             accentColor: "var(--color-primary)",
             cursor: "pointer",
           }}
-          aria-label="上記の内容を確認し、個人情報を入れずに体験を始めます"
+          aria-label="上記の内容を確認し（未成年の方は保護者の方が確認）、個人情報を入れずに体験を始めます"
         />
         <span style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--color-text-main)" }}>
-          上記の内容を確認し、個人情報を入れずに体験を始めます
+          上記の内容を確認し（未成年の方は保護者の方が確認）、個人情報を入れずに体験を始めます
         </span>
       </label>
 

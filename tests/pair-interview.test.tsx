@@ -155,10 +155,9 @@ describe("ふたりで体験するモードのテスト", () => {
 
     // 5. PAIR_AGE_B -> Bさんの年齢を教えてください
     expect(screen.getByText("Bさんの年齢を教えてください")).toBeInTheDocument();
-    const btn30sB = screen.getByRole("button", { name: "30代" });
+    const btn30sB = screen.getByRole("button", { name: "30代以上" });
     fireEvent.click(btn30sB);
-    const ageBNext = screen.getByRole("button", { name: /次へ/i });
-    fireEvent.click(ageBNext);
+    // 30代以上は微調整スキップで即座に次へ進む
 
     // 6. PAIR_EXPECTATION -> ふたりの間であった最近の出来事について
     expect(screen.getByText(/ふたりの間であった最近の出来事について/i)).toBeInTheDocument();

@@ -226,3 +226,15 @@ a:focus-visible {
   border: 1px solid var(--color-primary-border);
   color: #1e40af;
 }
+
+/* 子ども向けルビ（ふりがな）表示スタイル */
+ruby {
+  ruby-align: center;
+}
+rt {
+  font-size: 0.65em;
+  font-weight: 700;
+  color: var(--color-primary);
+  user-select: none;
+  line-height: 1;
+}

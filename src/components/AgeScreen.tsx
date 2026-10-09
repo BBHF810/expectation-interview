@@ -21,16 +21,24 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
   const [noAnswer, setNoAnswer] = useState(false);
 
   // 年代クイック選択
-  const handleQuickAge = (targetAge: number) => {
+  const handleQuickAge = (item: { label: string; age: number }) => {
     setNoAnswer(false);
-    setAge(targetAge);
+    if (item.label === "30代以上") {
+      setAge(35);
+      // 30代以上を選択した場合は細かい年齢調整をスキップして即次へ進む
+      onSelect(35, "31_plus");
+      return;
+    }
+    setAge(item.age);
   };
 
   const handleStep = (delta: number) => {
     setNoAnswer(false);
     setAge((prev) => {
-      const current = prev ?? 25;
-      return Math.min(Math.max(current + delta, 1), 120);
+      const current = prev ?? 15;
+      // 30歳以上に達した場合は30で止める
+      const next = current + delta;
+      return Math.min(Math.max(next, 1), 29);
     });
   };
 
@@ -43,23 +51,23 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
     if (noAnswer) {
       onSelect(null, "no_answer");
     } else if (age !== null) {
-      onSelect(age, ageToAgeGroup(age));
+      if (age >= 30) {
+        onSelect(35, "31_plus");
+      } else {
+        onSelect(age, ageToAgeGroup(age));
+      }
     }
   };
 
   const canProceed = noAnswer || age !== null;
-  const currentAgeGroup = noAnswer ? "no_answer" : ageToAgeGroup(age);
+  const currentAgeGroup = noAnswer ? "no_answer" : (age !== null && age >= 30 ? "31_plus" : ageToAgeGroup(age));
 
-  // 年代選択時の代表年齢（〜9: 5, 10~: 15, 20~: 25, 30~: 35, 40~: 45, 50~: 55, 60~: 65, 70~: 75）
+  // 年代選択項目（〜9歳: 5, 10代: 15, 20代: 25, 30代以上: 35）
   const quickDecades = [
     { label: "〜9歳", age: 5 },
     { label: "10代", age: 15 },
     { label: "20代", age: 25 },
-    { label: "30代", age: 35 },
-    { label: "40代", age: 45 },
-    { label: "50代", age: 55 },
-    { label: "60代", age: 65 },
-    { label: "70代〜", age: 75 },
+    { label: "30代以上", age: 35 },
   ];
 
   return (
@@ -81,15 +89,17 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
               age !== null &&
               (d.label === "〜9歳"
                 ? age <= 9
-                : d.label.endsWith("〜")
-                ? age >= Math.floor(d.age / 10) * 10
-                : Math.floor(age / 10) === Math.floor(d.age / 10));
+                : d.label === "10代"
+                ? age >= 10 && age <= 19
+                : d.label === "20代"
+                ? age >= 20 && age <= 29
+                : age >= 30);
 
             return (
               <button
                 key={d.label}
                 type="button"
-                onClick={() => handleQuickAge(d.age)}
+                onClick={() => handleQuickAge(d)}
                 className={`btn ${isSelected ? "btn-primary" : "btn-outline"}`}
                 style={{
                   padding: "0.55rem 1.1rem",
@@ -133,7 +143,9 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
       >
         <div style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", textAlign: "center", marginBottom: "0.5rem" }}>
           {age !== null
-            ? "＋ / − ボタンで1歳ずつ調整できます"
+            ? age >= 30
+              ? "30代以上は細かい調整は不要です"
+              : "＋ / − ボタンで1歳ずつ調整できます"
             : "上の年代を選ぶか、＋ / − で年齢を設定してください"}
         </div>
         <div
@@ -147,6 +159,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
           <button
             type="button"
             onClick={() => handleStep(-1)}
+            disabled={age !== null && age >= 30}
             className="btn btn-secondary"
             style={{
               width: "56px",
@@ -157,6 +170,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
               alignItems: "center",
               justifyContent: "center",
               boxShadow: "0 2px 5px rgba(0,0,0,0.06)",
+              opacity: age !== null && age >= 30 ? 0.4 : 1,
             }}
             aria-label="年齢を1歳減らす"
           >
@@ -187,7 +201,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
           >
             <span
               style={{
-                fontSize: "2.75rem",
+                fontSize: age !== null && age >= 30 ? "1.85rem" : "2.75rem",
                 fontWeight: 800,
                 color: noAnswer
                   ? "var(--color-text-muted)"
@@ -197,9 +211,9 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
                 lineHeight: 1,
               }}
             >
-              {noAnswer ? "未回答" : age ?? "--"}
+              {noAnswer ? "未回答" : age !== null && age >= 30 ? "30歳以上" : age ?? "--"}
             </span>
-            {!noAnswer && age !== null && (
+            {!noAnswer && age !== null && age < 30 && (
               <span
                 style={{
                   fontSize: "1.25rem",
@@ -215,6 +229,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
           <button
             type="button"
             onClick={() => handleStep(1)}
+            disabled={age !== null && age >= 30}
             className="btn btn-secondary"
             style={{
               width: "56px",
@@ -225,6 +240,7 @@ export const AgeScreen: React.FC<AgeScreenProps> = ({
               alignItems: "center",
               justifyContent: "center",
               boxShadow: "0 2px 5px rgba(0,0,0,0.06)",
+              opacity: age !== null && age >= 30 ? 0.4 : 1,
             }}
             aria-label="年齢を1歳増やす"
           >

@@ -96,7 +96,7 @@ export default function Home() {
     pairAnimalDiagnosis: PAIR_ANIMAL_COMBOS[0],
   });
 
-  const isSimple = ageGroup === "under_10";
+  const isSimple = age !== null ? age <= 14 : ageGroup === "under_10";
 
   // 完全リセット
   const handleReset = () => {
@@ -146,7 +146,7 @@ export default function Home() {
   const handleAgeSelect = (selectedAge: number | null, selectedAgeGroup: AgeGroup) => {
     setAge(selectedAge);
     setAgeGroup(selectedAgeGroup);
-    const initialQ = getInitialSingleQuestion({ ageGroup: selectedAgeGroup });
+    const initialQ = getInitialSingleQuestion({ ageGroup: selectedAgeGroup, age: selectedAge });
     setCurrentQuestion(initialQ.question);
     // バックグラウンドで即座にストリーミングURLを先行ロード
     prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
@@ -161,7 +161,7 @@ export default function Home() {
   const handleInputMethodSelect = (method: InputMethod) => {
     setInputMethod(method);
     if (mode === "single") {
-      const initialQ = getInitialSingleQuestion({ ageGroup });
+      const initialQ = getInitialSingleQuestion({ ageGroup, age });
       setCurrentQuestion(initialQ.question);
       setCurrentProgress(1);
       setFallbackUsed(false);

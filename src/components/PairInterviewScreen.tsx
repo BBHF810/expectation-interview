@@ -7,6 +7,7 @@ import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
 import { fetchPlayableTts, unlockAudioOnUserAction } from "@/lib/tts-client";
+import { FuriganaText, stripFurigana } from "./FuriganaText";
 
 interface PairInterviewScreenProps {
   currentQuestion: string;
@@ -121,10 +122,12 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         let src: string;
         let cleanup: (() => void) | undefined;
 
+        const spokenText = stripFurigana(currentQuestion);
+
         if (audioStreamingUrl) {
           src = audioStreamingUrl;
         } else {
-          const res = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+          const res = await fetchPlayableTts(spokenText, getSavedTtsVoice());
           src = res.src;
           cleanup = res.cleanup;
         }
@@ -176,21 +179,21 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             audioCleanupRef.current();
             audioCleanupRef.current = null;
           }
-          if (!isCancelled) playBrowserSpeech(currentQuestion);
+          if (!isCancelled) playBrowserSpeech(spokenText);
         };
 
         await audio.play().catch((err) => {
           if (err.name !== "AbortError" && !isCancelled) {
             revealQuestion();
             console.warn("TTS playback error:", err);
-            playBrowserSpeech(currentQuestion);
+            playBrowserSpeech(spokenText);
           }
         });
       } catch (err) {
         if (!isCancelled) {
           clearTimeout(safetyTimer);
           setIsAudioPreparing(false);
-          playBrowserSpeech(currentQuestion);
+          playBrowserSpeech(stripFurigana(currentQuestion));
         }
       }
     };
@@ -353,7 +356,11 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech ? "💭 ふたりのお返事を受け止めて、次の質問を考えています…" : currentQuestion}
+          {isWaitingForSpeech ? (
+            "💭 ふたりのお返事を受け止めて、次の質問を考えています…"
+          ) : (
+            <FuriganaText text={currentQuestion} />
+          )}
         </p>
       </div>
 

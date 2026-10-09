@@ -34,6 +34,17 @@ describe("初期固定質問の選定ロジック", () => {
       expect(q.question).toContain("友だち・家族・恋人");
       expect(q.purpose).toBe("event");
     });
+
+    it("14歳以下の場合は子ども向けオープナーが選ばれ、『出来事』という言葉を含まない", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "11_30", age: 14 });
+      expect(q.question).toContain("やってほしいな");
+      expect(q.question).not.toContain("出来事");
+    });
+
+    it("15歳以上の場合は一般向けオープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "11_30", age: 15 });
+      expect(q.question).toContain("身近な人");
+    });
   });
 
   describe("ふたり用モード (getInitialPairQuestion)", () => {

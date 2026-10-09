@@ -7,6 +7,7 @@ import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
 import { fetchPlayableTts, unlockAudioOnUserAction } from "@/lib/tts-client";
+import { FuriganaText, stripFurigana } from "./FuriganaText";
 
 interface InterviewScreenProps {
   currentQuestion: string;
@@ -133,10 +134,12 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
         let src: string;
         let cleanup: (() => void) | undefined;
 
+        const spokenText = stripFurigana(currentQuestion);
+
         if (audioStreamingUrl) {
           src = audioStreamingUrl;
         } else {
-          const res = await fetchPlayableTts(currentQuestion, getSavedTtsVoice());
+          const res = await fetchPlayableTts(spokenText, getSavedTtsVoice());
           src = res.src;
           cleanup = res.cleanup;
         }
@@ -188,21 +191,21 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             audioCleanupRef.current();
             audioCleanupRef.current = null;
           }
-          if (!isCancelled) playBrowserSpeech(currentQuestion);
+          if (!isCancelled) playBrowserSpeech(spokenText);
         };
 
         await audio.play().catch((err) => {
           if (err.name !== "AbortError" && !isCancelled) {
             revealQuestion();
             console.warn("TTS playback error:", err);
-            playBrowserSpeech(currentQuestion);
+            playBrowserSpeech(spokenText);
           }
         });
       } catch (err) {
         if (!isCancelled) {
           clearTimeout(safetyTimer);
           setIsAudioPreparing(false);
-          playBrowserSpeech(currentQuestion);
+          playBrowserSpeech(stripFurigana(currentQuestion));
         }
       }
     };
@@ -350,12 +353,18 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             fontSize: "1.25rem",
             fontWeight: 700,
             color: isWaitingForSpeech ? "var(--color-primary)" : "var(--color-text-main)",
-            lineHeight: 1.5,
+            lineHeight: isSimple ? 1.9 : 1.5,
             margin: 0,
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech ? "💭 お答えを受け止めて、次の質問を考えています…" : currentQuestion}
+          {isWaitingForSpeech ? (
+            "💭 お答えを受け止めて、次の質問を考えています…"
+          ) : isSimple ? (
+            <FuriganaText text={currentQuestion} />
+          ) : (
+            currentQuestion
+          )}
         </p>
       </div>
 
