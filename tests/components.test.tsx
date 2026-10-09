@@ -8,6 +8,7 @@ import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewerAvatar } from "@/components/InterviewerAvatar";
 import { InterviewScreen } from "@/components/InterviewScreen";
 import { AgeScreen } from "@/components/AgeScreen";
+import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
 import "@testing-library/jest-dom";
 
 describe("UIコンポーネントテスト", () => {
@@ -179,5 +180,27 @@ describe("UIコンポーネントテスト", () => {
 
     // 次へボタンを押さなくても即座にコールバックが実行される
     expect(handleSelect).toHaveBeenCalledWith(35, "31_plus");
+  });
+
+  it("運営者モード: 暗証番号でロック解除後、動物診断マスタータブで根拠と具体例が確認できる", () => {
+    const handleClose = vi.fn();
+
+    render(<AdminEpisodeManagerModal isOpen={true} onClose={handleClose} />);
+
+    // 暗証番号入力
+    const pinInput = screen.getByPlaceholderText("暗証番号を入力");
+    fireEvent.change(pinInput, { target: { value: "2026" } });
+    const unlockBtn = screen.getByRole("button", { name: "ロック解除" });
+    fireEvent.click(unlockBtn);
+
+    // 動物診断マスタータブをタップ
+    const animalTabBtn = screen.getByRole("button", { name: /動物診断マスター/i });
+    expect(animalTabBtn).toBeInTheDocument();
+    fireEvent.click(animalTabBtn);
+
+    // タイプ名、判定の根拠、具体例が表示される
+    expect(screen.getByText("素直なワンちゃんタイプ")).toBeInTheDocument();
+    expect(screen.getAllByText(/判定の根拠/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/具体例/i).length).toBeGreaterThan(0);
   });
 });

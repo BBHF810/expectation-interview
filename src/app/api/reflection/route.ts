@@ -5,8 +5,9 @@ import { isOpenAiConfigured, getOpenAiModelName, callOpenAiJson } from "@/lib/op
 import { REFLECTION_SYSTEM_INSTRUCTION } from "@/lib/prompts/reflection";
 import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackReflection, getFallbackAnimalDiagnosis } from "@/lib/fallbacks";
+import { normalizeSingleAnimal } from "@/lib/animal-diagnoses";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
-import { AgeGroup, ExpectationType } from "@/types";
+import { AgeGroup, ExpectationType, AnimalDiagnosis } from "@/types";
 
 const ReflectionRequestSchema = z.object({
   ageGroup: z.enum(["under_10", "11_30", "31_plus", "no_answer"]),
@@ -179,8 +180,8 @@ ${turnsContext}
   "safetyAction": "continue" | "stop",
   "missingInformation": [],
   "animalDiagnosis": {
-    "animalEmoji": "動物の絵文字 (例: 🐬)",
-    "animalName": "回答エピソードを反映した独自の動物名 (例: 手料理で喜ばせたい誠実なワンちゃんタイプ)",
+    "animalEmoji": "動物の絵文字 (例: 🐶, 🐬)",
+    "animalName": "固定動物タイプリストから選定した名前 (例: 素直なワンちゃんタイプ, 共感イルカタイプ 等。オリジナルの創作名は禁止)",
     "catchphrase": "エピソードに即したキャッチフレーズ",
     "description": "回答内容・エピソードを直接引用して解説した診断文（定型文は厳禁）",
     "futureTrait": "これからの強み・活きる性格",
@@ -302,9 +303,28 @@ ${turnsContext}
       });
     }
 
-    const animalDiagnosis =
-      data.animalDiagnosis ||
-      getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers);
+    let animalDiagnosis: AnimalDiagnosis;
+    if (data.animalDiagnosis) {
+      const master = normalizeSingleAnimal(data.animalDiagnosis.animalName);
+      const rawDesc = data.animalDiagnosis.description || master.defaultDescription;
+      const firstAns = allAnswers[0]?.trim();
+      const descHasQuote = rawDesc.includes("『") || rawDesc.includes("「") || (firstAns && rawDesc.includes(firstAns.slice(0, 10)));
+      const finalDesc = (!descHasQuote && firstAns)
+        ? `『${firstAns.slice(0, 20)}』とお話ししてくださったあなた。${rawDesc}`
+        : rawDesc;
+
+      animalDiagnosis = {
+        animalEmoji: master.animalEmoji,
+        animalName: master.animalName,
+        catchphrase: data.animalDiagnosis.catchphrase || master.catchphrase,
+        description: finalDesc,
+        futureTrait: data.animalDiagnosis.futureTrait || master.futureTrait,
+        academicTrait: data.animalDiagnosis.academicTrait || master.academicTrait,
+        episodeHighlight: data.animalDiagnosis.episodeHighlight || (firstAns ? `『${firstAns.slice(0, 25)}』とお話ししてくださったこと` : undefined),
+      };
+    } else {
+      animalDiagnosis = getFallbackAnimalDiagnosis(expectationType as ExpectationType, allAnswers);
+    }
 
     logSafeRequest({
       requestId,

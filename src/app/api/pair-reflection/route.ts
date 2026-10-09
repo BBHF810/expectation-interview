@@ -5,6 +5,7 @@ import { isOpenAiConfigured, getOpenAiModelName, callOpenAiJson } from "@/lib/op
 import { PAIR_REFLECTION_SYSTEM_INSTRUCTION } from "@/lib/prompts/pair-reflection";
 import { checkSafetyLocally } from "@/lib/safety";
 import { getFallbackPairReflection, PAIR_ANIMAL_COMBOS } from "@/lib/pair-fallbacks";
+import { normalizePairAnimal } from "@/lib/animal-diagnoses";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { ExpectationType } from "@/types";
 
@@ -182,7 +183,7 @@ ${turnsContext}
   "pairAnimalDiagnosis": {
     "animalA": { "emoji": "絵文字", "name": "動物タイプ名" },
     "animalB": { "emoji": "絵文字", "name": "動物タイプ名" },
-    "pairTitle": "エピソードに合わせたオリジナル称号 (例: 手料理を囲むナイスペア)",
+    "pairTitle": "固定ペアタイプリストから選定した称号 (例: お互いを引き立て合うナイスペア 等。オリジナルの創作名は禁止)",
     "pairCatchphrase": "ふたりのキャッチコピー",
     "pairDescription": "ふたりが実際に語った出来事や言葉を直接引用して解説した診断文（定型文は厳禁）",
     "futureRelationship": "ふたりの未来の関係性タイプ",
@@ -308,9 +309,29 @@ ${turnsContext}
       });
     }
 
-    const pairAnimalDiagnosis =
-      data.pairAnimalDiagnosis ||
-      getFallbackPairReflection(nameA, nameB, expectationType as ExpectationType, conversationHistory).pairAnimalDiagnosis;
+    let pairAnimalDiagnosis: any;
+    if (data.pairAnimalDiagnosis) {
+      const master = normalizePairAnimal(data.pairAnimalDiagnosis.pairTitle);
+      const rawDesc = data.pairAnimalDiagnosis.pairDescription || master.defaultDescription;
+      const ansA = conversationHistory.find((t) => t.speaker === "A")?.answer?.trim();
+      const descHasQuote = rawDesc.includes("『") || rawDesc.includes("「") || (ansA && rawDesc.includes(ansA.slice(0, 10)));
+      const finalDesc = (!descHasQuote && ansA)
+        ? `『${ansA.slice(0, 20)}』という場面でお互いの思いを伝え合ったおふたり。${rawDesc}`
+        : rawDesc;
+
+      pairAnimalDiagnosis = {
+        animalA: master.animalA,
+        animalB: master.animalB,
+        pairTitle: master.pairTitle,
+        pairCatchphrase: data.pairAnimalDiagnosis.pairCatchphrase || master.pairCatchphrase,
+        pairDescription: finalDesc,
+        futureRelationship: data.pairAnimalDiagnosis.futureRelationship || master.futureRelationship,
+        academicDynamic: data.pairAnimalDiagnosis.academicDynamic || master.academicDynamic,
+        pairEpisodeHighlight: data.pairAnimalDiagnosis.pairEpisodeHighlight || (ansA ? `『${ansA.slice(0, 25)}』について話し合った出来事` : undefined),
+      };
+    } else {
+      pairAnimalDiagnosis = getFallbackPairReflection(nameA, nameB, expectationType as ExpectationType, conversationHistory).pairAnimalDiagnosis;
+    }
 
     logSafeRequest({
       requestId,

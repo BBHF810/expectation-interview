@@ -47,166 +47,74 @@ export const FALLBACK_QUESTIONS: Record<
   },
 };
 
-export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = [
-  {
-    animalEmoji: "🐶",
-    animalName: "素直なワンちゃんタイプ",
-    catchphrase: "まっすぐな信頼とピュアな心",
-    description: "相手への期待を大切にして、素直な気持ちで向き合えるタイプです。お互いの思いを言葉にし合うことで、さらに強い絆が育まれます。",
-    futureTrait: "感情の透明性が高く、周囲に安心感と活気をもたらすオープンマインドな性格",
-    academicTrait: "高親和・ストレート表出型（Direct & Affiliative）",
-  },
-  {
-    animalEmoji: "🐱",
-    animalName: "マイペースな猫ちゃんタイプ",
-    catchphrase: "心地よい距離感と自立した優しさ",
-    description: "相手の領域も自分のペースも尊重できるタイプです。すれ違いが起きても『そういうこともあるよね』とお互いの違いを認め合えるしなやかさがあります。",
-    futureTrait: "お互いの境界線を尊重し、過度な干渉を避けてしなやかに共存できる自立した性格",
-    academicTrait: "自立志向・適応的距離感型（Autonomous & Adaptive）",
-  },
-  {
-    animalEmoji: "🦉",
-    animalName: "見守りフクロウタイプ",
-    catchphrase: "深い洞察力と静かな包容力",
-    description: "相手の状況や気持ちを一歩引いて客観的に見つめられるタイプです。言葉にしない期待の奥にある想いに気づく優しさを持っています。",
-    futureTrait: "相手のサインを静かに察知し、必要なときに適切なサポートを届けられる思慮深い性格",
-    academicTrait: "内省的・観察受容型（Reflective & Accommodating）",
-  },
-  {
-    animalEmoji: "🐬",
-    animalName: "共感イルカタイプ",
-    catchphrase: "気持ちのキャッチボールを楽しむ共感力",
-    description: "心と心が通じ合う温かい瞬間を何よりも愛するタイプです。楽しいこともすれ違いも、お互いを深く知るきっかけに変えていけます。",
-    futureTrait: "気持ちの波長を敏感に受け止め、ポジティブな感情を分かち合えるムードメーカーな性格",
-    academicTrait: "共感主導・相互同調型（Empathetic & Synchronous）",
-  },
-  {
-    animalEmoji: "🐻",
-    animalName: "ぬくもりクマさんタイプ",
-    catchphrase: "どっしり構える安心感と大きな思いやり",
-    description: "相手のどんな一面も大らかに受け止めようとする包容力タイプです。そばにいるだけで相手にホッとした安心感を届けられます。",
-    futureTrait: "相手の感情の揺らぎをどっしりと受け止め、居場所としての絶対的な安心感を与える性格",
-    academicTrait: "安定志向・情動的包容型（Secure & Supportive）",
-  },
-  {
-    animalEmoji: "🐧",
-    animalName: "よりそいペンギンタイプ",
-    catchphrase: "力を合わせて歩む健気なチームワーク",
-    description: "相手と一緒に同じ方向を向いて協力し合いたいと願う誠実なタイプです。小さなすれ違いも、ふたりの歩幅を合わせるための大切な一歩になります。",
-    futureTrait: "目標や暮らしの課題を一緒に分担し、歩幅を合わせて前進できるチームワーク志向の性格",
-    academicTrait: "協調行動・タスク共有型（Collaborative & Cooperative）",
-  },
-  {
-    animalEmoji: "🐿️",
-    animalName: "きくばりリスさんタイプ",
-    catchphrase: "細やかな気配りと先回りの優しさ",
-    description: "相手が困らないように先回りして準備したり、小さな変化にすぐ気づける気配り上手です。さりげない心遣いで周りを心地よく満たします。",
-    futureTrait: "日常の些細なサインやニーズを敏感にキャッチし、円滑で心地よい環境を整える性格",
-    academicTrait: "配慮主導・予防的サポート型（Attentive & Proactive）",
-  },
-  {
-    animalEmoji: "🦊",
-    animalName: "ひらめきキツネタイプ",
-    catchphrase: "スマートな機転としなやかな適応力",
-    description: "予想外のすれ違いが起きても、機転を利かせて柔軟に別の楽しさを見つけられるタイプです。どんな状況も軽やかに乗りこなす柔軟性を持っています。",
-    futureTrait: "想定外の状況でも慌てず、新しい解決策や楽しい視点に素早く切り替えられる性格",
-    academicTrait: "認知的柔軟性・状況適応型（Flexible & Resourceful）",
-  },
-  {
-    animalEmoji: "🦔",
-    animalName: "シャイなハリネズミタイプ",
-    catchphrase: "不器用だけど純粋で深いあたたかさ",
-    description: "最初は少し慎重で気持ちを出すのに時間がかかりますが、心の中には相手への純粋で温かい想いが詰まっているタイプです。時間をかけて確かな絆を育みます。",
-    futureTrait: "慎重に信頼関係を深め、一度築いた絆を何よりも大切に守り抜く誠実な性格",
-    academicTrait: "防衛受容・深層愛着型（Cautious & Dedicated）",
-  },
-  {
-    animalEmoji: "🦦",
-    animalName: "陽気なラッコタイプ",
-    catchphrase: "笑顔とユーモアでほぐすポジティブな心",
-    description: "ちょっとしたすれ違いやモヤモヤも、笑顔やユーモアでふわりと和らげてしまえるタイプです。一緒にいる空間を明るい空気で満たします。",
-    futureTrait: "張り詰めた空気をポジティブにほぐし、人との関わりを楽しい遊び場に変える性格",
-    academicTrait: "情動調整・ユーモア媒介型（Playful & Harmonizing）",
-  },
-  {
-    animalEmoji: "🦌",
-    animalName: "おだやかシカタイプ",
-    catchphrase: "相手を尊重する静かな調和と品性",
-    description: "相手の領域や気持ちに無理に踏み込まず、自然な距離感を大切にしながらそっと寄り添えるタイプです。穏やかで安心できる関係を作ります。",
-    futureTrait: "相手のペースとプライベートを大切に尊重し、長続きする穏やかな調和を保つ性格",
-    academicTrait: "非侵襲・調和維持型（Non-intrusive & Peaceful）",
-  },
-  {
-    animalEmoji: "🦁",
-    animalName: "頼れるライオンタイプ",
-    catchphrase: "力強い情熱とブレない包容リーダーシップ",
-    description: "相手を喜ばせたい、困ったときは守りたいという強い情熱とリーダーシップを持つタイプです。頼もしさで相手に前向きな勇気を届けます。",
-    futureTrait: "決断力と責任感を持ち、大切な人を力強く引っ張りながら安心をもたらす性格",
-    academicTrait: "能動主導・防護的コミットメント型（Assertive & Protective）",
-  },
-  {
-    animalEmoji: "🐘",
-    animalName: "しっかりゾウさんタイプ",
-    catchphrase: "約束を重んじる揺るぎない信頼と誠実さ",
-    description: "過去の約束やふたりで交わした言葉を大切に記憶し、相手に誠実に応え続けようとするタイプです。揺るぎない安心感で周囲を支えます。",
-    futureTrait: "約束や信頼を何よりも重んじ、時間をかけて揺るぎない安心と実績を積み重ねる性格",
-    academicTrait: "信義誠実・長期継続型（Consistent & Loyal）",
-  },
-  {
-    animalEmoji: "🐇",
-    animalName: "びかんウサギタイプ",
-    catchphrase: "豊かな感受性と素早い思いやりのアンテナ",
-    description: "相手の些細な表情や声のトーンの変化を素早く感じ取り、ピュアな優しさで応答できるタイプです。繊細だからこそ、相手の痛みに一番に寄り添えます。",
-    futureTrait: "細やかな心の機微を察知し、相手の気持ちに優しく共鳴できる高い感受性を持つ性格",
-    academicTrait: "高感受性・迅速応答型（Sensitive & Responsive）",
-  },
-];
+import { SINGLE_ANIMAL_MASTERS, SingleAnimalMaster } from "./animal-diagnoses";
+
+export const ANIMAL_DIAGNOSES: AnimalDiagnosis[] = SINGLE_ANIMAL_MASTERS.map((m) => ({
+  animalEmoji: m.animalEmoji,
+  animalName: m.animalName,
+  catchphrase: m.catchphrase,
+  description: m.defaultDescription,
+  futureTrait: m.futureTrait,
+  academicTrait: m.academicTrait,
+}));
 
 export function getFallbackAnimalDiagnosis(
   type: ExpectationType,
   answers: string[]
 ): AnimalDiagnosis {
   const combined = answers.join(" ");
+  let master: SingleAnimalMaster = SINGLE_ANIMAL_MASTERS[0]; // デフォルト: 素直なワンちゃん
+
   if (type === "matched") {
     if (combined.includes("笑") || combined.includes("楽し") || combined.includes("ユーモア")) {
-      return ANIMAL_DIAGNOSES[9]; // 陽気なラッコ
+      master = SINGLE_ANIMAL_MASTERS[9]; // 陽気なラッコ
+    } else if (combined.includes("嬉し") || combined.includes("通じ")) {
+      master = SINGLE_ANIMAL_MASTERS[3]; // 共感イルカ
+    } else if (combined.includes("守") || combined.includes("引") || combined.includes("頑張")) {
+      master = SINGLE_ANIMAL_MASTERS[11]; // 頼れるライオン
+    } else {
+      master = SINGLE_ANIMAL_MASTERS[0]; // 素直なワンちゃん
     }
-    if (combined.includes("嬉し") || combined.includes("通じ")) {
-      return ANIMAL_DIAGNOSES[3]; // 共感イルカ
-    }
-    if (combined.includes("守") || combined.includes("引") || combined.includes("頑張")) {
-      return ANIMAL_DIAGNOSES[11]; // 頼れるライオン
-    }
-    return ANIMAL_DIAGNOSES[0]; // 素直なワンちゃん
   } else if (type === "mismatched") {
     if (combined.includes("気遣") || combined.includes("準備") || combined.includes("先")) {
-      return ANIMAL_DIAGNOSES[6]; // きくばりリス
+      master = SINGLE_ANIMAL_MASTERS[6]; // きくばりリス
+    } else if (combined.includes("我慢") || combined.includes("言えな") || combined.includes("不安") || combined.includes("緊張")) {
+      master = SINGLE_ANIMAL_MASTERS[8]; // シャイなハリネズミ
+    } else if (combined.includes("時間") || combined.includes("忙し") || combined.includes("マイペース")) {
+      master = SINGLE_ANIMAL_MASTERS[1]; // 猫ちゃん
+    } else if (combined.includes("どうして") || combined.includes("なぜ") || combined.includes("考え")) {
+      master = SINGLE_ANIMAL_MASTERS[2]; // 見守りフクロウ
+    } else {
+      master = SINGLE_ANIMAL_MASTERS[7]; // ひらめきキツネ
     }
-    if (combined.includes("我慢") || combined.includes("言えな") || combined.includes("不安") || combined.includes("緊張")) {
-      return ANIMAL_DIAGNOSES[8]; // シャイなハリネズミ
-    }
-    if (combined.includes("時間") || combined.includes("忙し") || combined.includes("マイペース")) {
-      return ANIMAL_DIAGNOSES[1]; // 猫ちゃん
-    }
-    if (combined.includes("どうして") || combined.includes("なぜ") || combined.includes("考え")) {
-      return ANIMAL_DIAGNOSES[2]; // 見守りフクロウ
-    }
-    return ANIMAL_DIAGNOSES[7]; // ひらめきキツネ
   } else {
     if (combined.includes("約束") || combined.includes("信") || combined.includes("待")) {
-      return ANIMAL_DIAGNOSES[12]; // しっかりゾウ
+      master = SINGLE_ANIMAL_MASTERS[12]; // しっかりゾウ
+    } else if (combined.includes("静か") || combined.includes("距離") || combined.includes("そっと")) {
+      master = SINGLE_ANIMAL_MASTERS[10]; // おだやかシカ
+    } else if (combined.includes("手伝") || combined.includes("一緒") || combined.includes("協力")) {
+      master = SINGLE_ANIMAL_MASTERS[5]; // よりそいペンギン
+    } else if (combined.includes("気配") || combined.includes("優し") || combined.includes("気付")) {
+      master = SINGLE_ANIMAL_MASTERS[13]; // びかんウサギ
+    } else {
+      master = SINGLE_ANIMAL_MASTERS[4]; // ぬくもりクマ
     }
-    if (combined.includes("静か") || combined.includes("距離") || combined.includes("そっと")) {
-      return ANIMAL_DIAGNOSES[10]; // おだやかシカ
-    }
-    if (combined.includes("手伝") || combined.includes("一緒") || combined.includes("協力")) {
-      return ANIMAL_DIAGNOSES[5]; // よりそいペンギン
-    }
-    if (combined.includes("気配") || combined.includes("優し") || combined.includes("気付")) {
-      return ANIMAL_DIAGNOSES[13]; // びかんウサギ
-    }
-    return ANIMAL_DIAGNOSES[4]; // ぬくもりクマ
   }
+
+  const firstAns = answers[0]?.trim();
+  const episodeDesc = firstAns
+    ? `『${firstAns.slice(0, 22)}』とお話ししてくださったあなた。${master.defaultDescription}`
+    : master.defaultDescription;
+
+  return {
+    animalEmoji: master.animalEmoji,
+    animalName: master.animalName,
+    catchphrase: master.catchphrase,
+    description: episodeDesc,
+    futureTrait: master.futureTrait,
+    academicTrait: master.academicTrait,
+    episodeHighlight: firstAns ? `『${firstAns.slice(0, 25)}』とお話ししてくださったこと` : undefined,
+  };
 }
 
 export function getFallbackQuestion(

@@ -21,6 +21,8 @@ import {
 } from "@/lib/tts-client";
 import { TheoryExplanationModal } from "./TheoryExplanationModal";
 
+import { SINGLE_ANIMAL_MASTERS, PAIR_ANIMAL_MASTERS } from "@/lib/animal-diagnoses";
+
 interface AdminEpisodeManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,7 +32,9 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   isOpen,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<"episodes" | "voice">("episodes");
+  const [activeTab, setActiveTab] = useState<"episodes" | "voice" | "animals">("episodes");
+  const [animalSubTab, setAnimalSubTab] = useState<"single" | "pair">("single");
+  const [animalSearchQuery, setAnimalSearchQuery] = useState("");
   const [isTheoryModalOpen, setIsTheoryModalOpen] = useState(false);
   const [episodes, setEpisodes] = useState<CollectedEpisode[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -392,6 +396,29 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
 
           <button
             type="button"
+            onClick={() => setActiveTab("animals")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.6rem 1.25rem",
+              borderRadius: "var(--radius-md) var(--radius-md) 0 0",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              background: activeTab === "animals" ? "#EFF6FF" : "transparent",
+              color: activeTab === "animals" ? "var(--color-primary)" : "var(--color-text-muted)",
+              borderBottom: activeTab === "animals" ? "3px solid var(--color-primary)" : "3px solid transparent",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span>🐾</span>
+            動物診断マスター（根拠・具体例）
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsTheoryModalOpen(true)}
             style={{
               marginLeft: "auto",
@@ -693,6 +720,265 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                 );
               })}
             </div>
+          </div>
+        ) : activeTab === "animals" ? (
+          /* --- 動物診断マスター（根拠・具体例）タブ --- */
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            {/* 説明案内バナー */}
+            <div
+              style={{
+                background: "#EFF6FF",
+                border: "1px solid #BFDBFE",
+                borderRadius: "var(--radius-md)",
+                padding: "1rem 1.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.4rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontSize: "1.25rem" }}>🐾</span>
+                <span style={{ fontWeight: 700, color: "#1E40AF", fontSize: "0.95rem" }}>
+                  固定動物診断マスター（判定根拠と具体例）
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "#1E3A8A", lineHeight: 1.5 }}>
+                本展示の診断では、都度のオリジナル命名ではなく、あらかじめ定義された<strong>固定の動物タイプ</strong>の中から、来場者のインタビュー内容（期待の持ち方・出来事・感情）に最も近いタイプをAIが選定します。
+                解説文には、<strong>来場者が語った具体的なエピソード</strong>が直接引用・反映されます。
+              </p>
+            </div>
+
+            {/* サブタブ切り替え（一人用 / ふたり用） & 検索 */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem", background: "#F1F5F9", padding: "0.3rem", borderRadius: "var(--radius-md)" }}>
+                <button
+                  type="button"
+                  onClick={() => setAnimalSubTab("single")}
+                  className="btn"
+                  style={{
+                    padding: "0.45rem 1rem",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    border: "none",
+                    borderRadius: "var(--radius-sm)",
+                    background: animalSubTab === "single" ? "#FFFFFF" : "transparent",
+                    color: animalSubTab === "single" ? "var(--color-primary)" : "var(--color-text-muted)",
+                    boxShadow: animalSubTab === "single" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  一人用診断 ({SINGLE_ANIMAL_MASTERS.length}タイプ)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnimalSubTab("pair")}
+                  className="btn"
+                  style={{
+                    padding: "0.45rem 1rem",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    border: "none",
+                    borderRadius: "var(--radius-sm)",
+                    background: animalSubTab === "pair" ? "#FFFFFF" : "transparent",
+                    color: animalSubTab === "pair" ? "var(--color-primary)" : "var(--color-text-muted)",
+                    boxShadow: animalSubTab === "pair" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  ふたり用診断 ({PAIR_ANIMAL_MASTERS.length}タイプ)
+                </button>
+              </div>
+
+              {/* 検索入力 */}
+              <input
+                type="text"
+                placeholder="タイプ名・根拠・キーワードで検索..."
+                value={animalSearchQuery}
+                onChange={(e) => setAnimalSearchQuery(e.target.value)}
+                style={{
+                  padding: "0.45rem 0.85rem",
+                  fontSize: "0.85rem",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-border)",
+                  minWidth: "240px",
+                }}
+              />
+            </div>
+
+            {/* 一人用タイプ一覧 */}
+            {animalSubTab === "single" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {SINGLE_ANIMAL_MASTERS.filter((m) => {
+                  if (!animalSearchQuery) return true;
+                  const q = animalSearchQuery.toLowerCase();
+                  return (
+                    m.animalName.toLowerCase().includes(q) ||
+                    m.shortName.toLowerCase().includes(q) ||
+                    m.criteria.toLowerCase().includes(q) ||
+                    m.academicTrait.toLowerCase().includes(q) ||
+                    m.concreteExamples.some((ex) => ex.toLowerCase().includes(q))
+                  );
+                }).map((m) => (
+                  <div
+                    key={m.id}
+                    style={{
+                      background: "#FFFFFF",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-lg)",
+                      padding: "1.25rem",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.75rem",
+                    }}
+                  >
+                    {/* タイトル行 */}
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <span style={{ fontSize: "2.2rem", lineHeight: 1 }}>{m.animalEmoji}</span>
+                        <div>
+                          <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--color-text-main)" }}>
+                            {m.animalName}
+                          </div>
+                          <div style={{ fontSize: "0.825rem", fontWeight: 700, color: "var(--color-primary)" }}>
+                            {m.catchphrase}
+                          </div>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          background: "#F1F5F9",
+                          color: "#475569",
+                          padding: "0.3rem 0.65rem",
+                          borderRadius: "var(--radius-full)",
+                          border: "1px solid #E2E8F0",
+                        }}
+                      >
+                        {m.academicTrait}
+                      </span>
+                    </div>
+
+                    {/* 判定の根拠 */}
+                    <div style={{ background: "#F8FAFC", borderRadius: "var(--radius-md)", padding: "0.75rem 1rem", borderLeft: "4px solid var(--color-primary)" }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-primary)", marginBottom: "0.25rem" }}>
+                        🔍 判定の根拠（特徴・コミュニケーション傾向）
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text-main)", lineHeight: 1.55 }}>
+                        {m.criteria}
+                      </p>
+                    </div>
+
+                    {/* 具体例 */}
+                    <div style={{ background: "#FFFBEB", borderRadius: "var(--radius-md)", padding: "0.75rem 1rem", borderLeft: "4px solid #F59E0B" }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#B45309", marginBottom: "0.35rem" }}>
+                        💡 具体例（典型的な発言・エピソード例）
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.85rem", color: "#78350F", lineHeight: 1.6 }}>
+                        {m.concreteExamples.map((ex, i) => (
+                          <li key={i}>{ex}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* 基本解説文 */}
+                    <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+                      <strong>基本解説文:</strong> {m.defaultDescription}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ふたり用タイプ一覧 */}
+            {animalSubTab === "pair" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {PAIR_ANIMAL_MASTERS.filter((p) => {
+                  if (!animalSearchQuery) return true;
+                  const q = animalSearchQuery.toLowerCase();
+                  return (
+                    p.pairTitle.toLowerCase().includes(q) ||
+                    p.animalA.name.toLowerCase().includes(q) ||
+                    p.animalB.name.toLowerCase().includes(q) ||
+                    p.criteria.toLowerCase().includes(q) ||
+                    p.academicDynamic.toLowerCase().includes(q) ||
+                    p.concreteExamples.some((ex) => ex.toLowerCase().includes(q))
+                  );
+                }).map((p) => (
+                  <div
+                    key={p.id}
+                    style={{
+                      background: "#FFFFFF",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "var(--radius-lg)",
+                      padding: "1.25rem",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.75rem",
+                    }}
+                  >
+                    {/* タイトル行 */}
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <span style={{ fontSize: "2rem", lineHeight: 1 }}>
+                          {p.animalA.emoji}{p.animalB.emoji}
+                        </span>
+                        <div>
+                          <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--color-text-main)" }}>
+                            {p.pairTitle}
+                          </div>
+                          <div style={{ fontSize: "0.825rem", fontWeight: 700, color: "var(--color-primary)" }}>
+                            {p.animalA.name} × {p.animalB.name} ｜ {p.pairCatchphrase}
+                          </div>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          background: "#F1F5F9",
+                          color: "#475569",
+                          padding: "0.3rem 0.65rem",
+                          borderRadius: "var(--radius-full)",
+                          border: "1px solid #E2E8F0",
+                        }}
+                      >
+                        {p.academicDynamic}
+                      </span>
+                    </div>
+
+                    {/* 判定の根拠 */}
+                    <div style={{ background: "#F8FAFC", borderRadius: "var(--radius-md)", padding: "0.75rem 1rem", borderLeft: "4px solid var(--color-primary)" }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-primary)", marginBottom: "0.25rem" }}>
+                        🔍 判定の根拠（ふたりの関わり方と相互適応）
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text-main)", lineHeight: 1.55 }}>
+                        {p.criteria}
+                      </p>
+                    </div>
+
+                    {/* 具体例 */}
+                    <div style={{ background: "#FFFBEB", borderRadius: "var(--radius-md)", padding: "0.75rem 1rem", borderLeft: "4px solid #F59E0B" }}>
+                      <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "#B45309", marginBottom: "0.35rem" }}>
+                        💡 具体例（典型的な関係性・エピソード例）
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.85rem", color: "#78350F", lineHeight: 1.6 }}>
+                        {p.concreteExamples.map((ex, i) => (
+                          <li key={i}>{ex}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* 基本解説文 */}
+                    <div style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+                      <strong>基本解説文:</strong> {p.defaultDescription}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* --- エピソードデータ管理タブ --- */
