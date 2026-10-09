@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { DevConsoleViewer } from "@/components/DevConsoleViewer";
+import { VoiceInputProvider } from "@/contexts/VoiceInputContext";
 
 export const metadata: Metadata = {
   title: "AIに話して見つける、すれ違いのカタチ",
@@ -21,8 +22,10 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <main className="container">{children}</main>
-        <DevConsoleViewer />
+        <VoiceInputProvider>
+          <main className="container">{children}</main>
+          <DevConsoleViewer />
+        </VoiceInputProvider>
       </body>
     </html>
   );

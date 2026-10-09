@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Terminal, X, Trash2, Copy, Check, AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { useVoiceInputMode } from "@/contexts/VoiceInputContext";
 
 interface LogEntry {
   id: string;
@@ -30,6 +31,7 @@ function stringifyArg(arg: any): string {
 }
 
 export const DevConsoleViewer: React.FC = () => {
+  const { mode: voiceMode, setMode: setVoiceMode } = useVoiceInputMode();
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState<"all" | "error" | "warn" | "log">("all");
@@ -311,6 +313,61 @@ export const DevConsoleViewer: React.FC = () => {
                 title="閉じる"
               >
                 <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* 音声入力モード切り替えバー */}
+          <div
+            style={{
+              padding: "6px 12px",
+              backgroundColor: "#0B132B",
+              borderBottom: "1px solid #1E293B",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: "0.75rem",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span style={{ color: "#94A3B8", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+              🎙️ 音声入力モード:
+            </span>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button
+                type="button"
+                onClick={() => setVoiceMode("web_speech_api")}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  border: "1px solid",
+                  borderColor: voiceMode === "web_speech_api" ? "#38BDF8" : "#334155",
+                  backgroundColor: voiceMode === "web_speech_api" ? "#0284C7" : "#1E293B",
+                  color: "#FFFFFF",
+                  cursor: "pointer",
+                  fontWeight: voiceMode === "web_speech_api" ? 700 : 400,
+                  fontSize: "0.7rem",
+                }}
+              >
+                Web Speech API (本番標準)
+              </button>
+              <button
+                type="button"
+                onClick={() => setVoiceMode("media_recorder")}
+                style={{
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  border: "1px solid",
+                  borderColor: voiceMode === "media_recorder" ? "#F59E0B" : "#334155",
+                  backgroundColor: voiceMode === "media_recorder" ? "#D97706" : "#1E293B",
+                  color: "#FFFFFF",
+                  cursor: "pointer",
+                  fontWeight: voiceMode === "media_recorder" ? 700 : 400,
+                  fontSize: "0.7rem",
+                }}
+              >
+                MediaRecorder + Whisper (検証)
               </button>
             </div>
           </div>
