@@ -388,4 +388,63 @@ describe("VoiceInput コンポーネント", () => {
     expect(mockInstance.abort).toHaveBeenCalled();
     expect(handleListeningChange).toHaveBeenCalledWith(false);
   });
+
+  it("お話し中に回答が送信され aborted エラーが発生しても、警告ログ（console.warn）を出力しない", () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn().mockImplementation(() => {
+        if (this.onerror) {
+          this.onerror({ error: "aborted" });
+        }
+      });
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { rerender } = render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={() => {}}
+        disabled={false}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    fireEvent.click(micButton);
+
+    // 回答送信（disabled: true）によりマイク停止・abort が発火
+    rerender(
+      <VoiceInput
+        currentText="回答テキスト"
+        onTranscriptChange={() => {}}
+        onListeningStateChange={() => {}}
+        disabled={true}
+      />
+    );
+
+    // 直接 aborted エラーをシミュレート
+    act(() => {
+      mockInstance?.onerror?.({ error: "aborted" });
+    });
+
+    // aborted に関する警告ログが出力されていないことを検証
+    expect(warnSpy).not.toHaveBeenCalledWith("Speech recognition error:", "aborted");
+    warnSpy.mockRestore();
+  });
 });

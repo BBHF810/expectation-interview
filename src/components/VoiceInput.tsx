@@ -292,6 +292,12 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         if (!isCurrent()) return;
         isStartingRef.current = false;
         const error = event.error;
+
+        // 意図的な中断（aborted: 送信時・手動停止時）や無音（no-speech）は正常な動作のため警告ログを出さずに無視
+        if (error === "aborted" || error === "no-speech" || isManuallyStoppedRef.current) {
+          return;
+        }
+
         console.warn("Speech recognition error:", error);
 
         if (error === "not-allowed" || error === "service-not-allowed") {
