@@ -543,6 +543,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     }
     stopAllAudioInternal();
 
+    // iOS 16+ AudioSession API サポート環境で明示的に play-and-record を設定
+    try {
+      const nav = navigator as unknown as { audioSession?: { type?: string } };
+      if (nav?.audioSession) {
+        nav.audioSession.type = "play-and-record";
+      }
+    } catch (_) {}
+
     clearAllTimers();
 
     isManuallyStoppedRef.current = false;
@@ -560,13 +568,13 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     baseTextRef.current = currentTextRef.current.trim();
     sessionFinalRef.current = "";
 
-    // ③ CoreAudio デバイス解放完了のための微小待機（iOS: 75ms、その他: 15ms、テスト環境: 0ms）
+    // ③ CoreAudio デバイス解放完了のための微小待機（iOS: 150ms、その他: 15ms、テスト環境: 0ms）
     const isTest = typeof process !== "undefined" && process.env?.NODE_ENV === "test";
     if (isTest) {
       startRecognitionSession();
     } else {
       const isIOS = checkIsIOS();
-      const waitMs = isIOS ? 75 : 15;
+      const waitMs = isIOS ? 150 : 15;
       startDelayTimerRef.current = setTimeout(() => {
         if (!isManuallyStoppedRef.current) {
           startRecognitionSession();

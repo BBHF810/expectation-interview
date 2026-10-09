@@ -6,10 +6,56 @@ interface WelcomeScreenProps {
   onStartPair: () => void;
 }
 
+/**
+ * iOS Safari環境におけるAVAudioSessionプライミングおよびマイク権限先行取得
+ * 体験開始ボタン押下時に一瞬だけgetUserMediaを呼び出して即座に停止することで、
+ * ① マイク権限ダイアログをこの初期画面で確定させる（インタビュー中のダイアログ出現を防止）
+ * ② iOSのAudioSessionをPlayAndRecord対応ハードウェアとして先行初期化する
+ */
+function primeAudioSessionIOS(): void {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return;
+
+  const isIOS =
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  if (!isIOS) return;
+
+  try {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          stream.getTracks().forEach((track) => {
+            try {
+              track.stop();
+            } catch (_) {}
+          });
+        })
+        .catch((e) => {
+          // ユーザーがマイク拒否した場合や利用不可環境でも問題なし
+          console.debug("[primeAudioSessionIOS] skipped or denied:", e);
+        });
+    }
+  } catch (e) {
+    console.debug("[primeAudioSessionIOS] skipped or denied:", e);
+  }
+}
+
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onStartSingle,
   onStartPair,
 }) => {
+  const handleStartSingle = () => {
+    primeAudioSessionIOS();
+    onStartSingle();
+  };
+
+  const handleStartPair = () => {
+    primeAudioSessionIOS();
+    onStartPair();
+  };
+
   return (
     <div className="card" style={{ textAlign: "center", padding: "2.5rem 1.75rem" }}>
       <div
@@ -44,7 +90,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "400px", margin: "0 auto" }}>
         <button
           type="button"
-          onClick={onStartSingle}
+          onClick={handleStartSingle}
           className="btn btn-primary"
           style={{ width: "100%", padding: "1.1rem 1rem", fontSize: "1.15rem", borderRadius: "var(--radius-md)" }}
           aria-label="ひとりで体験するを開始"
@@ -55,7 +101,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
         <button
           type="button"
-          onClick={onStartPair}
+          onClick={handleStartPair}
           className="btn btn-secondary"
           style={{
             width: "100%",
