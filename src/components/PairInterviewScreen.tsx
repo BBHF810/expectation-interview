@@ -387,7 +387,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   {isSpeaking ? (
                     <>
                       <span style={{ fontSize: "1.2rem" }}>🔊</span>
-                      <span>AIがお話し中です。聞き終わったらボタンを押してください</span>
+                      <span>AIがお話し中です。ボタンを押すと音声を止めてすぐにお話しできます</span>
                     </>
                   ) : (
                     <>
@@ -405,6 +405,8 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                       stopAllAudio();
                     }
                   }}
+                  onBeforeStart={stopAllAudio}
+                  isAiSpeaking={isSpeaking}
                   disabled={isLoading}
                 />
               </div>

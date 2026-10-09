@@ -171,4 +171,94 @@ describe("VoiceInput コンポーネント", () => {
       screen.getByText(/マイクの使用が許可されていません/i)
     ).toBeInTheDocument();
   });
+
+  it("AI発話中（isAiSpeaking: true）の場合、AIの声を止めて話すラベルになり、クリック時に onBeforeStart が即座に呼ばれる", () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn();
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    const handleBeforeStart = vi.fn();
+    const handleListeningChange = vi.fn();
+
+    render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={handleListeningChange}
+        onBeforeStart={handleBeforeStart}
+        isAiSpeaking={true}
+        disabled={false}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /AIの声を止めて/i });
+    expect(micButton).toBeInTheDocument();
+    expect(screen.getByText(/AIの声を止めて話す/i)).toBeInTheDocument();
+
+    fireEvent.click(micButton);
+
+    expect(handleBeforeStart).toHaveBeenCalledTimes(1);
+    expect(mockInstance).not.toBeNull();
+    expect(mockInstance.start).toHaveBeenCalled();
+  });
+
+  it("audio-capture エラーが発生した場合、適切なメッセージを表示して停止する", () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn();
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={() => {}}
+        disabled={false}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    fireEvent.click(micButton);
+
+    act(() => {
+      if (mockInstance.onerror) {
+        mockInstance.onerror({ error: "audio-capture" });
+      }
+    });
+
+    expect(
+      screen.getByText(/マイクの接続で問題が発生しました/i)
+    ).toBeInTheDocument();
+  });
 });
