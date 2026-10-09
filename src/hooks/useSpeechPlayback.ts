@@ -41,8 +41,8 @@ export function useSpeechPlayback({
   enabled,
   blocked = false,
   preferredSrc,
-  revealTimeoutMs = 15000,
-  stallTimeoutMs = 25000,
+  revealTimeoutMs = 3000,
+  stallTimeoutMs = 10000,
 }: UseSpeechPlaybackOptions) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);

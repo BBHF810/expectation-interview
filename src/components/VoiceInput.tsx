@@ -81,6 +81,8 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   isAiSpeakingRef.current = isAiSpeaking;
 
   const restartTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const startDelayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isStartingRef = useRef(false);
 
   // 自動再接続の暴走検知用
   const sessionStartedAtRef = useRef<number | null>(null);
@@ -136,6 +138,11 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     return () => {
       // コンポーネント破棄時のみ認識を中止 & タイマークリア
       isManuallyStoppedRef.current = true;
+      isStartingRef.current = false;
+      if (startDelayTimerRef.current) {
+        clearTimeout(startDelayTimerRef.current);
+        startDelayTimerRef.current = null;
+      }
       if (restartTimerRef.current) {
         clearTimeout(restartTimerRef.current);
         restartTimerRef.current = null;
@@ -178,6 +185,11 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
   const stopListening = useCallback(() => {
     isManuallyStoppedRef.current = true;
+    isStartingRef.current = false;
+    if (startDelayTimerRef.current) {
+      clearTimeout(startDelayTimerRef.current);
+      startDelayTimerRef.current = null;
+    }
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
@@ -219,6 +231,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
       recognition.onstart = () => {
         if (!isCurrent()) return;
+        isStartingRef.current = false;
         sessionStartedAtRef.current = Date.now();
         setErrorMessage(null);
         setIsListening(true);
@@ -253,6 +266,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
       recognition.onerror = (event: any) => {
         if (!isCurrent()) return;
+        isStartingRef.current = false;
         const error = event.error;
         console.warn("Speech recognition error:", error);
 
@@ -287,6 +301,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
       recognition.onend = () => {
         if (!isCurrent()) return;
+        isStartingRef.current = false;
 
         // iPad Safari 等でユーザーが停止を押していないのに勝手に切れた場合、自動で継続再開する
         if (!isManuallyStoppedRef.current && process.env.NODE_ENV !== "test") {
@@ -328,6 +343,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       recognitionRef.current = recognition;
       recognition.start();
     } catch (e: any) {
+      isStartingRef.current = false;
       console.error("Failed to start speech recognition:", e);
       setErrorMessage("マイクを起動できませんでした。キーボードでの入力をお試しください。");
       setIsListening(false);
@@ -336,7 +352,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   }, []);
 
   const startListening = useCallback(() => {
-    if (disabled || typeof window === "undefined") return;
+    if (disabled || typeof window === "undefined" || isStartingRef.current) return;
 
     // マイクがブロックされていると分かっている場合は、認識を開始せず案内だけを表示する
     if (micPermissionRef.current === "denied") {
@@ -344,7 +360,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
-    // ① 同期的にすべての音声を完全停止（親と内部の二重防壁）
+    // ① 同期的にすべての音声を即座に完全停止（親と内部の二重防壁）
     if (onBeforeStartRef.current) {
       try {
         onBeforeStartRef.current();
@@ -360,6 +376,10 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
+    if (startDelayTimerRef.current) {
+      clearTimeout(startDelayTimerRef.current);
+      startDelayTimerRef.current = null;
+    }
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
@@ -374,6 +394,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     }
 
     isManuallyStoppedRef.current = false;
+    isStartingRef.current = true;
     rapidEndCountRef.current = 0;
     sessionStartedAtRef.current = null;
 
@@ -385,7 +406,17 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     baseTextRef.current = currentTextRef.current.trim();
     sessionFinalRef.current = "";
 
-    startRecognitionSession();
+    // テスト環境ではディレイなし、ブラウザ環境ではCoreAudio安定化のためわずかなウェイト（60ms）
+    const isTest = typeof process !== "undefined" && process.env?.NODE_ENV === "test";
+    if (isTest) {
+      startRecognitionSession();
+    } else {
+      startDelayTimerRef.current = setTimeout(() => {
+        if (!isManuallyStoppedRef.current) {
+          startRecognitionSession();
+        }
+      }, 60);
+    }
   }, [disabled, stopAllAudioInternal, startRecognitionSession]);
 
   const toggleListening = () => {

@@ -64,10 +64,8 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
     preferredSrc: audioStreamingUrl,
   });
 
-  const isWaitingForSpeech = isLoading || isAudioPreparing;
-
   let avatarStatus: AvatarStatus = "idle";
-  if (isWaitingForSpeech) {
+  if (isLoading || isAudioPreparing) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -228,7 +226,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           <span style={{ fontSize: "0.875rem", color: "var(--color-primary)", fontWeight: 700 }}>
             AIインタビュアーからの質問
           </span>
-          {!isWaitingForSpeech && isSpeechEnabled && (
+          {!isLoading && isSpeechEnabled && (
             <button
               type="button"
               onClick={replayQuestionAudio}
@@ -258,13 +256,13 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           style={{
             fontSize: "1.25rem",
             fontWeight: 700,
-            color: isWaitingForSpeech ? "var(--color-primary)" : "var(--color-text-main)",
+            color: isLoading ? "var(--color-primary)" : "var(--color-text-main)",
             lineHeight: 1.5,
             margin: 0,
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech ? (
+          {isLoading ? (
             progress > 1
               ? "💭 ふたりのお返事を受け止めて、次の質問を考えています…"
               : "💭 質問を準備しています…"
@@ -274,7 +272,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         </p>
 
         {/* 自動再生制限（iPad Safari 等）でタップ待ちの場合の親切なガイドボタン */}
-        {audioNeedsTap && (!isWaitingForSpeech || progress === 1) && (
+        {audioNeedsTap && !isLoading && (
           <div style={{ marginTop: "0.75rem" }}>
             <button
               type="button"
@@ -298,8 +296,8 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
         )}
       </div>
 
-      {/* ローディングまたは入力フォーム（音声準備完了まで同期表示） */}
-      {isWaitingForSpeech ? (
+      {/* ローディングまたは入力フォーム（質問生成中のみローダー） */}
+      {isLoading ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "2rem", gap: "0.75rem" }}>
           <Loader2 className="animate-spin" size={36} color="var(--color-primary)" style={{ animation: "spin 1s linear infinite" }} />
           <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

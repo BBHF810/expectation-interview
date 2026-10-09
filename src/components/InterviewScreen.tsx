@@ -75,11 +75,9 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
     preferredSrc: audioStreamingUrl,
   });
 
-  const isWaitingForSpeech = isLoading || isAudioPreparing;
-
   // アバターの状態を決定
   let avatarStatus: AvatarStatus = "idle";
-  if (isWaitingForSpeech) {
+  if (isLoading || isAudioPreparing) {
     avatarStatus = "thinking";
   } else if (isSpeaking) {
     avatarStatus = "speaking";
@@ -227,7 +225,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
           >
             AIインタビュアーからの質問
           </span>
-          {!isWaitingForSpeech && isSpeechEnabled && (
+          {!isLoading && isSpeechEnabled && (
             <button
               type="button"
               onClick={replayQuestionAudio}
@@ -257,13 +255,13 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
           style={{
             fontSize: "1.25rem",
             fontWeight: 700,
-            color: isWaitingForSpeech ? "var(--color-primary)" : "var(--color-text-main)",
+            color: isLoading ? "var(--color-primary)" : "var(--color-text-main)",
             lineHeight: isSimple ? 1.9 : 1.5,
             margin: 0,
             transition: "all 0.2s ease",
           }}
         >
-          {isWaitingForSpeech ? (
+          {isLoading ? (
             progress > 1
               ? "💭 お答えを受け止めて、次の質問を考えています…"
               : "💭 質問を準備しています…"
@@ -275,7 +273,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
         </p>
 
         {/* 自動再生制限（iPad Safari 等）でタップ待ちの場合の親切なガイドボタン */}
-        {audioNeedsTap && (!isWaitingForSpeech || progress === 1) && (
+        {audioNeedsTap && !isLoading && (
           <div style={{ marginTop: "0.75rem" }}>
             <button
               type="button"
@@ -299,8 +297,8 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
         )}
       </div>
 
-      {/* ローディング表示（AI思考中、または音声準備完了まで表示を維持して完全同期） */}
-      {isWaitingForSpeech ? (
+      {/* ローディング表示（AI質問生成中のみ表示） */}
+      {isLoading ? (
         <div
           style={{
             display: "flex",
