@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOpenAiClient } from "@/lib/openai";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Audio file is required" },
         { status: 400 }
+      );
+    }
+
+    // 空ファイルまたは極小ファイルの場合は文字起こしスキップ
+    if (file.size === 0) {
+      return NextResponse.json({ text: "" });
+    }
+
+    // 25MB 上限チェック (OpenAI Whisper上限)
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Audio file exceeds maximum size limit (25MB)" },
+        { status: 413 }
       );
     }
 

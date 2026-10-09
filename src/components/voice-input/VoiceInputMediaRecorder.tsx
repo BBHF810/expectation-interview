@@ -22,6 +22,8 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const baseTextRef = useRef("");
+  const isMountedRef = useRef(true);
+  const maxDurationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentTextRef = useRef(currentText);
   currentTextRef.current = currentText;
@@ -57,6 +59,10 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
   }, []);
 
   const cleanupStream = useCallback(() => {
+    if (maxDurationTimerRef.current) {
+      clearTimeout(maxDurationTimerRef.current);
+      maxDurationTimerRef.current = null;
+    }
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -69,7 +75,9 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
 
   // コンポーネント破棄時の安全なクリーンアップ
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       cleanupStream();
     };
   }, [cleanupStream]);
@@ -82,6 +90,7 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
   }, [disabled, isRecording]);
 
   const sendAudioToWhisper = async (audioBlob: Blob) => {
+    if (!isMountedRef.current) return;
     setIsTranscribing(true);
     setErrorMessage(null);
 
@@ -100,6 +109,8 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
         body: formData,
       });
 
+      if (!isMountedRef.current) return;
+
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || "音声の文字起こしに失敗しました");
@@ -108,7 +119,7 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
       const data = await res.json();
       const transcribedText = (data.text || "").trim();
 
-      if (transcribedText) {
+      if (transcribedText && isMountedRef.current) {
         const base = baseTextRef.current;
         const combined = base
           ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${transcribedText}`
@@ -116,6 +127,7 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
         onTranscriptChangeRef.current(combined.slice(0, 500));
       }
     } catch (e: any) {
+      if (!isMountedRef.current) return;
       console.error("[VoiceInputMediaRecorder] Whisper transcription error:", e);
       setErrorMessage(
         isSimpleRef.current
@@ -123,7 +135,9 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
           : "音声の文字起こしに失敗しました。もう一度お話しいただくか手動で入力してください。"
       );
     } finally {
-      setIsTranscribing(false);
+      if (isMountedRef.current) {
+        setIsTranscribing(false);
+      }
     }
   };
 
@@ -174,12 +188,22 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
         const mimeType = recorder.mimeType || "audio/webm";
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
         cleanupStream();
-        if (blob.size > 0) {
+        // 500バイト未満の極小音声（誤タップ等）はWhisperへの無駄なリクエストを避けてスキップ
+        if (blob.size >= 500 && isMountedRef.current) {
           sendAudioToWhisper(blob);
         }
       };
 
       recorder.start(250); // 250ms ごとにチャンク収集
+
+      // 最大60秒の録音保護タイマー（話し終えて停止ボタンを押し忘れた場合の安全停止）
+      if (maxDurationTimerRef.current) clearTimeout(maxDurationTimerRef.current);
+      maxDurationTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          stopRecording();
+        }
+      }, 60000);
+
       setIsRecording(true);
       onListeningStateChangeRef.current(true);
     } catch (e: any) {
@@ -196,6 +220,10 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
   };
 
   const stopRecording = () => {
+    if (maxDurationTimerRef.current) {
+      clearTimeout(maxDurationTimerRef.current);
+      maxDurationTimerRef.current = null;
+    }
     if (!isRecording) return;
     setIsRecording(false);
     onListeningStateChangeRef.current(false);
