@@ -4,10 +4,12 @@ import { getInitialPairQuestion } from "@/lib/pair-fallbacks";
 
 describe("初期固定質問の選定ロジック", () => {
   describe("一人用モード (getInitialSingleQuestion)", () => {
-    it("10歳以下向けにはやさしいひらがな主体の汎用オープナーが選ばれる", () => {
+    it("10歳以下向けには子どもを主語にして『やってほしいこと』『喜ばれること』を聞くオープナーが選ばれる", () => {
       const q = getInitialSingleQuestion({ ageGroup: "under_10" });
       expect(q.question).toContain("おともだちやかぞく");
-      expect(q.question).toContain("心にのこっている");
+      expect(q.question).toContain("きみが");
+      expect(q.question).toContain("やってほしいな");
+      expect(q.question).toContain("よろこんでくれるかな");
       expect(q.purpose).toBe("event");
     });
 

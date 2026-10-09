@@ -35,7 +35,7 @@ import { ANIMAL_DIAGNOSES, getInitialSingleQuestion, getSmartFallbackQuestion } 
 import { PAIR_ANIMAL_COMBOS, getInitialPairQuestion, getFallbackPairQuestion } from "@/lib/pair-fallbacks";
 import { saveEpisodeLocally } from "@/lib/episode-storage";
 import { getSavedTtsVoice } from "@/lib/tts-voices";
-import { prefetchStreamingUrl, warmupInitialSingleQuestions } from "@/lib/tts-client";
+import { prefetchStreamingUrl } from "@/lib/tts-client";
 import { CollectedEpisode } from "@/types";
 
 export default function Home() {
@@ -43,11 +43,6 @@ export default function Home() {
   const [mode, setMode] = useState<ExperienceMode>("single");
   const [inputMethod, setInputMethod] = useState<InputMethod>("voice");
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-
-  // 初回固定質問の事前ウォームアップ（初回読み上げ遅延ゼロ化）
-  useEffect(() => {
-    warmupInitialSingleQuestions(getSavedTtsVoice());
-  }, []);
 
   // 一人モード用ステート
   const [age, setAge] = useState<number | null>(null);
@@ -509,10 +504,6 @@ export default function Home() {
         setPairCurrentSpeakerName(pairNameA);
         setPairProgress(2);
         if (data.fallbackUsed) setFallbackUsed(true);
-
-        // ターン4（Bさんへの定型バトンタッチ）の音声も先行ウォームアップ
-        const qB2 = `${pairNameB}さん、${pairNameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${pairNameA}さんに伝えたいことはありますか？`;
-        prefetchStreamingUrl(qB2, getSavedTtsVoice()).catch(() => {});
       } catch (err) {
         const fallback = getFallbackPairQuestion(pairNameA, pairNameB, 2, pairExpectationType);
         setPairCurrentQuestion(fallback.question);
@@ -787,15 +778,12 @@ export default function Home() {
             setPairCurrentQuestion(initialQ.question);
             setPairCurrentSpeaker(initialQ.nextSpeaker);
             setPairCurrentSpeakerName(initialQ.nextSpeakerName);
-            // バックグラウンドで即座にストリーミングURLを先行ロード
+            // バックグラウンドで即座にストリーミングURLを先行ロード（1件のみ）
             prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
               if (url) {
                 setPairAudioStreamingUrl(url);
               }
             });
-            // ターン2の質問（Bさんへの定型バトンタッチ）もついでに先行ウォームアップ
-            const qB1 = `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき${pairNameB}さんはどんな状況だったり、どう思っていましたか？`;
-            prefetchStreamingUrl(qB1, getSavedTtsVoice()).catch(() => {});
 
             setScreen("INPUT_METHOD_SELECT");
           }}

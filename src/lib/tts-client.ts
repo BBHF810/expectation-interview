@@ -279,17 +279,6 @@ export async function prefetchStreamingUrl(
   return getCloudVoicevoxStreamingUrl(text, speakerId);
 }
 
-/**
- * 一人モードの初回固定質問の音声を先行ウォームアップする。
- * アプリ起動時や待機時間に呼ぶことで、初回質問の音声遅延を完全ゼロにする。
- */
-export function warmupInitialSingleQuestions(voice: string): void {
-  const q1 = "おともだちやかぞくとのあいだで、心にのこっていることをおしえてくれる？ だれとの、どんな出来事だったかな？";
-  const q2 = "身近な人との間で、印象に残っている出来事を教えてください。誰との出来事で、どんなことがありましたか？";
-  prefetchStreamingUrl(q1, voice).catch(() => {});
-  prefetchStreamingUrl(q2, voice).catch(() => {});
-}
-
 export interface TtsPlayableAudio {
   src: string;
   engine: TtsEngineUsed;
@@ -299,7 +288,7 @@ export interface TtsPlayableAudio {
 /**
  * 最速で再生可能な音声ソースを取得する
  * クラウドVOICEVOXの場合は mp3StreamingUrl を即座に返し、
- * ブラウザの <audio> が chunked transfer で約3秒で発話を開始できるようにする。
+ * 取得失敗時・レート制限（429）時は待たずにサーバーサイド (/api/tts) に即時フォールバックする。
  */
 export async function fetchPlayableTts(
   text: string,
@@ -340,17 +329,6 @@ export async function fetchPlayableTts(
       return {
         src: streamUrl,
         engine: "VOICEVOX (Cloud)",
-      };
-    }
-
-    // ③ ストリーミングURLが取得できなかった場合は完全ダウンロードを試行
-    const cloudBlob = await synthesizeWithCloudVoicevox(text, speakerId, 25000);
-    if (cloudBlob) {
-      const url = URL.createObjectURL(cloudBlob);
-      return {
-        src: url,
-        engine: "VOICEVOX (Cloud)",
-        cleanup: () => URL.revokeObjectURL(url),
       };
     }
   }

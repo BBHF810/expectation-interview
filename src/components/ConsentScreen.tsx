@@ -85,8 +85,8 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({ onConsent, onBack 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
           <span style={{ color: "var(--color-primary)", fontWeight: "bold" }}>●</span>
           <span>
-            <strong>研究・サービス向上へのデータ活用：</strong>
-            お話しいただいた内容は、個人を特定できない統計情報として、人と人との気持ちの通い合い（相互期待感）に関する学術研究や分析に活用させていただきます。
+            <strong>研究への活用：</strong>
+            お話しいただいた内容は、個人を特定できない統計情報として、人と人との気持ちの通い合い（相互期待感）に関する学術研究に活用させていただきます。
           </span>
         </div>
 
