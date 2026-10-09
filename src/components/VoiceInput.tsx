@@ -1,25 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Mic, MicOff, AlertCircle, Loader2 } from "lucide-react";
+import { Mic, MicOff, AlertCircle } from "lucide-react";
 import { getSharedAudio } from "@/lib/tts-client";
-
-const PERMISSION_DENIED_MESSAGE =
-  "マイクの使用が許可されていません。ブラウザのアドレスバーの鍵アイコン等からマイクの使用を許可してください。";
-const INSECURE_CONTEXT_MESSAGE =
-  "マイクの使用が許可されていません。このページは安全な接続（https）で開かれていないため、ブラウザがマイクを使わせてくれません。https:// から始まるアドレスで開き直すか、「文字入力」に切り替えてください。";
-const UNSTABLE_MESSAGE =
-  "音声の聞き取りを続けられませんでした。もう一度ボタンを押すか、「文字入力」に切り替えてください。";
-
-/** 開始からこの時間内に終了した場合は「すぐ切れた」とみなす */
-const RAPID_END_MS = 1500;
-/** 「すぐ切れた」が連続したら自動再接続をやめる回数（再接続ループによる表示のちらつき防止） */
-const MAX_RAPID_RESTARTS = 3;
-
-const getNotAllowedMessage = () =>
-  typeof window !== "undefined" && window.isSecureContext === false
-    ? INSECURE_CONTEXT_MESSAGE
-    : PERMISSION_DENIED_MESSAGE;
 
 interface VoiceInputProps {
   onTranscriptChange: (text: string) => void;
@@ -32,6 +15,35 @@ interface VoiceInputProps {
   isAiSpeaking?: boolean;
 }
 
+const PERMISSION_DENIED_MESSAGE =
+  "マイクの使用が許可されていません。ブラウザのアドレスバーの鍵アイコン等からマイクの使用を許可してください。";
+const INSECURE_CONTEXT_MESSAGE =
+  "マイク機能は安全な通信（HTTPS または localhost）でのみ利用できます。URL をご確認ください。";
+const UNSTABLE_MESSAGE =
+  "マイクの接続が不安定です。キーボードでの入力をお試しいただくか、もう一度ボタンを押してください。";
+
+/** Safari / Chrome 等の「マイクが許可されていない」時の案内文 */
+function getNotAllowedMessage(): string {
+  if (typeof window !== "undefined" && !window.isSecureContext) {
+    return INSECURE_CONTEXT_MESSAGE;
+  }
+  return PERMISSION_DENIED_MESSAGE;
+}
+
+/** 直近の起動からこの時間未満で切断されたら「即死」とみなす */
+const RAPID_END_MS = 1200;
+/** 即死がこの回数連続したら自動再接続を止めて案内を出す */
+const MAX_RAPID_RESTARTS = 3;
+
+/** iOS / iPadOS 環境の判定（WebKit の連続認識ハングバグ回避用） */
+function checkIsIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export const VoiceInput: React.FC<VoiceInputProps> = ({
   onTranscriptChange,
   onListeningStateChange,
@@ -41,7 +53,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   isAiSpeaking = false,
 }) => {
   const [isListening, setIsListening] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -67,7 +78,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   isAiSpeakingRef.current = isAiSpeaking;
 
   const restartTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const startDelayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 自動再接続の暴走検知用
   const sessionStartedAtRef = useRef<number | null>(null);
@@ -123,10 +133,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     return () => {
       // コンポーネント破棄時のみ認識を中止 & タイマークリア
       isManuallyStoppedRef.current = true;
-      if (startDelayTimerRef.current) {
-        clearTimeout(startDelayTimerRef.current);
-        startDelayTimerRef.current = null;
-      }
       if (restartTimerRef.current) {
         clearTimeout(restartTimerRef.current);
         restartTimerRef.current = null;
@@ -144,8 +150,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     try {
       const audio = getSharedAudio();
       if (audio) {
+        audio.onplay = null;
+        audio.onplaying = null;
+        audio.oncanplay = null;
+        audio.onended = null;
+        audio.onerror = null;
         audio.pause();
-        audio.currentTime = 0;
+        audio.removeAttribute("src");
+        audio.load();
       }
     } catch {}
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -157,10 +169,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
   const stopListening = useCallback(() => {
     isManuallyStoppedRef.current = true;
-    if (startDelayTimerRef.current) {
-      clearTimeout(startDelayTimerRef.current);
-      startDelayTimerRef.current = null;
-    }
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
@@ -168,9 +176,10 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
+        recognitionRef.current.abort();
       } catch (_) {}
+      recognitionRef.current = null;
     }
-    setIsStarting(false);
     setIsListening(false);
     onListeningStateChangeRef.current(false);
   }, []);
@@ -178,17 +187,13 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   const startListening = useCallback(() => {
     if (disabled || typeof window === "undefined") return;
 
-    // 連打ガード
-    if (isStarting) return;
-
     // マイクがブロックされていると分かっている場合は、認識を開始せず案内だけを表示する
-    // （開始→即エラーを繰り返して表示がちらつくのを防ぐ）
     if (micPermissionRef.current === "denied") {
       setErrorMessage(getNotAllowedMessage());
       return;
     }
 
-    // ① 何よりもまず同期的にすべての音声を完全停止（親と内部の二重防壁）
+    // ① 同期的にすべての音声を完全停止（親と内部の二重防壁）
     if (onBeforeStartRef.current) {
       try {
         onBeforeStartRef.current();
@@ -204,10 +209,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       return;
     }
 
-    if (startDelayTimerRef.current) {
-      clearTimeout(startDelayTimerRef.current);
-      startDelayTimerRef.current = null;
-    }
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
@@ -221,181 +222,155 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       recognitionRef.current = null;
     }
 
-    // エラー表示はここでは消さず、実際に聞き取りが始まった時点（onstart）で消す。
-    // ここで消すと、権限が無いまま押すたびに「消える→すぐ再表示」となりちらつくため。
     isManuallyStoppedRef.current = false;
     rapidEndCountRef.current = 0;
     sessionStartedAtRef.current = null;
-    setIsStarting(true);
+
+    // ② オプティミスティックに即時リスニング状態へ遷移（待機時間をゼロ化）
+    setIsListening(true);
+    onListeningStateChangeRef.current(true);
 
     // 録音開始時のテキストをベースとして退避
     baseTextRef.current = currentTextRef.current.trim();
     sessionFinalRef.current = "";
 
-    // ② iOS / iPadOS WebKit の AVAudioSession 切り替え待機（ディレイ）
-    // audio.pause() からハードウェアのオーディオセッションがマイク入力に解放されるまで、
-    // AI発話中であった場合は安全のため極小ディレイ（80ms）を設ける
-    const delayMs = isAiSpeakingRef.current ? 80 : 0;
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ja-JP";
 
-    const launchRecognition = () => {
-      startDelayTimerRef.current = null;
-      if (isManuallyStoppedRef.current) {
-        setIsStarting(false);
-        return;
-      }
+      // iOS WebKit では continuous: true だと Apple 音声認識サーバー接続で数秒ハング（コールドスタート遅延）するため、
+      // iOS では false に設定して超高速に起動させ、切断時は onend の自動再接続（80ms）でシームレスに継続する
+      const isIOS = checkIsIOS();
+      recognition.continuous = !isIOS;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.lang = "ja-JP";
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
+      const isCurrent = () => recognitionRef.current === recognition;
 
-        // 破棄済みの古いインスタンスのイベントは無視する
-        // （古いインスタンスが onend で勝手に再起動し、新しいものと潰し合うのを防ぐ）
-        const isCurrent = () => recognitionRef.current === recognition;
+      recognition.onstart = () => {
+        if (!isCurrent()) return;
+        sessionStartedAtRef.current = Date.now();
+        setErrorMessage(null);
+        setIsListening(true);
+        onListeningStateChangeRef.current(true);
+      };
 
-        recognition.onstart = () => {
-          if (!isCurrent()) return;
-          sessionStartedAtRef.current = Date.now();
-          setErrorMessage(null);
-          setIsStarting(false);
-          setIsListening(true);
-          onListeningStateChangeRef.current(true);
-        };
+      recognition.onresult = (event: any) => {
+        if (!isCurrent()) return;
+        rapidEndCountRef.current = 0;
+        let interimTranscript = "";
 
-        recognition.onresult = (event: any) => {
-          if (!isCurrent()) return;
-          rapidEndCountRef.current = 0;
-          let interimTranscript = "";
-
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const result = event.results[i];
-            const transcript = result[0]?.transcript || "";
-            if (result.isFinal) {
-              sessionFinalRef.current += transcript;
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-
-          const sessionSpoken = sessionFinalRef.current + interimTranscript;
-          if (sessionSpoken) {
-            const base = baseTextRef.current;
-            // ベーステキストがある場合は自然に接続
-            const combined = base
-              ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${sessionSpoken.trim()}`
-              : sessionSpoken.trim();
-
-            onTranscriptChangeRef.current(combined.slice(0, 500));
-          }
-        };
-
-        recognition.onerror = (event: any) => {
-          if (!isCurrent()) return;
-          const error = event.error;
-          console.warn("Speech recognition error:", error);
-
-          if (error === "not-allowed" || error === "service-not-allowed") {
-            isManuallyStoppedRef.current = true;
-            setErrorMessage(getNotAllowedMessage());
-            setIsStarting(false);
-            setIsListening(false);
-            onListeningStateChangeRef.current(false);
-          } else if (error === "audio-capture") {
-            // iOS等でオーディオセッション競合が起きた場合、再接続ループを防止
-            isManuallyStoppedRef.current = true;
-            setErrorMessage(
-              "マイクの接続で問題が発生しました。もう一度「お話しする」ボタンを押してください。"
-            );
-            setIsStarting(false);
-            setIsListening(false);
-            onListeningStateChangeRef.current(false);
-          } else if (error === "no-speech") {
-            // 無音時はエラー扱いせず継続（onendで自動再開判定へ）
-            return;
-          } else if (error === "aborted") {
-            // 手動停止や再起動時は何もしない
-            setIsStarting(false);
-            return;
-          } else if (error === "network") {
-            // ネットワーク一時エラー時も手動停止でなければ自動再接続に委ねる
-            return;
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const result = event.results[i];
+          const transcript = result[0]?.transcript || "";
+          if (result.isFinal) {
+            sessionFinalRef.current += transcript;
           } else {
-            isManuallyStoppedRef.current = true;
-            setErrorMessage(
-              "音声の聞き取りに一時的な問題が発生しました。もう一度お話しいただくか、手動で入力してください。"
-            );
-            setIsStarting(false);
-            setIsListening(false);
-            onListeningStateChangeRef.current(false);
+            interimTranscript += transcript;
           }
-        };
+        }
 
-        recognition.onend = () => {
-          if (!isCurrent()) return;
-          setIsStarting(false);
-          // iPad Safari 等でユーザーが停止を押していないのに勝手に切れた場合、自動で継続再開する
-          if (!isManuallyStoppedRef.current && process.env.NODE_ENV !== "test") {
-            // 開始直後に切れるのが続く場合は再接続をやめる（250ms毎の再接続ループで画面がちらつくのを防ぐ）
-            const startedAt = sessionStartedAtRef.current;
-            const endedRapidly = startedAt === null || Date.now() - startedAt < RAPID_END_MS;
-            rapidEndCountRef.current = endedRapidly ? rapidEndCountRef.current + 1 : 0;
-            sessionStartedAtRef.current = null;
-            if (rapidEndCountRef.current >= MAX_RAPID_RESTARTS) {
-              isManuallyStoppedRef.current = true;
-              setErrorMessage(UNSTABLE_MESSAGE);
-              setIsListening(false);
-              onListeningStateChangeRef.current(false);
-              return;
-            }
+        const sessionSpoken = sessionFinalRef.current + interimTranscript;
+        if (sessionSpoken) {
+          const base = baseTextRef.current;
+          // ベーステキストがある場合は自然に接続
+          const combined = base
+            ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${sessionSpoken.trim()}`
+            : sessionSpoken.trim();
 
-            // これまでに認識したテキストを baseText に統合して新規セッションに引き継ぐ
-            if (sessionFinalRef.current) {
-              const base = baseTextRef.current;
-              baseTextRef.current = base
-                ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${sessionFinalRef.current.trim()}`
-                : sessionFinalRef.current.trim();
-              sessionFinalRef.current = "";
-            }
+          onTranscriptChangeRef.current(combined.slice(0, 500));
+        }
+      };
 
-            // 短いディレイで自動再接続
-            restartTimerRef.current = setTimeout(() => {
-              if (!isManuallyStoppedRef.current) {
-                try {
-                  recognition.start();
-                } catch (_) {
-                  // startに失敗した場合は手動停止扱いにして無限ループを断ち切る
-                  isManuallyStoppedRef.current = true;
-                  setIsListening(false);
-                  onListeningStateChangeRef.current(false);
-                }
-              }
-            }, 250);
-            return;
-          }
+      recognition.onerror = (event: any) => {
+        if (!isCurrent()) return;
+        const error = event.error;
+        console.warn("Speech recognition error:", error);
 
+        if (error === "not-allowed" || error === "service-not-allowed") {
+          isManuallyStoppedRef.current = true;
+          setErrorMessage(getNotAllowedMessage());
           setIsListening(false);
           onListeningStateChangeRef.current(false);
-        };
+        } else if (error === "audio-capture") {
+          isManuallyStoppedRef.current = true;
+          setErrorMessage(
+            "マイクの接続で問題が発生しました。もう一度「お話しする」ボタンを押してください。"
+          );
+          setIsListening(false);
+          onListeningStateChangeRef.current(false);
+        } else if (error === "no-speech") {
+          // 無音時はエラー扱いせず継続（onendで自動再開判定へ）
+          return;
+        } else if (error === "aborted") {
+          // 手動停止や再起動時は何もしない
+          return;
+        } else if (error === "network") {
+          // ネットワーク一時エラー時も手動停止でなければ自動再接続に委ねる
+          return;
+        } else {
+          isManuallyStoppedRef.current = true;
+          setErrorMessage(
+            "音声の聞き取りに一時的な問題が発生しました。もう一度お話しいただくか、手動で入力してください。"
+          );
+          setIsListening(false);
+          onListeningStateChangeRef.current(false);
+        }
+      };
 
-        recognitionRef.current = recognition;
-        recognition.start();
-      } catch (e: any) {
-        console.error("Failed to start speech recognition:", e);
-        setErrorMessage("マイクを起動できませんでした。キーボードでの入力をお試しください。");
-        setIsStarting(false);
+      recognition.onend = () => {
+        if (!isCurrent()) return;
+        // iPad Safari 等でユーザーが停止を押していないのに勝手に切れた場合、自動で継続再開する
+        if (!isManuallyStoppedRef.current && process.env.NODE_ENV !== "test") {
+          const startedAt = sessionStartedAtRef.current;
+          const endedRapidly = startedAt === null || Date.now() - startedAt < RAPID_END_MS;
+          rapidEndCountRef.current = endedRapidly ? rapidEndCountRef.current + 1 : 0;
+          sessionStartedAtRef.current = null;
+          if (rapidEndCountRef.current >= MAX_RAPID_RESTARTS) {
+            isManuallyStoppedRef.current = true;
+            setErrorMessage(UNSTABLE_MESSAGE);
+            setIsListening(false);
+            onListeningStateChangeRef.current(false);
+            return;
+          }
+
+          // これまでに認識したテキストを baseText に統合して新規セッションに引き継ぐ
+          if (sessionFinalRef.current) {
+            const base = baseTextRef.current;
+            baseTextRef.current = base
+              ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${sessionFinalRef.current.trim()}`
+              : sessionFinalRef.current.trim();
+            sessionFinalRef.current = "";
+          }
+
+          // 短いディレイ（80ms）で自動再接続
+          restartTimerRef.current = setTimeout(() => {
+            if (!isManuallyStoppedRef.current && isCurrent()) {
+              try {
+                recognition.start();
+              } catch (_) {
+                isManuallyStoppedRef.current = true;
+                setIsListening(false);
+                onListeningStateChangeRef.current(false);
+              }
+            }
+          }, 80);
+          return;
+        }
+
         setIsListening(false);
         onListeningStateChangeRef.current(false);
-      }
-    };
+      };
 
-    if (delayMs > 0 && process.env.NODE_ENV !== "test") {
-      startDelayTimerRef.current = setTimeout(launchRecognition, delayMs);
-    } else {
-      launchRecognition();
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e: any) {
+      console.error("Failed to start speech recognition:", e);
+      setErrorMessage("マイクを起動できませんでした。キーボードでの入力をお試しください。");
+      setIsListening(false);
+      onListeningStateChangeRef.current(false);
     }
-  }, [disabled, stopAllAudioInternal, isStarting]);
+  }, [disabled, stopAllAudioInternal]);
 
   const toggleListening = () => {
     if (isListening) {
@@ -419,16 +394,12 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         <button
           type="button"
           onClick={toggleListening}
-          disabled={disabled || isStarting}
+          disabled={disabled}
           className="btn"
           style={{
             minHeight: "52px",
             padding: "0.75rem 1.5rem",
-            backgroundColor: isListening
-              ? "#DC2626"
-              : isAiSpeaking
-              ? "var(--color-primary)"
-              : "var(--color-primary)",
+            backgroundColor: isListening ? "#DC2626" : "var(--color-primary)",
             color: "#ffffff",
             borderRadius: "var(--radius-full)",
             display: "inline-flex",
@@ -438,32 +409,15 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
             fontWeight: 700,
             boxShadow: isListening ? "0 0 15px rgba(220, 38, 38, 0.45)" : "var(--shadow-sm)",
             transition: "all 0.2s ease",
-            cursor: disabled || isStarting ? "not-allowed" : "pointer",
-            opacity: isStarting ? 0.85 : 1,
+            cursor: disabled ? "not-allowed" : "pointer",
           }}
           aria-pressed={isListening}
-          aria-label={
-            isListening
-              ? "音声入力を停止する"
-              : isAiSpeaking
-              ? "AIの声を止めて音声で回答する"
-              : "音声で回答する（マイクを開始）"
-          }
+          aria-label={isListening ? "音声入力を停止する" : "音声で回答する（マイクを開始）"}
         >
           {isListening ? (
             <>
               <MicOff size={22} className="animate-pulse" />
               <span>お話し中（タップで停止）</span>
-            </>
-          ) : isStarting ? (
-            <>
-              <Loader2 size={22} className="animate-spin" />
-              <span>マイク準備中…</span>
-            </>
-          ) : isAiSpeaking ? (
-            <>
-              <Mic size={22} />
-              <span>AIの声を止めて話す :studio_microphone:</span>
             </>
           ) : (
             <>

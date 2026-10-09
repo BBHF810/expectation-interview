@@ -7,15 +7,19 @@ import { VoiceInput } from "@/components/VoiceInput";
 describe("VoiceInput コンポーネント", () => {
   let originalSpeechRecognition: any;
   let originalWebkitSpeechRecognition: any;
+  let originalIsSecureContext: any;
 
   beforeEach(() => {
     originalSpeechRecognition = (window as any).SpeechRecognition;
     originalWebkitSpeechRecognition = (window as any).webkitSpeechRecognition;
+    originalIsSecureContext = window.isSecureContext;
+    (window as any).isSecureContext = true;
   });
 
   afterEach(() => {
     (window as any).SpeechRecognition = originalSpeechRecognition;
     (window as any).webkitSpeechRecognition = originalWebkitSpeechRecognition;
+    (window as any).isSecureContext = originalIsSecureContext;
     vi.restoreAllMocks();
   });
 
@@ -172,7 +176,7 @@ describe("VoiceInput コンポーネント", () => {
     ).toBeInTheDocument();
   });
 
-  it("AI発話中（isAiSpeaking: true）の場合、AIの声を止めて話すラベルになり、クリック時に onBeforeStart が即座に呼ばれる", () => {
+  it("AI発話中（isAiSpeaking: true）の場合でも自然なラベルで表示され、クリック時に onBeforeStart が即座に呼ばれる", () => {
     let mockInstance: any = null;
 
     class MockSpeechRecognition {
@@ -207,9 +211,9 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /AIの声を止めて/i });
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
     expect(micButton).toBeInTheDocument();
-    expect(screen.getByText(/AIの声を止めて話す/i)).toBeInTheDocument();
+    expect(screen.getByText(/マイクを押して声で話す/i)).toBeInTheDocument();
 
     fireEvent.click(micButton);
 

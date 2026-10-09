@@ -186,6 +186,7 @@ export function useSpeechPlayback({
       };
 
       try {
+        audio.volume = 1.0;
         audio.src = source.src;
         const p = audio.play();
         if (p !== undefined) {

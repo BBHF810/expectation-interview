@@ -86,21 +86,33 @@ export const ClosingScreen: React.FC<ClosingScreenProps> = ({
         </div>
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          {/* 音声ON/OFF */}
+          {/* 音声読み上げ操作（発声中: ミュートマーク / 停止中: 音を出すマーク） */}
           <button
             type="button"
             onClick={() => {
               if (isSpeaking) {
                 stopAllAudio();
+              } else {
+                if (!isSpeechEnabled) setIsSpeechEnabled(true);
+                replayClosingAudio();
               }
-              setIsSpeechEnabled(!isSpeechEnabled);
             }}
             className="btn btn-outline"
-            style={{ minHeight: "36px", padding: "0.4rem 0.6rem", fontSize: "0.875rem" }}
-            title={isSpeechEnabled ? "AIの音声をミュート" : "AIの音声をオン"}
-            aria-label={isSpeechEnabled ? "音声をミュート" : "音声をオン"}
+            style={{
+              minHeight: "36px",
+              padding: "0.4rem 0.6rem",
+              fontSize: "0.875rem",
+              borderColor: isSpeaking ? "#FCA5A5" : undefined,
+              backgroundColor: isSpeaking ? "#FEF2F2" : undefined,
+            }}
+            title={isSpeaking ? "AIのお話を止める（ミュート）" : "メッセージを音声で聞く"}
+            aria-label={isSpeaking ? "AIのお話を止める" : "メッセージを音声で聞く"}
           >
-            {isSpeechEnabled ? <Volume2 size={18} color="var(--color-primary)" /> : <VolumeX size={18} />}
+            {isSpeaking ? (
+              <VolumeX size={18} color="#DC2626" />
+            ) : (
+              <Volume2 size={18} color="var(--color-primary)" />
+            )}
           </button>
 
           {/* 最初から */}

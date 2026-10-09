@@ -94,9 +94,11 @@ export function getSharedAudio(): HTMLAudioElement | null {
   if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") return null;
   if (!sharedAudio) {
     sharedAudio = new Audio();
+    sharedAudio.volume = 1.0;
     sharedAudio.preload = "auto";
     sharedAudio.setAttribute("playsinline", "true");
   }
+  sharedAudio.volume = 1.0;
   return sharedAudio;
 }
 

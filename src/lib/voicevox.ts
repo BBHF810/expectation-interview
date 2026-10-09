@@ -95,9 +95,10 @@ export async function generateVoicevoxAudio(
 
     const audioQuery = await queryRes.json();
 
-    // 読み上げスピード調整（自然な落ち着いたテンポ 1.0）
+    // 読み上げスピード調整（自然な落ち着いたテンポ 1.0）と音量ブースト（クリアな 1.35）
     if (audioQuery && typeof audioQuery === "object") {
       audioQuery.speedScale = 1.0;
+      audioQuery.volumeScale = 1.35;
     }
 
     // 2. synthesis 音声合成
