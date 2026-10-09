@@ -222,8 +222,8 @@ describe("VoiceInput コンポーネント", () => {
     expect(mockInstance.start).toHaveBeenCalled();
   });
 
-  it("audio-capture エラーが発生した場合、適切なメッセージを表示して停止する", () => {
-    let mockInstance: any = null;
+  it("audio-capture エラーが発生した際、自動リトライを試行し、上限（2回）を超えた場合にエラーメッセージを表示する", () => {
+    let instances: any[] = [];
 
     class MockSpeechRecognition {
       start = vi.fn().mockImplementation(() => {
@@ -237,7 +237,7 @@ describe("VoiceInput コンポーネント", () => {
       onend: any = null;
 
       constructor() {
-        mockInstance = this;
+        instances.push(this);
       }
     }
 
@@ -255,14 +255,85 @@ describe("VoiceInput コンポーネント", () => {
     const micButton = screen.getByRole("button", { name: /音声で回答する/i });
     fireEvent.click(micButton);
 
+    expect(instances.length).toBe(1);
+
+    // 1回目の audio-capture: 自動リトライされるためエラーメッセージは出ず、新インスタンスが起動
     act(() => {
-      if (mockInstance.onerror) {
-        mockInstance.onerror({ error: "audio-capture" });
-      }
+      instances[0].onerror?.({ error: "audio-capture" });
+    });
+
+    expect(
+      screen.queryByText(/マイクの接続で問題が発生しました/i)
+    ).not.toBeInTheDocument();
+    expect(instances.length).toBe(2);
+
+    // 2回目の audio-capture: 再度自動リトライ
+    act(() => {
+      instances[1].onerror?.({ error: "audio-capture" });
+    });
+
+    expect(
+      screen.queryByText(/マイクの接続で問題が発生しました/i)
+    ).not.toBeInTheDocument();
+    expect(instances.length).toBe(3);
+
+    // 3回目（上限到達）: エラーメッセージを表示して停止
+    act(() => {
+      instances[2].onerror?.({ error: "audio-capture" });
     });
 
     expect(
       screen.getByText(/マイクの接続で問題が発生しました/i)
+    ).toBeInTheDocument();
+  });
+
+  it("子ども向けモード（isSimple: true）で audio-capture 上限に達した場合、子ども向けメッセージを表示する", () => {
+    let instances: any[] = [];
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn();
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        instances.push(this);
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={() => {}}
+        disabled={false}
+        isSimple={true}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    fireEvent.click(micButton);
+
+    // 上限（2回リトライ後の3回目）まで発生させる
+    act(() => {
+      instances[0].onerror?.({ error: "audio-capture" });
+    });
+    act(() => {
+      instances[1].onerror?.({ error: "audio-capture" });
+    });
+    act(() => {
+      instances[2].onerror?.({ error: "audio-capture" });
+    });
+
+    expect(
+      screen.getByText(/マイクがうまくつながらなかったよ/i)
     ).toBeInTheDocument();
   });
 

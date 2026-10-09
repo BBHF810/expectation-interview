@@ -24,12 +24,25 @@ const INSECURE_CONTEXT_MESSAGE =
 const UNSTABLE_MESSAGE =
   "マイクの接続が不安定です。キーボードでの入力をお試しいただくか、もう一度ボタンを押してください。";
 
+/** audio-capture エラー（iOSのCoreAudio切替競合等）時の自動リトライ上限回数 */
+export const MAX_AUDIO_CAPTURE_RETRIES = 2;
+/** audio-capture 発生時の再試行待機時間（ms） */
+export const AUDIO_CAPTURE_RETRY_DELAY_MS = 250;
+
 /** Safari / Chrome 等の「マイクが許可されていない」時の案内文 */
-function getNotAllowedMessage(): string {
+function getNotAllowedMessage(isSimple = false): string {
   if (typeof window !== "undefined" && !window.isSecureContext) {
     return INSECURE_CONTEXT_MESSAGE;
   }
-  return PERMISSION_DENIED_MESSAGE;
+  return isSimple
+    ? "マイクがつかえないようになっています。ブラウザの設定でマイクをきょかしてね。"
+    : PERMISSION_DENIED_MESSAGE;
+}
+
+function getUnstableMessage(isSimple = false): string {
+  return isSimple
+    ? "マイクのちょうしがよくないみたい。もじをうつか、もういちどボタンをおしてみてね。"
+    : UNSTABLE_MESSAGE;
 }
 
 /** 直近の起動からこの時間未満で切断されたら「即死」とみなす */
@@ -80,6 +93,9 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   const isAiSpeakingRef = useRef(isAiSpeaking);
   isAiSpeakingRef.current = isAiSpeaking;
 
+  const isSimpleRef = useRef(isSimple);
+  isSimpleRef.current = isSimple;
+
   const restartTimerRef = useRef<NodeJS.Timeout | null>(null);
   const startDelayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isStartingRef = useRef(false);
@@ -87,6 +103,9 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   // 自動再接続の暴走検知用
   const sessionStartedAtRef = useRef<number | null>(null);
   const rapidEndCountRef = useRef(0);
+
+  // audio-capture 競合（iOS等のCoreAudio切替ラグ）の自動リトライ用
+  const audioCaptureRetriesRef = useRef(0);
 
   // Permissions API で取得したマイク権限（"denied" なら認識を開始せず案内だけ出す）
   const micPermissionRef = useRef<PermissionState | null>(null);
@@ -139,6 +158,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       // コンポーネント破棄時のみ認識を中止 & タイマークリア
       isManuallyStoppedRef.current = true;
       isStartingRef.current = false;
+      audioCaptureRetriesRef.current = 0;
       if (startDelayTimerRef.current) {
         clearTimeout(startDelayTimerRef.current);
         startDelayTimerRef.current = null;
@@ -174,6 +194,8 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         audio.onerror = null;
         audio.pause();
         audio.currentTime = 0;
+        audio.removeAttribute("src");
+        audio.load();
       }
     } catch {}
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -186,6 +208,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   const stopListening = useCallback(() => {
     isManuallyStoppedRef.current = true;
     isStartingRef.current = false;
+    audioCaptureRetriesRef.current = 0;
     if (startDelayTimerRef.current) {
       clearTimeout(startDelayTimerRef.current);
       startDelayTimerRef.current = null;
@@ -240,6 +263,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
       recognition.onresult = (event: any) => {
         if (!isCurrent()) return;
+        audioCaptureRetriesRef.current = 0;
         rapidEndCountRef.current = 0;
         let interimTranscript = "";
 
@@ -272,13 +296,41 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
         if (error === "not-allowed" || error === "service-not-allowed") {
           isManuallyStoppedRef.current = true;
-          setErrorMessage(getNotAllowedMessage());
+          setErrorMessage(getNotAllowedMessage(isSimpleRef.current));
           setIsListening(false);
           onListeningStateChangeRef.current(false);
         } else if (error === "audio-capture") {
+          // iOS / iPadOS 等で直前のオーディオ再生セッション解放が間に合わなかった場合の一時競合
+          if (
+            audioCaptureRetriesRef.current < MAX_AUDIO_CAPTURE_RETRIES &&
+            !isManuallyStoppedRef.current
+          ) {
+            audioCaptureRetriesRef.current += 1;
+            console.warn(
+              `[VoiceInput] audio-capture 競合を検知しました。自動リトライ (${audioCaptureRetriesRef.current}/${MAX_AUDIO_CAPTURE_RETRIES}) を実行します...`
+            );
+            // 音声を再度確実に完全解放
+            stopAllAudioInternal();
+            if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+            const isTest =
+              typeof process !== "undefined" && process.env?.NODE_ENV === "test";
+            if (isTest) {
+              startRecognitionSession();
+            } else {
+              restartTimerRef.current = setTimeout(() => {
+                if (!isManuallyStoppedRef.current) {
+                  startRecognitionSession();
+                }
+              }, AUDIO_CAPTURE_RETRY_DELAY_MS);
+            }
+            return;
+          }
+
           isManuallyStoppedRef.current = true;
           setErrorMessage(
-            "マイクの接続で問題が発生しました。もう一度「お話しする」ボタンを押してください。"
+            isSimpleRef.current
+              ? "マイクがうまくつながらなかったよ。もういちど「お話しする」ボタンをおしてみてね。"
+              : "マイクの接続で問題が発生しました。もう一度「お話しする」ボタンを押してください。"
           );
           setIsListening(false);
           onListeningStateChangeRef.current(false);
@@ -312,7 +364,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
           if (rapidEndCountRef.current >= MAX_RAPID_RESTARTS) {
             isManuallyStoppedRef.current = true;
-            setErrorMessage(UNSTABLE_MESSAGE);
+            setErrorMessage(getUnstableMessage(isSimpleRef.current));
             setIsListening(false);
             onListeningStateChangeRef.current(false);
             return;
@@ -349,14 +401,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       setIsListening(false);
       onListeningStateChangeRef.current(false);
     }
-  }, []);
+  }, [stopAllAudioInternal]);
 
   const startListening = useCallback(() => {
     if (disabled || typeof window === "undefined" || isStartingRef.current) return;
 
     // マイクがブロックされていると分かっている場合は、認識を開始せず案内だけを表示する
     if (micPermissionRef.current === "denied") {
-      setErrorMessage(getNotAllowedMessage());
+      setErrorMessage(getNotAllowedMessage(isSimpleRef.current));
       return;
     }
 
@@ -395,6 +447,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
     isManuallyStoppedRef.current = false;
     isStartingRef.current = true;
+    audioCaptureRetriesRef.current = 0;
     rapidEndCountRef.current = 0;
     sessionStartedAtRef.current = null;
 
@@ -406,16 +459,18 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     baseTextRef.current = currentTextRef.current.trim();
     sessionFinalRef.current = "";
 
-    // テスト環境ではディレイなし、ブラウザ環境ではCoreAudio安定化のためわずかなウェイト（60ms）
+    // テスト環境ではディレイなし、ブラウザ環境ではCoreAudio安定化のためウェイト（iOSは切替ラグ対策で220ms、他は60ms）
     const isTest = typeof process !== "undefined" && process.env?.NODE_ENV === "test";
     if (isTest) {
       startRecognitionSession();
     } else {
+      const isIOS = checkIsIOS();
+      const delay = isIOS ? 220 : 60;
       startDelayTimerRef.current = setTimeout(() => {
         if (!isManuallyStoppedRef.current) {
           startRecognitionSession();
         }
-      }, 60);
+      }, delay);
     }
   }, [disabled, stopAllAudioInternal, startRecognitionSession]);
 

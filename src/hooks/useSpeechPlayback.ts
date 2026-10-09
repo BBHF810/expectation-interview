@@ -67,6 +67,8 @@ export function useSpeechPlayback({
       try {
         audio.pause();
         audio.currentTime = 0;
+        audio.removeAttribute("src");
+        audio.load();
       } catch {}
     }
     if (cleanupRef.current) {
