@@ -42,7 +42,7 @@ export function useSpeechPlayback({
   blocked = false,
   preferredSrc,
   revealTimeoutMs = 1500,
-  stallTimeoutMs = 5000,
+  stallTimeoutMs = 25000,
 }: UseSpeechPlaybackOptions) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -112,23 +112,14 @@ export function useSpeechPlayback({
       if (alive()) setIsPreparing(false);
     };
 
-    const speakWithBrowser = () => {
+    // 体験の途中で勝手に声が変わるのを防ぐため、ロボット機械音声へのフォールバックは廃止。
+    // 音声生成・再生に失敗した場合は、別の声で喋らせず、タップで再試行できるようにする。
+    const onPlaybackFailed = () => {
       reveal();
-      if (!alive() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-      try {
-        const synth = window.speechSynthesis;
-        synth.cancel();
-        const u = new SpeechSynthesisUtterance(spoken);
-        u.lang = "ja-JP";
-        u.rate = 1.0;
-        u.pitch = 1.05;
-        const jaVoice = synth.getVoices().find((v) => v.lang?.toLowerCase().startsWith("ja"));
-        if (jaVoice) u.voice = jaVoice;
-        u.onstart = () => alive() && setIsSpeaking(true);
-        u.onend = () => alive() && setIsSpeaking(false);
-        u.onerror = () => alive() && setIsSpeaking(false);
-        synth.speak(u);
-      } catch {}
+      if (!alive()) return;
+      setIsSpeaking(false);
+      setIsPreparing(false);
+      setNeedsTap(true);
     };
 
     const playSource = (source: TtsPlayableAudio, onFail: () => void) => {
@@ -158,6 +149,8 @@ export function useSpeechPlayback({
         detach();
         try {
           audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
         } catch {}
         onFail();
       };
@@ -199,7 +192,7 @@ export function useSpeechPlayback({
           p.catch((err: any) => {
             if (!alive() || err?.name === "AbortError") return;
             if (err?.name === "NotAllowedError") {
-              // 自動再生がブロックされた → 他の手段も同様にブロックされるため、タップを促す
+              // 自動再生がブロックされた → タップを促す
               finished = true;
               clearTimeout(stallTimer);
               detach();
@@ -217,7 +210,7 @@ export function useSpeechPlayback({
 
     const voice = getSavedTtsVoice();
 
-    const tryServerThenBrowser = async () => {
+    const tryServerTts = async () => {
       if (!alive()) return;
       try {
         const serverSource = await fetchServerTts(spoken, voice);
@@ -225,9 +218,9 @@ export function useSpeechPlayback({
           serverSource.cleanup?.();
           return;
         }
-        playSource(serverSource, speakWithBrowser);
+        playSource(serverSource, onPlaybackFailed);
       } catch {
-        speakWithBrowser();
+        onPlaybackFailed();
       }
     };
 
@@ -241,12 +234,12 @@ export function useSpeechPlayback({
           source.cleanup?.();
           return;
         }
-        // クラウドのストリーミングURL等で失敗したらサーバーTTSへ、サーバー由来ならブラウザ読み上げへ
+        // ストリーミングURLの再生に失敗した場合はサーバーTTS（同一ボイス）へ、サーバー由来で失敗した場合は再試行を促す
         const isFromServer = source.src.startsWith("blob:") && source.engine !== "VOICEVOX";
-        playSource(source, isFromServer ? speakWithBrowser : tryServerThenBrowser);
+        playSource(source, isFromServer ? onPlaybackFailed : tryServerTts);
       } catch {
-        // fetchPlayableTts はサーバーTTSまで失敗した場合のみ throw する
-        speakWithBrowser();
+        // fetchPlayableTts 失敗時はサーバーTTSを試行
+        tryServerTts();
       }
     })();
 

@@ -49,14 +49,14 @@ export async function POST(req: NextRequest) {
     // ① 自前/ローカル VOICEVOX URL が設定されている場合は優先実行
     let voicevoxResult =
       isVoicevoxPreferred && process.env.VOICEVOX_API_URL
-        ? await generateVoicevoxAudio(text, speakerId, 2500)
+        ? await generateVoicevoxAudio(text, speakerId, 4000)
         : null;
 
     let engineHeader = "VOICEVOX";
 
-    // ② ローカル接続できない場合、無料クラウドVOICEVOX Web API (tts.quest) をサーバー側でも試行（2.5秒で見切り）
+    // ② 無料クラウドVOICEVOX Web API (tts.quest) をサーバー側で十分に時間をかけて実行（最大15秒）
     if (!voicevoxResult && isVoicevoxPreferred) {
-      voicevoxResult = await generateCloudVoicevoxAudio(text, speakerId, 2500);
+      voicevoxResult = await generateCloudVoicevoxAudio(text, speakerId, 15000);
       if (voicevoxResult) {
         engineHeader = "VOICEVOX-Cloud";
       }
@@ -84,21 +84,27 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. VOICEVOX が未起動・接続不可の場合は OpenAI TTS にフォールバック
-    const client = getOpenAiClient();
-    if (!client) {
+    // VOICEVOXが指定されているが取得できなかった場合、途中で声が切り替わるのを防ぐため、
+    // 勝手に別の声（OpenAI）に差し替えずにリトライを促すエラーを返す
+    if (isVoicevoxPreferred) {
       return NextResponse.json(
-        { error: "No TTS engine available", fallbackToBrowser: true },
+        { error: "VOICEVOX engine temporarily busy. Please retry.", voice },
         { status: 503 }
       );
     }
 
-    // OpenAIボイスの決定（VOICEVOX設定からフォールバックした場合は上品で自然な "shimmer" または "nova"）
+    // 2. OpenAI ボイスが指定されている場合のみ OpenAI TTS を実行
+    const client = getOpenAiClient();
+    if (!client) {
+      return NextResponse.json(
+        { error: "No TTS engine available", voice },
+        { status: 503 }
+      );
+    }
+
     let openAiVoice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" = "shimmer";
-    if (typeof voice === "string" && !voice.startsWith("voicevox:")) {
-      if (["alloy", "echo", "fable", "onyx", "nova", "shimmer"].includes(voice)) {
-        openAiVoice = voice as any;
-      }
+    if (["alloy", "echo", "fable", "onyx", "nova", "shimmer"].includes(voice)) {
+      openAiVoice = voice as any;
     }
 
     // tts-1-hd にアップグレード & speed: 1.0 で落ち着いたトーン

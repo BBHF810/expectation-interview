@@ -345,7 +345,7 @@ ${
     let audioStreamingUrl: string | undefined = undefined;
     if (!isFinished && cleanQuestion && parsedData?.voice?.startsWith("voicevox:")) {
       const speakerId = parseInt(parsedData.voice.split(":")[1], 10) || 3;
-      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(cleanQuestion, speakerId, 1200)) || undefined;
+      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(cleanQuestion, speakerId, 5000)) || undefined;
     }
 
     return NextResponse.json({
