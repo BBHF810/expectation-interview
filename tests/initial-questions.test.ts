@@ -45,6 +45,25 @@ describe("初期固定質問の選定ロジック", () => {
       const q = getInitialSingleQuestion({ ageGroup: "11_30", age: 15 });
       expect(q.question).toContain("身近な人");
     });
+
+    it("一致事例（matched）を事前選択した場合、嬉しかったこと・心に残っている出来事を聞くオープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "11_30", expectationType: "matched" });
+      expect(q.question).toContain("嬉しかったこと");
+      expect(q.question).toContain("心に残っている出来事");
+    });
+
+    it("不一致事例（mismatched）を事前選択した場合、モヤッとした・すれ違った出来事を聞くオープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "11_30", expectationType: "mismatched" });
+      expect(q.question).toContain("思っていたのと違ってモヤッとした");
+      expect(q.question).toContain("すれ違った");
+    });
+
+    it("14歳以下で一致事例（matched）を事前選択した場合、子ども向けに『うれしいな』『きもちが通じ合った』を聞くオープナーが選ばれる", () => {
+      const q = getInitialSingleQuestion({ ageGroup: "under_10", age: 10, expectationType: "matched" });
+      expect(q.question).toContain("うれしいな");
+      expect(q.question).toContain("きもちが通じ合った");
+      expect(q.question).not.toContain("出来事");
+    });
   });
 
   describe("ふたり用モード (getInitialPairQuestion)", () => {
@@ -76,9 +95,9 @@ describe("初期固定質問の選定ロジック", () => {
   });
 
   describe("動的フォールバック質問 (getSmartFallbackQuestion)", () => {
-    it("1問目で嬉しいエピソードを答えた場合、2問目で嬉しい場面を深掘りする質問が選ばれる", () => {
+    it("1問目で嬉しいエピソードを答えた場合、2問目で期待通りだったか・期待を超えてきたかを聞く質問が選ばれる", () => {
       const q = getSmartFallbackQuestion(["プレゼントをもらってすごく嬉しかった！"], false);
-      expect(q).toContain("どんな言葉や行動が特に嬉しかったですか？");
+      expect(q).toContain("思い描いていた期待どおりでしたか？ それとも想像を超えて嬉しかったですか？");
       expect(q).not.toContain("本当はどうしてほしかった");
     });
 
@@ -87,9 +106,9 @@ describe("初期固定質問の選定ロジック", () => {
       expect(q).toContain("どんな風にしてほしかったですか？");
     });
 
-    it("子ども向け(isSimple: true)ではやさしいひらがな主体の質問が選ばれる", () => {
+    it("子ども向け(isSimple: true)ではやさしいひらがな主体の質問が選ばれる（期待通りか・期待を超えたか）", () => {
       const qPos = getSmartFallbackQuestion(["みんなで遊んですごく楽しかった"], true);
-      expect(qPos).toContain("うれしかった？");
+      expect(qPos).toContain("おもっていたとおりだった？ それとも、おもっていたよりもずっとすごかった？");
 
       const qNeg = getSmartFallbackQuestion(["おもちゃをとられて怒った"], true);
       expect(qNeg).toContain("ほんとうは、どうしてほしかった？");

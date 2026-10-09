@@ -8,6 +8,7 @@ import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewerAvatar } from "@/components/InterviewerAvatar";
 import { InterviewScreen } from "@/components/InterviewScreen";
 import { AgeScreen } from "@/components/AgeScreen";
+import { ExpectationScreen } from "@/components/ExpectationScreen";
 import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
 import "@testing-library/jest-dom";
 
@@ -202,5 +203,41 @@ describe("UIコンポーネントテスト", () => {
     expect(screen.getByText("素直なワンちゃんタイプ")).toBeInTheDocument();
     expect(screen.getAllByText(/判定の根拠/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/具体例/i).length).toBeGreaterThan(0);
+  });
+
+  it("一人用期待選択画面 (ExpectationScreen): 選択肢が表示され、選択後に「次へ」でonSelectが呼ばれる", () => {
+    const handleSelect = vi.fn();
+    const handleBack = vi.fn();
+
+    render(<ExpectationScreen onSelect={handleSelect} onBack={handleBack} isSimple={false} />);
+
+    expect(screen.getAllByText(/ぴったり合っていた/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/少しすれちがった/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/どちらともいえない・両方あった/i)).toBeInTheDocument();
+
+    const matchedBtn = screen.getByRole("button", { name: /ぴったり合っていた/i });
+    fireEvent.click(matchedBtn);
+
+    const nextBtn = screen.getByRole("button", { name: /次へ/i });
+    expect(nextBtn).toBeEnabled();
+    fireEvent.click(nextBtn);
+    expect(handleSelect).toHaveBeenCalledWith("matched");
+  });
+
+  it("一人用期待選択画面 (ExpectationScreen): 子ども向けモード(isSimple: true)でひらがな・ふりがな付き表示される", () => {
+    const handleSelect = vi.fn();
+    const handleBack = vi.fn();
+
+    render(<ExpectationScreen onSelect={handleSelect} onBack={handleBack} isSimple={true} />);
+
+    // ふりがな付き・ひらがな表示
+    expect(screen.getAllByText(/きもち/i).length).toBeGreaterThan(0);
+    const mismatchedBtn = screen.getByRole("button", { name: /すれちがった/i });
+    fireEvent.click(mismatchedBtn);
+
+    const nextBtn = screen.getByRole("button", { name: /次へ/i });
+    expect(nextBtn).toBeEnabled();
+    fireEvent.click(nextBtn);
+    expect(handleSelect).toHaveBeenCalledWith("mismatched");
   });
 });

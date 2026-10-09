@@ -160,6 +160,7 @@ export type ScreenState =
   | "WELCOME"
   | "CONSENT"
   | "AGE_SELECT"
+  | "EXPECTATION_SELECT"
   | "INPUT_METHOD_SELECT"
   | "INTERVIEW"
   | "CLOSING"

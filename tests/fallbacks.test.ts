@@ -8,8 +8,8 @@ describe("フォールバック質問・振り返り・動物診断 (fallbacks)"
     const q3 = getFallbackQuestion("matched", "31_plus", 2);
 
     expect(q1.question).toContain("どんな出来事でしたか？");
-    expect(q2.question).toContain("どんなことを期待していましたか？");
-    expect(q3.question).toContain("期待どおりになったとき、どう思いましたか？");
+    expect(q2.question).toContain("思い描いていた期待どおりでしたか？ それとも想像を超えて嬉しかったですか？");
+    expect(q3.question).toContain("どんな会話を交わしましたか？");
   });
 
   it("すれちがい(mismatched)の質問方針", () => {

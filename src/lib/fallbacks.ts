@@ -12,13 +12,13 @@ export const FALLBACK_QUESTIONS: Record<
   matched: {
     standard: [
       { question: "どんな出来事でしたか？", purpose: "event" },
-      { question: "相手に、どんなことを期待していましたか？", purpose: "expectation" },
-      { question: "期待どおりになったとき、どう思いましたか？", purpose: "feeling" },
+      { question: "それは、思い描いていた期待どおりでしたか？ それとも想像を超えて嬉しかったですか？", purpose: "expectation" },
+      { question: "そのとき、相手の方とどんな会話を交わしましたか？", purpose: "feeling" },
     ],
     simple: [
       { question: "どんなことがあったか、おしえてくれる？", purpose: "event" },
-      { question: "あいてに、どんなことをしてほしかった？", purpose: "expectation" },
-      { question: "おもったとおりになったとき、どうおもった？", purpose: "feeling" },
+      { question: "それは、おもっていたとおりだった？ それとも、おもっていたよりもずっとすごかった？", purpose: "expectation" },
+      { question: "そのとき、どんなきもちになった？", purpose: "feeling" },
     ],
   },
   mismatched: {
@@ -152,13 +152,28 @@ export function formatPartnerReferral(partner: string, isSimple: boolean = false
 export function getInitialSingleQuestion(params: {
   ageGroup: AgeGroup;
   age?: number | null;
+  expectationType?: ExpectationType;
 }): FallbackQuestion {
-  const { ageGroup, age } = params;
+  const { ageGroup, age, expectationType } = params;
 
   // 14歳以下の場合は子ども向け
   const isSimple = age !== undefined && age !== null ? age <= 14 : ageGroup === "under_10";
 
   if (isSimple) {
+    if (expectationType === "matched") {
+      return {
+        question:
+          "おともだちやかぞくとのあいだで、きみが「うれしいな」「たのしいな」とおもったことや、きもちが通じ合ったことはあるかな？ だれとの、どんなことだったかおしえてね。",
+        purpose: "event",
+      };
+    }
+    if (expectationType === "mismatched") {
+      return {
+        question:
+          "おともだちやかぞくとのあいだで、「おもっていたのとちがうな」とおもったことや、すれちがっちゃったことはあるかな？ だれとの、どんなことだったかおしえてね。",
+        purpose: "event",
+      };
+    }
     return {
       question:
         "おともだちやかぞくに対して、きみが「これをやってほしいな」とおもったことや、「これをしたらよろこんでくれるかな」とおもったことはあるかな？ だれとの、どんなことだったかおしえてね。",
@@ -166,7 +181,22 @@ export function getInitialSingleQuestion(params: {
     };
   }
 
-  // 15歳以上（11_30, 31_plus, no_answer）は共通（身近な人の具体例と感情の手がかり入り）
+  // 15歳以上（11_30, 31_plus, no_answer）
+  if (expectationType === "matched") {
+    return {
+      question:
+        "身近な人（友だち・家族・恋人など）とのやり取りで、相手の行動や言葉が嬉しかったことなど、心に残っている出来事はありますか？ 誰とのどんな場面でしたか？",
+      purpose: "event",
+    };
+  }
+  if (expectationType === "mismatched") {
+    return {
+      question:
+        "身近な人（友だち・家族・恋人など）とのやり取りで、「思っていたのと違ってモヤッとした」「すれ違った」と感じた出来事はありますか？ 誰とのどんな場面でしたか？",
+      purpose: "event",
+    };
+  }
+
   return {
     question:
       "身近な人（友だち・家族・恋人・職場の仲間など）とのやり取りで、「思っていたのと違ってモヤッとしたこと」や「期待以上に嬉しかったこと」など、印象に残っている出来事はありますか？ 誰とのどんな場面でしたか？",
@@ -191,8 +221,8 @@ export function getSmartFallbackQuestion(
   if (turnIndex === 1) {
     if (isPositive) {
       return isSimple
-        ? "あいての人の、どんなことばや行動がうれしかった？"
-        : "相手の方の、どんな言葉や行動が特に嬉しかったですか？";
+        ? "それは、おもっていたとおりだった？ それとも、おもっていたよりもずっとすごかった？"
+        : "それは、思い描いていた期待どおりでしたか？ それとも想像を超えて嬉しかったですか？";
     } else {
       return isSimple
         ? "ほんとうは、どうしてほしかった？"

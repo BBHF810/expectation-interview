@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     }
 
     parsedData = parsed.data;
-    const { ageGroup, partner, isCare, expectationType, conversationHistory } = parsedData;
+    const { ageGroup, age, partner, isCare, expectationType, conversationHistory } = parsedData;
     const historyCount = conversationHistory.length;
 
     if (historyCount >= 3) {
@@ -105,10 +105,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 1問目（対話履歴なし）は年齢に応じた初期汎用質問を即時返却
+    // 1問目（対話履歴なし）は事前選択された期待タイプと年齢に応じた初期質問を即時返却
     if (historyCount === 0) {
       const initialQ = getInitialSingleQuestion({
         ageGroup: ageGroup as AgeGroup,
+        age,
+        expectationType: expectationType as ExpectationType,
       });
       logSafeRequest({
         requestId,

@@ -21,6 +21,7 @@ import {
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { AgeScreen } from "@/components/AgeScreen";
+import { ExpectationScreen } from "@/components/ExpectationScreen";
 import { InputMethodScreen } from "@/components/InputMethodScreen";
 import { InterviewScreen } from "@/components/InterviewScreen";
 import { ReflectionScreen } from "@/components/ReflectionScreen";
@@ -142,11 +143,21 @@ export default function Home() {
     });
   };
 
-  // 年齢選択 → 入力方式選択へ遷移（この待機時間中に初回質問の音声を先行取得！）
+  // 年齢選択 → 一致・不一致選択へ遷移
   const handleAgeSelect = (selectedAge: number | null, selectedAgeGroup: AgeGroup) => {
     setAge(selectedAge);
     setAgeGroup(selectedAgeGroup);
-    const initialQ = getInitialSingleQuestion({ ageGroup: selectedAgeGroup, age: selectedAge });
+    setScreen("EXPECTATION_SELECT");
+  };
+
+  // 一致・不一致選択 → 入力方式選択へ遷移（この待機時間中に初回質問の音声を先行取得！）
+  const handleExpectationSelect = (selectedExp: ExpectationType) => {
+    setExpectationType(selectedExp);
+    const initialQ = getInitialSingleQuestion({
+      ageGroup,
+      age,
+      expectationType: selectedExp,
+    });
     setCurrentQuestion(initialQ.question);
     // バックグラウンドで即座にストリーミングURLを先行ロード
     prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
@@ -161,7 +172,7 @@ export default function Home() {
   const handleInputMethodSelect = (method: InputMethod) => {
     setInputMethod(method);
     if (mode === "single") {
-      const initialQ = getInitialSingleQuestion({ ageGroup, age });
+      const initialQ = getInitialSingleQuestion({ ageGroup, age, expectationType });
       setCurrentQuestion(initialQ.question);
       setCurrentProgress(1);
       setFallbackUsed(false);
@@ -229,7 +240,7 @@ export default function Home() {
           age,
           partner: partner || undefined,
           isCare: isCare !== "no" ? isCare : undefined,
-          expectationType: expectationType !== "neutral" ? expectationType : undefined,
+          expectationType: expectationType,
           voice: getSavedTtsVoice(),
           conversationHistory: nextHistory.map((t) => ({
             question: t.question,
@@ -253,7 +264,7 @@ export default function Home() {
       if (data.detectedPartner && !partner) {
         setPartner(data.detectedPartner);
       }
-      if (data.detectedExpectationType) {
+      if (data.detectedExpectationType && expectationType === "neutral") {
         setExpectationType(data.detectedExpectationType);
       }
       if (data.detectedIsCare) {
@@ -664,12 +675,20 @@ export default function Home() {
         <AgeScreen onSelect={handleAgeSelect} onBack={() => setScreen("CONSENT")} />
       )}
 
+      {screen === "EXPECTATION_SELECT" && (
+        <ExpectationScreen
+          onSelect={handleExpectationSelect}
+          onBack={() => setScreen("AGE_SELECT")}
+          isSimple={isSimple}
+        />
+      )}
+
       {screen === "INPUT_METHOD_SELECT" && (
         <InputMethodScreen
           onSelect={handleInputMethodSelect}
           onBack={() => {
             if (mode === "single") {
-              setScreen("AGE_SELECT");
+              setScreen("EXPECTATION_SELECT");
             } else {
               setScreen("PAIR_EXPECTATION");
             }
