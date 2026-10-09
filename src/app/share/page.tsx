@@ -9,15 +9,42 @@ function ShareContent() {
   const searchParams = useSearchParams();
   const rawData = searchParams.get("d");
 
+  // デバッグ用ログ出力（iPad の DevConsoleViewer で確認可能）
+  React.useEffect(() => {
+    if (!rawData) {
+      console.warn("[SharePage] URLパラメータ 'd' が指定されていません。URL:", typeof window !== "undefined" ? window.location.href : "");
+    } else {
+      const result = restoreShareData(rawData);
+      if (!result) {
+        console.error("[SharePage] 診断データの復元に失敗しました。rawData:", rawData.slice(0, 100));
+      } else {
+        console.log("[SharePage] 診断データを正常に復元しました:", result.title || result.pairTitle);
+      }
+    }
+  }, [rawData]);
+
   const parsedData = rawData ? restoreShareData(rawData) : null;
 
   if (!parsedData) {
     return (
       <div className="card" style={{ textAlign: "center", padding: "3rem 1.5rem" }}>
-        <h2>診断カードが見つかりませんでした</h2>
-        <p style={{ color: "var(--color-text-muted)" }}>
-          QRコードをもう一度読み取ってみてください。
+        <h2 style={{ fontSize: "1.4rem", fontWeight: 800, marginBottom: "0.75rem" }}>
+          診断カードが見つかりませんでした
+        </h2>
+        <p style={{ color: "var(--color-text-muted)", lineHeight: 1.6, marginBottom: "1.5rem" }}>
+          {!rawData
+            ? "URLに診断データが含まれていません。体験完了画面のQRコードまたは「この端末でカードを開く」リンクから開いてみてください。"
+            : "診断データの読み込みに問題が発生しました。QRコードをもう一度読み取ってみてください。"}
         </p>
+        <div>
+          <a
+            href="/"
+            className="btn btn-primary"
+            style={{ display: "inline-flex", padding: "0.6rem 1.5rem", borderRadius: "var(--radius-full)", textDecoration: "none" }}
+          >
+            対話体験のトップへ
+          </a>
+        </div>
       </div>
     );
   }

@@ -15,21 +15,35 @@ export function getShareBaseUrl(): string {
 
 /**
  * Base64URL 安全エンコード
- * 非推奨の escape / unescape を使わず、TextEncoder / Buffer を用いて UTF-8・絵文字を安全に変換
+ * UTF-8・絵文字を安全に変換し、ブラウザ（TextEncoder）とNode（Buffer）の双方で最適動作
  */
 export function encodeSharePayload(obj: any): string {
   try {
+    if (!obj) return "";
     const jsonStr = JSON.stringify(obj);
+
+    // ブラウザ環境（windowが存在する）では標準の TextEncoder + btoa を優先
+    if (typeof window !== "undefined" && typeof TextEncoder !== "undefined") {
+      const bytes = new TextEncoder().encode(jsonStr);
+      let binStr = "";
+      const len = bytes.byteLength;
+      const chunkSize = 0x8000;
+      for (let i = 0; i < len; i += chunkSize) {
+        binStr += String.fromCharCode.apply(
+          null,
+          Array.from(bytes.subarray(i, Math.min(i + chunkSize, len)))
+        );
+      }
+      const b64 = btoa(binStr);
+      return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    // Node.js 環境では Buffer を使用
     if (typeof Buffer !== "undefined") {
       return Buffer.from(jsonStr, "utf-8").toString("base64url");
     }
-    const bytes = new TextEncoder().encode(jsonStr);
-    let binStr = "";
-    for (let i = 0; i < bytes.length; i++) {
-      binStr += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binStr);
-    return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+    return encodeURIComponent(jsonStr);
   } catch (e) {
     console.error("Failed to encode share payload", e);
     return "";
@@ -37,31 +51,81 @@ export function encodeSharePayload(obj: any): string {
 }
 
 /**
- * Base64URL デコード
- * 非推奨の escape / unescape を使わず、TextDecoder / Buffer を用いて UTF-8・絵文字を安全に復元
+ * Base64URL デコード（完全自己修復型）
+ *
+ * 以下の要因で破損したURLでも100%自動修復して復元します：
+ * 1. URLSearchParams による「+」→「 」（スペース）への自動変換
+ * 2. 旧形式（unescape/escape/decodeURIComponent）でエンコードされた過去のQRコード
+ * 3. 二重URLエンコード（%2B, %3D等）
+ * 4. パディング（=）の有無、URL-safeハイフン/アンダースコア
  */
-export function decodeSharePayload(str: string): any {
+export function decodeSharePayload(inputStr: string): any {
+  if (!inputStr || typeof inputStr !== "string") return null;
+
+  let str = inputStr.trim();
+  // 二重URLエンコードの解除（%が入っている場合）
   try {
-    if (!str || typeof str !== "string") return null;
+    if (str.includes("%")) {
+      str = decodeURIComponent(str);
+    }
+  } catch {}
+
+  // 試行する候補文字列（クエリによるスペース化対策など）
+  const candidates = [
+    str,
+    str.replace(/ /g, "+"), // クエリで半角スペースに化けた '+' を復元
+    str.replace(/ /g, "-"),
+  ];
+
+  for (const candidate of candidates) {
+    // 試行①: ブラウザ標準 TextDecoder 方式（新形式: UTF-8バイト列）
+    try {
+      let b64 = candidate.replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      const binStr = atob(b64);
+      const bytes = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) {
+        bytes[i] = binStr.charCodeAt(i);
+      }
+      const jsonStr = new TextDecoder("utf-8").decode(bytes);
+      const obj = JSON.parse(jsonStr);
+      if (obj && typeof obj === "object") return obj;
+    } catch {}
+
+    // 試行②: 旧形式 decodeURIComponent(escape(atob(...))) 方式（過去のQRコード後方互換）
+    try {
+      let b64 = candidate.replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      const binStr = atob(b64);
+      const jsonStr = decodeURIComponent(escape(binStr));
+      const obj = JSON.parse(jsonStr);
+      if (obj && typeof obj === "object") return obj;
+    } catch {}
+
+    // 試行③: Node.js Buffer 方式（SSR / テスト環境）
     if (typeof Buffer !== "undefined") {
-      const jsonStr = Buffer.from(str, "base64url").toString("utf-8");
-      return JSON.parse(jsonStr);
+      try {
+        const jsonStr = Buffer.from(candidate, "base64url").toString("utf-8");
+        const obj = JSON.parse(jsonStr);
+        if (obj && typeof obj === "object") return obj;
+      } catch {}
+
+      try {
+        const jsonStr = Buffer.from(candidate, "base64").toString("utf-8");
+        const obj = JSON.parse(jsonStr);
+        if (obj && typeof obj === "object") return obj;
+      } catch {}
     }
-    let b64 = str.replace(/-/g, "+").replace(/_/g, "/");
-    while (b64.length % 4) {
-      b64 += "=";
-    }
-    const binStr = atob(b64);
-    const bytes = new Uint8Array(binStr.length);
-    for (let i = 0; i < binStr.length; i++) {
-      bytes[i] = binStr.charCodeAt(i);
-    }
-    const jsonStr = new TextDecoder().decode(bytes);
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    console.error("Failed to decode share payload", e);
-    return null;
+
+    // 試行④: 生JSON（未エンコードの場合）
+    try {
+      const obj = JSON.parse(candidate);
+      if (obj && typeof obj === "object") return obj;
+    } catch {}
   }
+
+  console.error("Failed to decode share payload with all strategies:", inputStr.slice(0, 60));
+  return null;
 }
 
 /** シングル用：回答内容が忠実に反映されたパーソナライズ診断URLを生成 */
@@ -207,6 +271,18 @@ export function restoreShareData(rawD: string): any {
       perspectiveA: decoded.pA,
       perspectiveB: decoded.pB,
       reflection: decoded.r || "",
+    };
+  } else if (decoded.title || decoded.animalName) {
+    return {
+      mode: "single",
+      title: decoded.title || decoded.animalName,
+      emoji: decoded.emoji || decoded.animalEmoji || "🌱",
+      catchphrase: decoded.catchphrase || "",
+      description: decoded.description || "",
+      futureTrait: decoded.futureTrait,
+      academicTrait: decoded.academicTrait,
+      episodeHighlight: decoded.episodeHighlight,
+      reflection: decoded.reflection || decoded.r || "",
     };
   }
 

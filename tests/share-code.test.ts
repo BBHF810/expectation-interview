@@ -98,10 +98,57 @@ describe("短縮QRコードURL生成・復元テスト", () => {
     const url = createSingleShareUrl(customAnimal, reflection);
     const paramD = new URL(url).searchParams.get("d");
     const restored = restoreShareData(paramD!);
-
     expect(restored).toBeTruthy();
     expect(restored.title).toBe("手料理で喜ばせたい誠実なワンちゃんタイプ");
     expect(restored.description).toBe(customAnimal.description);
     expect(restored.episodeHighlight).toBe("手料理を作って友人に喜んでもらいたかった出来事");
+  });
+
+  it("旧形式（escape/unescape 方式）でエンコードされた過去のURLでも完全に復元できる", () => {
+    const payload = {
+      m: "s",
+      an: "素直なワンちゃんタイプ",
+      ae: "🐶",
+      ac: "まっすぐな信頼関係を築く",
+      ad: "相手の言葉を前向きに受け止め、自分の気持ちも素直に伝えられるタイプです。",
+      r: "楽しかった対話の振り返り",
+    };
+    // 過去のコードによるエンコード
+    const oldEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+
+    const restored = restoreShareData(oldEncoded);
+    expect(restored).toBeTruthy();
+    expect(restored.mode).toBe("single");
+    expect(restored.title).toBe("素直なワンちゃんタイプ");
+    expect(restored.reflection).toBe("楽しかった対話の振り返り");
+  });
+
+  it("URLSearchParamsの仕様で '+' が半角スペースに化けても自動修復して復元できる", () => {
+    const payload = { m: "s", an: "素直なワンちゃんタイプ", r: "テスト" };
+    // 通常のBase64（'+'を含む）を作成
+    const base64WithPlus = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    // クエリパラメータ仕様で '+' が ' ' に置換された状態をシミュレート
+    const damaged = base64WithPlus.replace(/\+/g, " ");
+
+    const decoded = decodeSharePayload(damaged);
+    expect(decoded).toBeTruthy();
+    expect(decoded.m).toBe("s");
+
+    const restored = restoreShareData(damaged);
+    expect(restored).toBeTruthy();
+    expect(restored.title).toBe("素直なワンちゃんタイプ");
+  });
+
+  it("二重URLエンコード（%2B等）された文字列でも自動修復して復元できる", () => {
+    const payload = { m: "s", an: "素直なワンちゃんタイプ", r: "二重テスト" };
+    const encoded = encodeSharePayload(payload);
+    const doubleEncoded = encodeURIComponent(encoded);
+
+    const restored = restoreShareData(doubleEncoded);
+    expect(restored).toBeTruthy();
+    expect(restored.title).toBe("素直なワンちゃんタイプ");
   });
 });
