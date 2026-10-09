@@ -257,8 +257,15 @@ export async function checkCloudVoicevox(): Promise<boolean> {
   }
 }
 
-// ストリーミングURLのインメモリキャッシュ（重複取得・待機を防止）
-const streamingUrlCache = new Map<string, Promise<string | null>>();
+interface StreamingUrlCacheEntry {
+  promise: Promise<string | null>;
+  createdAt: number;
+  expiresAt: number;
+}
+
+/** ストリーミングURLのインメモリキャッシュ（TTL: 15分、有効期限切れは自動再取得） */
+const STREAMING_CACHE_TTL_MS = 15 * 60 * 1000;
+const streamingUrlCache = new Map<string, StreamingUrlCacheEntry>();
 
 /**
  * クラウドVOICEVOXのストリーミング再生用URLを即座に取得（約0.3秒で返却）
@@ -272,9 +279,15 @@ export async function getCloudVoicevoxStreamingUrl(
   const text = normalizeTtsText(rawText);
   if (!text) return null;
   const cacheKey = `${speakerId}:${text}`;
+  const now = Date.now();
   const existing = streamingUrlCache.get(cacheKey);
+
   if (existing) {
-    return existing;
+    if (existing.expiresAt > now) {
+      return existing.promise;
+    }
+    // 期限切れキャッシュは破棄
+    streamingUrlCache.delete(cacheKey);
   }
 
   const fetchPromise = (async () => {
@@ -295,7 +308,12 @@ export async function getCloudVoicevoxStreamingUrl(
     }
   })();
 
-  streamingUrlCache.set(cacheKey, fetchPromise);
+  streamingUrlCache.set(cacheKey, {
+    promise: fetchPromise,
+    createdAt: now,
+    expiresAt: now + STREAMING_CACHE_TTL_MS,
+  });
+
   // 失敗時はキャッシュから削除して再試行可能にする
   fetchPromise.then((url) => {
     if (!url) streamingUrlCache.delete(cacheKey);
@@ -363,11 +381,11 @@ export async function fetchPlayableTts(
   const speakerId = parseVoicevoxSpeaker(voice);
 
   if (speakerId !== null) {
-    // ⓪ 先行プリフェッチ済みキャッシュがある場合は最優先で即時返却（待機ゼロ）
+    // ⓪ 先行プリフェッチ済みキャッシュがある場合は最優先で即時返却（有効期限内のみ）
     const cacheKey = `${speakerId}:${text}`;
-    const cachedPromise = streamingUrlCache.get(cacheKey);
-    if (cachedPromise) {
-      const cachedUrl = await cachedPromise;
+    const cachedEntry = streamingUrlCache.get(cacheKey);
+    if (cachedEntry && cachedEntry.expiresAt > Date.now()) {
+      const cachedUrl = await cachedEntry.promise;
       if (cachedUrl) {
         return {
           src: cachedUrl,

@@ -32,10 +32,15 @@ export const AUDIO_CAPTURE_RETRY_DELAY_MS = 250;
 /** WebKit がイベント（onstart/onerror）を発火させない場合のハング防止タイムアウト（ms） */
 const STARTING_SAFETY_TIMEOUT_MS = 1500;
 
-/** 直近の起動からこの時間未満で切断されたら「即死」とみなす */
-const RAPID_END_MS = 1200;
-/** 即死がこの回数連続したら自動再接続を止めて案内を出す */
-const MAX_RAPID_RESTARTS = 3;
+/** 直近の起動からこの時間未満で切断されたら「即死」とみなす（通常2500ms、iOS環境では初期化ラグ考慮で3000ms） */
+const RAPID_END_MS_DEFAULT = 2500;
+const RAPID_END_MS_IOS = 3000;
+
+/** 即死がこの回数連続したら自動再接続を止めて案内を出す（展示会場等の通信遅延を考慮して5回に緩和） */
+const MAX_RAPID_RESTARTS = 5;
+
+/** 連続リトライの最大許容時間（30秒を超えて切断が繰り返される場合は安全に停止） */
+const MAX_CONTINUOUS_RESTART_DURATION_MS = 30000;
 
 /** Safari / Chrome 等の「マイクが許可されていない」時の案内文 */
 function getNotAllowedMessage(isSimple = false): string {
@@ -119,6 +124,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
   // 自動再接続の暴走検知用
   const sessionStartedAtRef = useRef<number | null>(null);
+  const firstRapidRestartAtRef = useRef<number | null>(null);
   const rapidEndCountRef = useRef(0);
 
   // audio-capture 競合の自動リトライ用
@@ -235,6 +241,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     }
 
     sessionStartedAtRef.current = null;
+    firstRapidRestartAtRef.current = null;
     rapidEndCountRef.current = 0;
     statusRef.current = "idle";
     setIsListening(false);
@@ -309,6 +316,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         if (!isCurrent()) return;
         audioCaptureRetriesRef.current = 0;
         rapidEndCountRef.current = 0;
+        firstRapidRestartAtRef.current = null;
         let interimTranscript = "";
 
         for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -423,18 +431,45 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         // iPad Safari 等でユーザーが停止を押していないのに勝手に切れた場合、自動で継続再開する
         if (!isManuallyStoppedRef.current && statusRef.current !== "stopping" && process.env.NODE_ENV !== "test") {
           const startedAt = sessionStartedAtRef.current;
-          const endedRapidly = startedAt !== null && Date.now() - startedAt < RAPID_END_MS;
+          const isIOS = checkIsIOS();
+          const rapidThreshold = isIOS ? RAPID_END_MS_IOS : RAPID_END_MS_DEFAULT;
+          const duration = startedAt !== null ? Date.now() - startedAt : 0;
+          const endedRapidly = startedAt !== null && duration < rapidThreshold;
+
           rapidEndCountRef.current = endedRapidly ? rapidEndCountRef.current + 1 : 0;
           sessionStartedAtRef.current = null;
 
-          if (rapidEndCountRef.current >= MAX_RAPID_RESTARTS) {
+          if (endedRapidly) {
+            if (!firstRapidRestartAtRef.current) {
+              firstRapidRestartAtRef.current = Date.now();
+            }
+            console.info(
+              `[VoiceInput] 即死判定: 継続時間=${duration}ms (閾値=${rapidThreshold}ms), 連続回数=${rapidEndCountRef.current}/${MAX_RAPID_RESTARTS}`
+            );
+          } else {
+            firstRapidRestartAtRef.current = null;
+          }
+
+          const isOverMaxDuration =
+            firstRapidRestartAtRef.current !== null &&
+            Date.now() - firstRapidRestartAtRef.current > MAX_CONTINUOUS_RESTART_DURATION_MS;
+
+          if (rapidEndCountRef.current >= MAX_RAPID_RESTARTS || isOverMaxDuration) {
+            console.warn(
+              `[VoiceInput] 音声認識セッションが連続で終了したため自動再接続を停止します (回数: ${rapidEndCountRef.current}, 制限超過: ${isOverMaxDuration})`
+            );
             isManuallyStoppedRef.current = true;
             statusRef.current = "idle";
+            firstRapidRestartAtRef.current = null;
             setErrorMessage(getUnstableMessage(isSimpleRef.current));
             setIsListening(false);
             onListeningStateChangeRef.current(false);
             return;
           }
+
+          console.info(
+            `[VoiceInput] 自動再接続 (${rapidEndCountRef.current}/${MAX_RAPID_RESTARTS}) を試行します...`
+          );
 
           // これまでに認識したテキストを baseText に統合して新規セッションに引き継ぐ
           if (sessionFinalRef.current) {
@@ -456,6 +491,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
         }
 
         statusRef.current = "idle";
+        firstRapidRestartAtRef.current = null;
         setIsListening(false);
         onListeningStateChangeRef.current(false);
       };
@@ -503,6 +539,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
     statusRef.current = "starting";
     audioCaptureRetriesRef.current = 0;
     rapidEndCountRef.current = 0;
+    firstRapidRestartAtRef.current = null;
     sessionStartedAtRef.current = null;
 
     // ② 即時リスニング状態へ遷移（UIの即応性を確保）
