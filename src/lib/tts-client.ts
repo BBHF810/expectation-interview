@@ -8,6 +8,8 @@
 
 export type TtsEngineUsed = "VOICEVOX" | "VOICEVOX (Cloud)" | "OpenAI";
 
+import { stripFurigana } from "@/components/FuriganaText";
+
 const CUSTOM_VOICEVOX_URL_KEY = "expectation_voicevox_url";
 export const DEFAULT_VOICEVOX_URL = "http://127.0.0.1:50021";
 
@@ -76,18 +78,61 @@ function getTimeoutSignal(ms: number): AbortSignal | undefined {
   return controller.signal;
 }
 
-/** iPad / iOS Safari の Autoplay 制限を解除するための共通アンロック処理 */
+const SILENT_WAV =
+  "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+
+let sharedAudio: HTMLAudioElement | null = null;
+let speechSynthesisPrimed = false;
+
+/**
+ * アプリ全体で使い回す単一の Audio 要素。
+ * iOS Safari は「ユーザー操作中に一度再生した要素」しか以後の自動再生を許可しないため、
+ * 毎回 new Audio() するのではなく、この要素の src を差し替えて再生する。
+ */
+export function getSharedAudio(): HTMLAudioElement | null {
+  if (typeof window === "undefined" || typeof Audio === "undefined") return null;
+  if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") return null;
+  if (!sharedAudio) {
+    sharedAudio = new Audio();
+    sharedAudio.preload = "auto";
+    sharedAudio.setAttribute("playsinline", "true");
+  }
+  return sharedAudio;
+}
+
+/** iPad / iOS Safari の Autoplay 制限を解除する（必ずタップ等のイベントハンドラ内で同期的に呼ぶ） */
 export function unlockAudioOnUserAction(): void {
   if (typeof window === "undefined") return;
   if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") return;
-  try {
-    const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-    dummy.volume = 0.01;
-    const p = dummy.play();
-    if (p !== undefined) {
-      p.then(() => dummy.pause()).catch(() => {});
-    }
-  } catch {}
+
+  const audio = getSharedAudio();
+  // 再生中の音声は中断しない
+  if (audio && (audio.paused || audio.ended)) {
+    try {
+      audio.onplay = null;
+      audio.oncanplay = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.src = SILENT_WAV;
+      const p = audio.play();
+      if (p !== undefined) p.catch(() => {});
+    } catch {}
+  }
+
+  // ブラウザ標準読み上げ（最終フォールバック）も iOS ではタップ中の初回発話が必要
+  if (!speechSynthesisPrimed && "speechSynthesis" in window) {
+    try {
+      const u = new SpeechSynthesisUtterance("");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+      speechSynthesisPrimed = true;
+    } catch {}
+  }
+}
+
+/** 読み上げ用テキストの正規化（ふりがな除去・前後空白除去）。キャッシュキーを先行取得と再生で一致させる */
+export function normalizeTtsText(text: string): string {
+  return stripFurigana(text || "").trim();
 }
 
 /** ブラウザから手元の VOICEVOX で音声合成。失敗時は null */
@@ -218,11 +263,13 @@ const streamingUrlCache = new Map<string, Promise<string | null>>();
  * 失敗時は null
  */
 export async function getCloudVoicevoxStreamingUrl(
-  text: string,
+  rawText: string,
   speakerId: number,
   timeoutMs = 3000
 ): Promise<string | null> {
-  const cacheKey = `${speakerId}:${text.trim()}`;
+  const text = normalizeTtsText(rawText);
+  if (!text) return null;
+  const cacheKey = `${speakerId}:${text}`;
   const existing = streamingUrlCache.get(cacheKey);
   if (existing) {
     return existing;
@@ -239,18 +286,7 @@ export async function getCloudVoicevoxStreamingUrl(
       if (!initRes.ok) return null;
       const initData = await initRes.json();
       if (!initData || !initData.success || !initData.mp3StreamingUrl) return null;
-      const url = initData.mp3StreamingUrl as string;
-
-      // ブラウザ環境であれば先行バッファリングを促す
-      if (typeof window !== "undefined" && typeof Audio !== "undefined") {
-        try {
-          const preloadAudio = new Audio();
-          preloadAudio.preload = "auto";
-          preloadAudio.src = url;
-        } catch {}
-      }
-
-      return url;
+      return initData.mp3StreamingUrl as string;
     } catch (err) {
       console.warn("[TTS] クラウドストリーミングURL取得失敗:", err);
       return null;
@@ -285,15 +321,43 @@ export interface TtsPlayableAudio {
   cleanup?: () => void;
 }
 
+/** サーバーサイド (/api/tts) で音声を生成して再生可能な Blob URL を返す */
+export async function fetchServerTts(rawText: string, voice: string): Promise<TtsPlayableAudio> {
+  const text = normalizeTtsText(rawText);
+  const res = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, voice }),
+  });
+  if (!res.ok) throw new Error("TTS API unavailable");
+
+  const engineHeader = res.headers.get("X-TTS-Engine") || "";
+  let engine: TtsEngineUsed = "OpenAI";
+  if (engineHeader.startsWith("VOICEVOX-Cloud")) {
+    engine = "VOICEVOX (Cloud)";
+  } else if (engineHeader.startsWith("VOICEVOX")) {
+    engine = "VOICEVOX";
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  return {
+    src: url,
+    engine,
+    cleanup: () => URL.revokeObjectURL(url),
+  };
+}
+
 /**
  * 最速で再生可能な音声ソースを取得する
  * クラウドVOICEVOXの場合は mp3StreamingUrl を即座に返し、
  * 取得失敗時・レート制限（429）時は待たずにサーバーサイド (/api/tts) に即時フォールバックする。
  */
 export async function fetchPlayableTts(
-  text: string,
+  rawText: string,
   voice: string
 ): Promise<TtsPlayableAudio> {
+  const text = normalizeTtsText(rawText);
   const speakerId = parseVoicevoxSpeaker(voice);
 
   if (speakerId !== null) {
@@ -323,7 +387,7 @@ export async function fetchPlayableTts(
       }
     }
 
-    // ② 無料クラウド VOICEVOX のストリーミングURLを最優先で取得（キャッシュがあれば即時返却）
+    // ② 無料クラウド VOICEVOX のストリーミングURL
     const streamUrl = await getCloudVoicevoxStreamingUrl(text, speakerId);
     if (streamUrl) {
       return {
@@ -333,29 +397,8 @@ export async function fetchPlayableTts(
     }
   }
 
-  // ④ サーバーサイド (/api/tts) へフォールバック
-  const res = await fetch("/api/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, voice }),
-  });
-  if (!res.ok) throw new Error("TTS API unavailable");
-
-  const engineHeader = res.headers.get("X-TTS-Engine");
-  let engine: TtsEngineUsed = "OpenAI";
-  if (engineHeader === "VOICEVOX") {
-    engine = "VOICEVOX";
-  } else if (engineHeader === "VOICEVOX-Cloud") {
-    engine = "VOICEVOX (Cloud)";
-  }
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  return {
-    src: url,
-    engine,
-    cleanup: () => URL.revokeObjectURL(url),
-  };
+  // ③ サーバーサイド (/api/tts) へフォールバック
+  return fetchServerTts(text, voice);
 }
 
 /**

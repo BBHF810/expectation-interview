@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Volume2, VolumeX, RotateCcw, ArrowRight, Sparkles } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
-import { getSavedTtsVoice } from "@/lib/tts-voices";
-import { fetchTtsBlob } from "@/lib/tts-client";
+import { useSpeechPlayback } from "@/hooks/useSpeechPlayback";
+import { unlockAudioOnUserAction } from "@/lib/tts-client";
 
 interface ClosingScreenProps {
   closingComment: string;
@@ -23,126 +23,32 @@ export const ClosingScreen: React.FC<ClosingScreenProps> = ({
   onProceedToResult,
   onReset,
 }) => {
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
 
-  const stopAllAudio = () => {
-    if (audioRef.current) {
-      const audio = audioRef.current;
-      audioRef.current = null;
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-    }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
-    }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-  };
-
-  const playBrowserSpeech = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ja-JP";
-    utterance.rate = 1.0;
-    utterance.pitch = 1.05;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  useEffect(() => {
-    if (!closingComment || !isSpeechEnabled) {
-      stopAllAudio();
-      return;
-    }
-
-    let isCancelled = false;
-    stopAllAudio();
-
-    const playClosingTts = async () => {
-      try {
-        const { blob } = await fetchTtsBlob(closingComment, getSavedTtsVoice());
-        if (isCancelled) return;
-
-        stopAllAudio();
-
-        const audioUrl = URL.createObjectURL(blob);
-        audioUrlRef.current = audioUrl;
-
-        const audio = new Audio(audioUrl);
-        audioRef.current = audio;
-
-        audio.onplay = () => {
-          if (!isCancelled) setIsSpeaking(true);
-        };
-        audio.onended = () => {
-          setIsSpeaking(false);
-          if (audioRef.current === audio) {
-            audio.removeAttribute("src");
-            audio.load();
-            audioRef.current = null;
-          }
-          if (audioUrlRef.current === audioUrl) {
-            URL.revokeObjectURL(audioUrl);
-            audioUrlRef.current = null;
-          }
-        };
-        audio.onerror = () => {
-          if (audioRef.current === audio) {
-            audio.removeAttribute("src");
-            audio.load();
-            audioRef.current = null;
-          }
-          if (audioUrlRef.current === audioUrl) {
-            URL.revokeObjectURL(audioUrl);
-            audioUrlRef.current = null;
-          }
-          if (!isCancelled) playBrowserSpeech(closingComment);
-        };
-
-        await audio.play().catch((err) => {
-          if (err.name !== "AbortError" && !isCancelled) {
-            console.warn("TTS playback error:", err);
-            playBrowserSpeech(closingComment);
-          }
-        });
-      } catch (err) {
-        if (!isCancelled) {
-          playBrowserSpeech(closingComment);
-        }
-      }
-    };
-
-    playClosingTts();
-
-    return () => {
-      isCancelled = true;
-      stopAllAudio();
-    };
-  }, [closingComment, isSpeechEnabled]);
+  const {
+    isSpeaking,
+    isPreparing,
+    needsTap,
+    stop: stopAllAudio,
+    replay: replayClosingAudio,
+  } = useSpeechPlayback({
+    text: closingComment,
+    enabled: isSpeechEnabled,
+  });
 
   const handleProceed = () => {
     stopAllAudio();
+    unlockAudioOnUserAction();
     onProceedToResult();
   };
 
   const handleReset = () => {
     stopAllAudio();
+    unlockAudioOnUserAction();
     onReset();
   };
 
-  const avatarStatus: AvatarStatus = isSpeaking ? "speaking" : "idle";
+  const avatarStatus: AvatarStatus = isSpeaking ? "speaking" : isPreparing ? "thinking" : "idle";
 
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.5rem", padding: "2rem 1.5rem" }}>
@@ -242,11 +148,38 @@ export const ClosingScreen: React.FC<ClosingScreenProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "0.4rem",
+            gap: "0.5rem",
           }}
         >
-          <span>💬</span>
-          <span>AIインタビュアーからのメッセージ</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+            <span>💬</span>
+            <span>AIインタビュアーからのメッセージ</span>
+          </span>
+          {isSpeechEnabled && !isPreparing && (
+            <button
+              type="button"
+              onClick={replayClosingAudio}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#15803D",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                fontSize: "0.775rem",
+                fontWeight: 700,
+                padding: "0.2rem 0.5rem",
+                borderRadius: "var(--radius-full)",
+                transition: "all 0.15s ease",
+              }}
+              title="メッセージをもう一度読み上げます"
+              aria-label="メッセージをもう一度読み上げ"
+            >
+              <Volume2 size={14} />
+              <span>もう一度聞く</span>
+            </button>
+          )}
         </div>
         <p
           style={{
@@ -259,6 +192,29 @@ export const ClosingScreen: React.FC<ClosingScreenProps> = ({
         >
           {closingComment}
         </p>
+
+        {needsTap && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <button
+              type="button"
+              onClick={replayClosingAudio}
+              className="btn btn-primary"
+              style={{
+                fontSize: "0.9rem",
+                padding: "0.45rem 1rem",
+                borderRadius: "var(--radius-full)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                margin: "0 auto",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <Volume2 size={16} />
+              <span>タップしてメッセージを聞く 🔊</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 結果への進むボタン */}

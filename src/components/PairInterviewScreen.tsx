@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3, Mic, Keyboard } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
-import { getSavedTtsVoice } from "@/lib/tts-voices";
-import { fetchPlayableTts, unlockAudioOnUserAction } from "@/lib/tts-client";
-import { FuriganaText, stripFurigana } from "./FuriganaText";
+import { unlockAudioOnUserAction } from "@/lib/tts-client";
+import { useSpeechPlayback } from "@/hooks/useSpeechPlayback";
+import { FuriganaText } from "./FuriganaText";
 
 interface PairInterviewScreenProps {
   currentQuestion: string;
@@ -37,14 +37,10 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   onReset,
 }) => {
   const [answer, setAnswer] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
-  const [isAudioPreparing, setIsAudioPreparing] = useState(false);
   const [showManualEdit, setShowManualEdit] = useState(false);
   const [currentInputMethod, setCurrentInputMethod] = useState<InputMethod>(inputMethod || "voice");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setCurrentInputMethod(inputMethod || "voice");
@@ -55,157 +51,18 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
     setShowManualEdit(false);
   }, [currentQuestion, currentSpeaker]);
 
-  const stopAllAudio = () => {
-    if (audioRef.current) {
-      const audio = audioRef.current;
-      audioRef.current = null;
-      audio.pause();
-      audio.removeAttribute("src");
-      audio.load();
-    }
-    if (audioCleanupRef.current) {
-      audioCleanupRef.current();
-      audioCleanupRef.current = null;
-    }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-  };
-
-  const playBrowserSpeech = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ja-JP";
-    utterance.rate = 1.0;
-    utterance.pitch = 1.05;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  // 新しい質問の音声読み上げ（TTS優先 ＋ ブラウザフォールバック）
-  // 音声の準備完了（ストリーム受信開始）と文面表示を完全同期させて遅延感をゼロ化
-  useEffect(() => {
-    if (!currentQuestion || isLoading) {
-      stopAllAudio();
-      setIsAudioPreparing(false);
-      return;
-    }
-
-    if (!isSpeechEnabled) {
-      stopAllAudio();
-      setIsAudioPreparing(false);
-      return;
-    }
-
-    let isCancelled = false;
-    const shouldSyncSpeech = process.env.NODE_ENV !== "test";
-    if (shouldSyncSpeech) {
-      setIsAudioPreparing(true);
-    } else {
-      setIsAudioPreparing(false);
-    }
-    stopAllAudio();
-
-    // 音声待機が長すぎる場合の安全フォールバック（最大1.5秒で文面を先行表示）
-    const safetyTimer = setTimeout(() => {
-      if (!isCancelled) setIsAudioPreparing(false);
-    }, 1500);
-
-    const playTtsAudio = async () => {
-      try {
-        let src: string;
-        let cleanup: (() => void) | undefined;
-
-        const spokenText = stripFurigana(currentQuestion);
-
-        if (audioStreamingUrl) {
-          src = audioStreamingUrl;
-        } else {
-          const res = await fetchPlayableTts(spokenText, getSavedTtsVoice());
-          src = res.src;
-          cleanup = res.cleanup;
-        }
-
-        if (isCancelled) {
-          cleanup?.();
-          return;
-        }
-
-        stopAllAudio();
-        audioCleanupRef.current = cleanup || null;
-
-        const audio = new Audio(src);
-        audioRef.current = audio;
-
-        // 音声が再生可能になった瞬間、または再生開始と同時に文面を表示（遅延ゼロ！）
-        const revealQuestion = () => {
-          if (!isCancelled) {
-            clearTimeout(safetyTimer);
-            setIsAudioPreparing(false);
-          }
-        };
-
-        audio.oncanplay = revealQuestion;
-        audio.onplay = () => {
-          revealQuestion();
-          if (!isCancelled) setIsSpeaking(true);
-        };
-        audio.onended = () => {
-          setIsSpeaking(false);
-          if (audioRef.current === audio) {
-            audio.removeAttribute("src");
-            audio.load();
-            audioRef.current = null;
-          }
-          if (audioCleanupRef.current) {
-            audioCleanupRef.current();
-            audioCleanupRef.current = null;
-          }
-        };
-        audio.onerror = () => {
-          revealQuestion();
-          if (audioRef.current === audio) {
-            audio.removeAttribute("src");
-            audio.load();
-            audioRef.current = null;
-          }
-          if (audioCleanupRef.current) {
-            audioCleanupRef.current();
-            audioCleanupRef.current = null;
-          }
-          if (!isCancelled) playBrowserSpeech(spokenText);
-        };
-
-        await audio.play().catch((err) => {
-          if (err.name !== "AbortError" && !isCancelled) {
-            revealQuestion();
-            console.warn("TTS playback error:", err);
-            playBrowserSpeech(spokenText);
-          }
-        });
-      } catch (err) {
-        if (!isCancelled) {
-          clearTimeout(safetyTimer);
-          setIsAudioPreparing(false);
-          playBrowserSpeech(stripFurigana(currentQuestion));
-        }
-      }
-    };
-
-    playTtsAudio();
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(safetyTimer);
-      stopAllAudio();
-    };
-  }, [currentQuestion, isLoading, isSpeechEnabled, audioStreamingUrl]);
+  const {
+    isSpeaking,
+    isPreparing: isAudioPreparing,
+    needsTap: audioNeedsTap,
+    stop: stopAllAudio,
+    replay: replayQuestionAudio,
+  } = useSpeechPlayback({
+    text: currentQuestion,
+    enabled: isSpeechEnabled,
+    blocked: isLoading,
+    preferredSrc: audioStreamingUrl,
+  });
 
   const isWaitingForSpeech = isLoading || isAudioPreparing;
 
@@ -221,15 +78,15 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!answer.trim() || isLoading) return;
-    unlockAudioOnUserAction();
     stopAllAudio();
+    unlockAudioOnUserAction();
     onSubmitAnswer(answer.trim(), false);
   };
 
   const handleSkip = () => {
     if (isLoading) return;
-    unlockAudioOnUserAction();
     stopAllAudio();
+    unlockAudioOnUserAction();
     onSubmitAnswer("（スキップ）", true);
   };
 
@@ -341,10 +198,46 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           padding: "1.25rem 1.5rem",
           boxShadow: "var(--shadow-sm)",
           textAlign: "center",
+          position: "relative",
         }}
       >
-        <div style={{ fontSize: "0.875rem", color: "var(--color-primary)", fontWeight: 700, marginBottom: "0.35rem" }}>
-          AIインタビュアーからの質問
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "0.5rem",
+            marginBottom: "0.35rem",
+          }}
+        >
+          <span style={{ fontSize: "0.875rem", color: "var(--color-primary)", fontWeight: 700 }}>
+            AIインタビュアーからの質問
+          </span>
+          {!isWaitingForSpeech && isSpeechEnabled && (
+            <button
+              type="button"
+              onClick={replayQuestionAudio}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--color-primary)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                fontSize: "0.775rem",
+                fontWeight: 600,
+                padding: "0.2rem 0.5rem",
+                borderRadius: "var(--radius-full)",
+                transition: "all 0.15s ease",
+              }}
+              title="質問をもう一度読み上げます"
+              aria-label="質問をもう一度読み上げ"
+            >
+              <Volume2 size={14} />
+              <span>もう一度聞く</span>
+            </button>
+          )}
         </div>
         <p
           style={{
@@ -362,6 +255,30 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             <FuriganaText text={currentQuestion} />
           )}
         </p>
+
+        {/* 自動再生制限（iPad Safari 等）でタップ待ちの場合の親切なガイドボタン */}
+        {audioNeedsTap && !isWaitingForSpeech && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <button
+              type="button"
+              onClick={replayQuestionAudio}
+              className="btn btn-primary"
+              style={{
+                fontSize: "0.9rem",
+                padding: "0.45rem 1rem",
+                borderRadius: "var(--radius-full)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem",
+                margin: "0 auto",
+                boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <Volume2 size={16} />
+              <span>タップして質問を聞く 🔊</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ローディングまたは入力フォーム（音声準備完了まで同期表示） */}
@@ -482,7 +399,12 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                 <VoiceInput
                   currentText={answer}
                   onTranscriptChange={(newText) => setAnswer(newText)}
-                  onListeningStateChange={(active) => setIsListening(active)}
+                  onListeningStateChange={(active) => {
+                    setIsListening(active);
+                    if (active) {
+                      stopAllAudio();
+                    }
+                  }}
                   disabled={isLoading}
                 />
               </div>
