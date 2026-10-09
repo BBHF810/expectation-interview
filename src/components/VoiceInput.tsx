@@ -13,6 +13,8 @@ interface VoiceInputProps {
   currentText: string;
   /** AIが現在発話中（音声再生中）かどうか */
   isAiSpeaking?: boolean;
+  /** 子ども向けモードかどうか（やさしい言葉づかいにする） */
+  isSimple?: boolean;
 }
 
 const PERMISSION_DENIED_MESSAGE =
@@ -51,6 +53,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   disabled,
   currentText,
   isAiSpeaking = false,
+  isSimple = false,
 }) => {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
@@ -383,7 +386,9 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   if (!isSupported) {
     return (
       <div style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", marginTop: "0.25rem" }}>
-        ※ お使いのブラウザは音声入力に対応していません。下の枠から直接文字を入力してください。
+        {isSimple
+          ? "※ このがめんではマイクがつかえません。したの枠から文字をいれてね。"
+          : "※ お使いのブラウザは音声入力に対応していません。下の枠から直接文字を入力してください。"}
       </div>
     );
   }
@@ -417,12 +422,12 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
           {isListening ? (
             <>
               <MicOff size={22} className="animate-pulse" />
-              <span>お話し中（タップで停止）</span>
+              <span>{isSimple ? "お話し中（おわったらタップ）" : "お話し中（タップで停止）"}</span>
             </>
           ) : (
             <>
               <Mic size={22} />
-              <span>マイクを押して声で話す</span>
+              <span>{isSimple ? "マイクを押してお話しする" : "マイクを押して声で話す"}</span>
             </>
           )}
         </button>
@@ -448,7 +453,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
                 animation: "voice-record-pulse 1s infinite",
               }}
             />
-            マイクが聞いています…
+            {isSimple ? "マイクがきいているよ…" : "マイクが聞いています…"}
           </div>
         )}
       </div>

@@ -161,7 +161,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             style={{ minHeight: "36px", padding: "0.4rem 0.75rem", fontSize: "0.875rem" }}
           >
             <XCircle size={16} />
-            終了
+            おしまいにする
           </button>
           <button
             type="button"
@@ -171,7 +171,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
             style={{ minHeight: "36px", padding: "0.4rem 0.75rem", fontSize: "0.875rem" }}
           >
             <RotateCcw size={16} />
-            やり直す
+            さいしょから
           </button>
         </div>
       </div>
@@ -336,7 +336,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                 transition: "all 0.2s ease",
                 background: currentInputMethod === "voice" ? "var(--color-primary)" : "transparent",
                 color: currentInputMethod === "voice" ? "#FFFFFF" : "var(--color-text-muted)",
-                boxShadow: currentInputMethod === "voice" ? "0 2px 6px rgba(2, 132, 199, 0.25)" : "none",
+                boxShadow: currentInputMethod === "voice" ? "0 2px 6px rgba(234, 88, 12, 0.25)" : "none",
               }}
             >
               <Mic size={16} />
@@ -358,7 +358,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                 transition: "all 0.2s ease",
                 background: currentInputMethod === "text" ? "var(--color-primary)" : "transparent",
                 color: currentInputMethod === "text" ? "#FFFFFF" : "var(--color-text-muted)",
-                boxShadow: currentInputMethod === "text" ? "0 2px 6px rgba(2, 132, 199, 0.25)" : "none",
+                boxShadow: currentInputMethod === "text" ? "0 2px 6px rgba(234, 88, 12, 0.25)" : "none",
               }}
             >
               <Keyboard size={16} />
@@ -535,10 +535,10 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                 fontSize: "1.15rem",
                 fontWeight: 700,
                 borderRadius: "var(--radius-md)",
-                boxShadow: answer.trim() ? "0 4px 12px rgba(2, 132, 199, 0.25)" : "none",
+                boxShadow: answer.trim() ? "0 4px 12px rgba(234, 88, 12, 0.25)" : "none",
               }}
             >
-              回答してお返事完了
+              お返事して次へ
               <ArrowRight size={22} />
             </button>
           </div>
@@ -559,7 +559,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                 textDecoration: "underline",
               }}
             >
-              この質問をスキップする
+              このしつもんをとばす
             </button>
           </div>
         </form>

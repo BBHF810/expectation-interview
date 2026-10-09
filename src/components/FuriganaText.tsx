@@ -30,11 +30,13 @@ export function stripFurigana(text: string): string {
   if (!text) return "";
   // <ruby>漢字<rt>かんじ</rt></ruby> -> 漢字
   let clean = text.replace(/<ruby>([^<]+)<rt>[^<]*<\/rt><\/ruby>/g, "$1");
-  // （かんじ） や (かんじ) などのふりがなカッコ書きを除去
-  clean = clean.replace(/[（\(][ぁ-ん]+[）\)]/g, "");
+  // 残ったタグがあれば除去
+  clean = clean.replace(/<\/?(?:ruby|rt|rb|rp)[^>]*>/gi, "");
+  // （かんじ） や (かんじ) などのふりがなカッコ書きを除去（カタカナ・スペースも対応）
+  clean = clean.replace(/[（\(][ぁ-んァ-ヶー\s]+[）\)]/g, "");
   // 出来事 -> こと
   clean = clean.replace(/出来事/g, "こと");
-  return clean;
+  return clean.trim();
 }
 
 interface FuriganaTextProps {

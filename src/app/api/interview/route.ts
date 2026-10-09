@@ -8,6 +8,7 @@ import { getFallbackQuestion, getInitialSingleQuestion } from "@/lib/fallbacks";
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { AgeGroup, CareStatus, ExpectationType } from "@/types";
 import { getFastCloudVoicevoxStreamingUrl } from "@/lib/voicevox";
+import { stripFurigana } from "@/components/FuriganaText";
 
 const InterviewRequestSchema = z.object({
   ageGroup: z.enum(["under_10", "11_30", "31_plus", "no_answer"]),
@@ -330,6 +331,14 @@ ${
       cleanQuestion = cleanQuestion.substring(0, 77) + "？";
     }
 
+    // 子ども向け（14歳以下等）の場合、もしAIが「家族（かぞく）」等のカッコ書きを出力していたら、ひらがな（かぞく）側に置換
+    const isChildMode = (age !== undefined && age !== null) ? age <= 14 : ageGroup === "under_10";
+    if (isChildMode) {
+      cleanQuestion = cleanQuestion.replace(/([一-龠々][一-龠々ぁ-ん]*)[（\(]([ぁ-ん]+)[）\)]/g, "$2");
+    }
+    // 残ったカッコ書きふりがなを除去して表示用文面を整形
+    cleanQuestion = cleanQuestion.replace(/[（\(][ぁ-んァ-ヶー\s]+[）\)]/g, "").trim();
+
     logSafeRequest({
       requestId,
       endpoint: "/api/interview",
@@ -341,11 +350,12 @@ ${
 
     const isFinished = data.shouldFinish === true;
 
-    // VOICEVOX Cloud ボイスの場合は、サーバー側で先行してストリーミングURLを取得（iPad等での待ち時間を極小化）
+    // VOICEVOX Cloud ボイスの場合は、サーバー側で先行してストリーミングURLを取得（ふりがなを確実に除去して二重読みを防止）
     let audioStreamingUrl: string | undefined = undefined;
     if (!isFinished && cleanQuestion && parsedData?.voice?.startsWith("voicevox:")) {
       const speakerId = parseInt(parsedData.voice.split(":")[1], 10) || 3;
-      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(cleanQuestion, speakerId, 5000)) || undefined;
+      const ttsQuestionText = stripFurigana(cleanQuestion);
+      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(ttsQuestionText, speakerId, 5000)) || undefined;
     }
 
     return NextResponse.json({

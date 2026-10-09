@@ -173,7 +173,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             title="ここで対話を終えて振り返りを表示します"
           >
             <XCircle size={16} />
-            体験終了
+            {isSimple ? "おしまいにする" : "体験終了"}
           </button>
           <button
             type="button"
@@ -184,7 +184,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             title="すべてリセットして最初に戻ります"
           >
             <RotateCcw size={16} />
-            最初から
+            {isSimple ? "さいしょから" : "最初から"}
           </button>
         </div>
       </div>
@@ -361,11 +361,11 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 transition: "all 0.2s ease",
                 background: currentInputMethod === "voice" ? "var(--color-primary)" : "transparent",
                 color: currentInputMethod === "voice" ? "#FFFFFF" : "var(--color-text-muted)",
-                boxShadow: currentInputMethod === "voice" ? "0 2px 6px rgba(2, 132, 199, 0.25)" : "none",
+                boxShadow: currentInputMethod === "voice" ? "0 2px 6px rgba(234, 88, 12, 0.25)" : "none",
               }}
             >
               <Mic size={16} />
-              音声入力
+              {isSimple ? "声でお話しする" : "音声入力"}
             </button>
             <button
               type="button"
@@ -383,11 +383,11 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 transition: "all 0.2s ease",
                 background: currentInputMethod === "text" ? "var(--color-primary)" : "transparent",
                 color: currentInputMethod === "text" ? "#FFFFFF" : "var(--color-text-muted)",
-                boxShadow: currentInputMethod === "text" ? "0 2px 6px rgba(2, 132, 199, 0.25)" : "none",
+                boxShadow: currentInputMethod === "text" ? "0 2px 6px rgba(234, 88, 12, 0.25)" : "none",
               }}
             >
               <Keyboard size={16} />
-              文字入力（タイピング）
+              {isSimple ? "もじをうつ" : "文字入力（タイピング）"}
             </button>
           </div>
 
@@ -419,12 +419,20 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                   {isSpeaking ? (
                     <>
                       <span style={{ fontSize: "1.2rem" }}>🔊</span>
-                      <span>AIがお話し中です。ボタンを押すと音声を止めてすぐにお話しできます</span>
+                      <span>
+                        {isSimple
+                          ? "AIがお話し中だよ。ボタンを押すとすぐに声でお話しできるよ"
+                          : "AIがお話し中です。ボタンを押すと音声を止めてすぐにお話しできます"}
+                      </span>
                     </>
                   ) : (
                     <>
                       <span style={{ fontSize: "1.2rem" }}>🎙️</span>
-                      <span>下のボタンを押して、声でお話しください</span>
+                      <span>
+                        {isSimple
+                          ? "下のボタンを押して、声でお話ししてみてね"
+                          : "下のボタンを押して、声でお話しください"}
+                      </span>
                     </>
                   )}
                 </div>
@@ -439,6 +447,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                   }}
                   onBeforeStart={stopAllAudio}
                   isAiSpeaking={isSpeaking}
+                  isSimple={isSimple}
                   disabled={isLoading}
                 />
               </div>
@@ -455,7 +464,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                     <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-primary)" }}>
-                      聞き取った内容：
+                      {isSimple ? "ききとったことば：" : "聞き取った内容："}
                     </span>
                     <button
                       type="button"
@@ -472,7 +481,13 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                       }}
                     >
                       <Edit3 size={14} />
-                      {showManualEdit ? "手直しを閉じる" : "文字を手直しする"}
+                      {isSimple
+                        ? showManualEdit
+                          ? "なおすのをやめる"
+                          : "もじをなおす"
+                        : showManualEdit
+                        ? "手直しを閉じる"
+                        : "文字を手直しする"}
                     </button>
                   </div>
                   {showManualEdit ? (
@@ -497,7 +512,9 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 </div>
               ) : (
                 <div style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
-                  （マイクボタンを押してお話しすると、ここに言葉が表示されます）
+                  {isSimple
+                    ? "（マイクボタンをおしてお話しすると、ここにことばがでるよ）"
+                    : "（マイクボタンを押してお話しすると、ここに言葉が表示されます）"}
                 </div>
               )}
             </div>
@@ -557,10 +574,10 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 fontSize: "1.15rem",
                 fontWeight: 700,
                 borderRadius: "var(--radius-md)",
-                boxShadow: answer.trim() ? "0 4px 12px rgba(2, 132, 199, 0.25)" : "none",
+                boxShadow: answer.trim() ? "0 4px 12px rgba(234, 88, 12, 0.25)" : "none",
               }}
             >
-              回答して次へ
+              {isSimple ? "お返事して次へ" : "回答して次へ"}
               <ArrowRight size={22} />
             </button>
           </div>
@@ -589,7 +606,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 textDecoration: "underline",
               }}
             >
-              思いつかない
+              {isSimple ? "おもいつかない" : "思いつかない"}
             </button>
             <span style={{ color: "var(--color-border)" }}>|</span>
             <button
@@ -606,7 +623,7 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                 textDecoration: "underline",
               }}
             >
-              答えたくない
+              {isSimple ? "こたえたくない" : "答えたくない"}
             </button>
           </div>
         </form>

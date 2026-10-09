@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAiClient } from "@/lib/openai";
 import { generateVoicevoxAudio, generateCloudVoicevoxAudio } from "@/lib/voicevox";
+import { stripFurigana } from "@/components/FuriganaText";
 
 // サーバーサイド・インメモリ音声キャッシュ（固定質問等の再生成待機ゼロ化）
 const ttsAudioCache = new Map<string, { buffer: Buffer; contentType: string; engine: string }>();
@@ -15,8 +16,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
+    // 読み上げ前にふりがなカッコ書き等を完全に除去し二重読みを防止
+    const cleanText = stripFurigana(text.trim());
+    if (!cleanText) {
+      return NextResponse.json({ error: "Valid text is required" }, { status: 400 });
+    }
+
     // 0. キャッシュヒット判定（同一テキスト・ボイスは0msで返却）
-    const cacheKey = `${voice}:${voicevoxSpeaker ?? ""}:${text.trim()}`;
+    const cacheKey = `${voice}:${voicevoxSpeaker ?? ""}:${cleanText}`;
     const cached = ttsAudioCache.get(cacheKey);
     if (cached) {
       return new NextResponse(new Uint8Array(cached.buffer), {
@@ -49,14 +56,14 @@ export async function POST(req: NextRequest) {
     // ① 自前/ローカル VOICEVOX URL が設定されている場合は優先実行
     let voicevoxResult =
       isVoicevoxPreferred && process.env.VOICEVOX_API_URL
-        ? await generateVoicevoxAudio(text, speakerId, 4000)
+        ? await generateVoicevoxAudio(cleanText, speakerId, 4000)
         : null;
 
     let engineHeader = "VOICEVOX";
 
     // ② 無料クラウドVOICEVOX Web API (tts.quest) をサーバー側で十分に時間をかけて実行（最大15秒）
     if (!voicevoxResult && isVoicevoxPreferred) {
-      voicevoxResult = await generateCloudVoicevoxAudio(text, speakerId, 15000);
+      voicevoxResult = await generateCloudVoicevoxAudio(cleanText, speakerId, 15000);
       if (voicevoxResult) {
         engineHeader = "VOICEVOX-Cloud";
       }
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
     const response = await client.audio.speech.create({
       model: "tts-1-hd",
       voice: openAiVoice,
-      input: text.slice(0, 4096),
+      input: cleanText.slice(0, 4096),
       response_format: "mp3",
       speed: 1.0,
     });

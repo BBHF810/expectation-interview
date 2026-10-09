@@ -8,6 +8,7 @@ import { getFallbackPairQuestion, getInitialPairQuestion } from "@/lib/pair-fall
 import { logSafeRequest, generateRequestId } from "@/lib/logger";
 import { ExpectationType } from "@/types";
 import { getFastCloudVoicevoxStreamingUrl } from "@/lib/voicevox";
+import { stripFurigana } from "@/components/FuriganaText";
 
 const PairTurnSchema = z.object({
   questionNumber: z.number(),
@@ -321,14 +322,18 @@ ${
       cleanQuestion = cleanQuestion.substring(0, 77) + "？";
     }
 
+    // 残ったカッコ書きふりがなを除去して表示用文面を整形
+    cleanQuestion = cleanQuestion.replace(/[（\(][ぁ-んァ-ヶー\s]+[）\)]/g, "").trim();
+
     const nextSpeaker = "A" as const;
     const nextSpeakerName = nameA;
 
-    // VOICEVOX Cloud ボイスの場合は、サーバー側で先行してストリーミングURLを取得（iPad等での待ち時間を極小化）
+    // VOICEVOX Cloud ボイスの場合は、サーバー側で先行してストリーミングURLを取得（ふりがなを確実に除去して二重読みを防止）
     let audioStreamingUrl: string | undefined = undefined;
     if (cleanQuestion && parsedData?.voice?.startsWith("voicevox:")) {
       const speakerId = parseInt(parsedData.voice.split(":")[1], 10) || 3;
-      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(cleanQuestion, speakerId, 5000)) || undefined;
+      const ttsQuestionText = stripFurigana(cleanQuestion);
+      audioStreamingUrl = (await getFastCloudVoicevoxStreamingUrl(ttsQuestionText, speakerId, 5000)) || undefined;
     }
 
     logSafeRequest({
