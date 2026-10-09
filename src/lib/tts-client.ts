@@ -113,7 +113,12 @@ export function unlockAudioOnUserAction(): void {
     try {
       audio.onplay = null;
       audio.oncanplay = null;
-      audio.onended = null;
+      audio.onended = () => {
+        try {
+          audio.removeAttribute("src");
+          audio.load();
+        } catch {}
+      };
       audio.onerror = null;
       audio.src = SILENT_WAV;
       const p = audio.play();
