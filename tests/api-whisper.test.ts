@@ -79,7 +79,82 @@ describe("Whisper API (/api/whisper)", () => {
       expect.objectContaining({
         model: "whisper-1",
         language: "ja",
+        temperature: 0,
+        prompt: expect.stringContaining("文字起こし"),
       })
     );
+  });
+
+  it("「ご視聴ありがとうございました」などの無音ハルシネーションは空文字にサニタイズされる", async () => {
+    const { getOpenAiClient } = await import("@/lib/openai");
+    const mockCreate = vi.fn().mockResolvedValue({ text: "ご視聴ありがとうございました。" });
+    const mockOpenAi = {
+      audio: {
+        transcriptions: {
+          create: mockCreate,
+        },
+      },
+    } as any;
+    vi.mocked(getOpenAiClient).mockReturnValue(mockOpenAi);
+
+    const formData = new FormData();
+    formData.append("file", new Blob(["dummy-audio-bytes"], { type: "audio/webm" }), "speech.webm");
+
+    const req = {
+      formData: async () => formData,
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    // ハルシネーション単体は空文字として返却される
+    expect(data.text).toBe("");
+  });
+
+  it("回答末尾にハルシネーションが付着した場合、正常な発話部分のみが残る", async () => {
+    const { getOpenAiClient } = await import("@/lib/openai");
+    const mockCreate = vi.fn().mockResolvedValue({ text: "友達と一緒に遊んで楽しかったです。ご視聴ありがとうございました。" });
+    const mockOpenAi = {
+      audio: {
+        transcriptions: {
+          create: mockCreate,
+        },
+      },
+    } as any;
+    vi.mocked(getOpenAiClient).mockReturnValue(mockOpenAi);
+
+    const formData = new FormData();
+    formData.append("file", new Blob(["dummy-audio-bytes"], { type: "audio/webm" }), "speech.webm");
+
+    const req = {
+      formData: async () => formData,
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.text).toBe("友達と一緒に遊んで楽しかったです。");
+  });
+});
+
+describe("sanitizeWhisperTranscript ヘルパー関数テスト", () => {
+  it("各種ハルシネーションパターンを正しく除去する", async () => {
+    const { sanitizeWhisperTranscript } = await import("@/lib/whisper-sanitizer");
+
+    expect(sanitizeWhisperTranscript("ご視聴ありがとうございました")).toBe("");
+    expect(sanitizeWhisperTranscript("ご視聴ありがとうございました。")).toBe("");
+    expect(sanitizeWhisperTranscript("ご視聴いただきありがとうございました！")).toBe("");
+    expect(sanitizeWhisperTranscript("チャンネル登録よろしくお願いします。")).toBe("");
+    expect(sanitizeWhisperTranscript("MBCニュースでした")).toBe("");
+    expect(sanitizeWhisperTranscript("Thank you for watching.")).toBe("");
+    expect(sanitizeWhisperTranscript("。")).toBe("");
+    expect(sanitizeWhisperTranscript("")).toBe("");
+
+    // 正常な発話はそのまま維持される
+    expect(sanitizeWhisperTranscript("昨日は家族で旅行に行きました。")).toBe("昨日は家族で旅行に行きました。");
+    expect(sanitizeWhisperTranscript("映画を視聴しました")).toBe("映画を視聴しました");
+
+    // 末尾付着パターンの除去
+    expect(sanitizeWhisperTranscript("楽しかった思い出です。ご視聴ありがとうございました")).toBe("楽しかった思い出です。");
   });
 });

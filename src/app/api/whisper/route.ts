@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOpenAiClient } from "@/lib/openai";
+import { sanitizeWhisperTranscript } from "@/lib/whisper-sanitizer";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -41,9 +42,13 @@ export async function POST(request: NextRequest) {
       file: file as any,
       model: "whisper-1",
       language: "ja",
+      temperature: 0, // 無音・微小ノイズ時のハルシネーションを抑制
+      prompt: "利用者の発話内容の文字起こしです。日常会話の日本語。", // 動画字幕文脈への引っ張られを防止
     });
 
-    return NextResponse.json({ text: transcript.text });
+    const cleanText = sanitizeWhisperTranscript(transcript.text);
+
+    return NextResponse.json({ text: cleanText });
   } catch (error: any) {
     console.error("[api/whisper] Error transcribing audio:", error);
     return NextResponse.json(

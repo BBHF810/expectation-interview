@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Mic, MicOff, AlertCircle, Loader2 } from "lucide-react";
 import { getSharedAudio } from "@/lib/tts-client";
 import { VoiceInputProps } from "./VoiceInputWebSpeechAPI";
+import { sanitizeWhisperTranscript } from "@/lib/whisper-sanitizer";
 
 export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
   onTranscriptChange,
@@ -117,7 +118,7 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
       }
 
       const data = await res.json();
-      const transcribedText = (data.text || "").trim();
+      const transcribedText = sanitizeWhisperTranscript(data.text);
 
       if (transcribedText && isMountedRef.current) {
         const base = baseTextRef.current;
