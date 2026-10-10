@@ -166,7 +166,10 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
 
           <button
             type="button"
-            onClick={onFinishEarly}
+            onClick={() => {
+              stopAllAudio();
+              onFinishEarly();
+            }}
             disabled={isLoading}
             className="btn btn-outline"
             style={{ minHeight: "36px", padding: "0.4rem 0.75rem", fontSize: "0.875rem" }}
@@ -177,7 +180,10 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
           </button>
           <button
             type="button"
-            onClick={onReset}
+            onClick={() => {
+              stopAllAudio();
+              onReset();
+            }}
             disabled={isLoading}
             className="btn btn-outline"
             style={{ minHeight: "36px", padding: "0.4rem 0.75rem", fontSize: "0.875rem" }}
@@ -369,7 +375,11 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => setCurrentInputMethod("text")}
+              onClick={() => {
+                stopAllAudio();
+                setIsListening(false);
+                setCurrentInputMethod("text");
+              }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -469,7 +479,11 @@ export const InterviewScreen: React.FC<InterviewScreenProps> = ({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setShowManualEdit(!showManualEdit)}
+                      onClick={() => {
+                        stopAllAudio();
+                        setIsListening(false);
+                        setShowManualEdit(!showManualEdit);
+                      }}
                       style={{
                         background: "none",
                         border: "none",

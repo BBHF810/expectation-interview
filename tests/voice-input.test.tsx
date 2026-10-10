@@ -447,4 +447,121 @@ describe("VoiceInput コンポーネント", () => {
     expect(warnSpy).not.toHaveBeenCalledWith("Speech recognition error:", "aborted");
     warnSpy.mockRestore();
   });
+
+  it("Safari の全件再送パターン（interim / final の更新）でも重複追記されず正しい文章になる", () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn();
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    const handleTranscriptChange = vi.fn();
+
+    render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={handleTranscriptChange}
+        onListeningStateChange={() => {}}
+        disabled={false}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    fireEvent.click(micButton);
+
+    // 1回目: interim で「こんにちは」
+    act(() => {
+      mockInstance?.onresult?.({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: "こんにちは" }], { isFinal: false }),
+        ],
+      });
+    });
+    expect(handleTranscriptChange).toHaveBeenLastCalledWith("こんにちは");
+
+    // 2回目: 1件目が isFinal になり、2件目に interim で「今日は」
+    act(() => {
+      mockInstance?.onresult?.({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: "こんにちは" }], { isFinal: true }),
+          Object.assign([{ transcript: "今日は" }], { isFinal: false }),
+        ],
+      });
+    });
+    expect(handleTranscriptChange).toHaveBeenLastCalledWith("こんにちは今日は");
+
+    // 3回目: 2件目も isFinal に確定
+    act(() => {
+      mockInstance?.onresult?.({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: "こんにちは" }], { isFinal: true }),
+          Object.assign([{ transcript: "今日はいい天気ですね" }], { isFinal: true }),
+        ],
+      });
+    });
+    expect(handleTranscriptChange).toHaveBeenLastCalledWith("こんにちは今日はいい天気ですね");
+  });
+
+  it("手動停止ボタンを押した際、直ちに abort されず stop() が呼ばれて確定結果を待つ猶予状態になる", () => {
+    let mockInstance: any = null;
+
+    class MockSpeechRecognition {
+      start = vi.fn().mockImplementation(() => {
+        if (this.onstart) this.onstart();
+      });
+      stop = vi.fn();
+      abort = vi.fn();
+      onstart: any = null;
+      onresult: any = null;
+      onerror: any = null;
+      onend: any = null;
+
+      constructor() {
+        mockInstance = this;
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+
+    const handleListeningChange = vi.fn();
+
+    render(
+      <VoiceInput
+        currentText=""
+        onTranscriptChange={() => {}}
+        onListeningStateChange={handleListeningChange}
+        disabled={false}
+      />
+    );
+
+    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    fireEvent.click(micButton);
+    expect(mockInstance.start).toHaveBeenCalled();
+
+    // 録音中ボタンをタップして手動停止
+    const stopButton = screen.getByRole("button", { name: /音声入力を停止する/i });
+    fireEvent.click(stopButton);
+
+    // abort() ではなく stop() が呼ばれる（最後の確定結果の猶予期間）
+    expect(mockInstance.stop).toHaveBeenCalled();
+    expect(mockInstance.abort).not.toHaveBeenCalled();
+    expect(handleListeningChange).toHaveBeenLastCalledWith(false);
+  });
 });
