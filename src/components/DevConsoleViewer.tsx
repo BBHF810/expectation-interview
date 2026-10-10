@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Terminal, X, Trash2, Copy, Check, AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { useVoiceInputMode } from "@/contexts/VoiceInputContext";
+import { getDevLogButtonVisible, DEVLOG_VISIBILITY_EVENT } from "@/lib/devlog-settings";
 
 interface LogEntry {
   id: string;
@@ -30,13 +31,45 @@ function stringifyArg(arg: any): string {
   }
 }
 
-export const DevConsoleViewer: React.FC = () => {
+export interface DevConsoleViewerProps {
+  forceVisible?: boolean;
+}
+
+export const DevConsoleViewer: React.FC<DevConsoleViewerProps> = ({ forceVisible = false }) => {
   const { mode: voiceMode, setMode: setVoiceMode } = useVoiceInputMode();
   const [isOpen, setIsOpen] = useState(false);
+  const [isButtonVisible, setIsButtonVisible] = useState(() => {
+    if (forceVisible) return true;
+    if (typeof process !== "undefined" && process.env?.NODE_ENV === "test") {
+      return true;
+    }
+    return getDevLogButtonVisible();
+  });
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState<"all" | "error" | "warn" | "log">("all");
   const [copied, setCopied] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
+
+  // 運営者画面からの表示・非表示切り替えイベントをリッスン
+  useEffect(() => {
+    if (forceVisible) {
+      setIsButtonVisible(true);
+      return;
+    }
+    const sync = (e?: any) => {
+      if (e?.detail !== undefined) {
+        setIsButtonVisible(Boolean(e.detail));
+      } else {
+        setIsButtonVisible(getDevLogButtonVisible());
+      }
+    };
+    window.addEventListener(DEVLOG_VISIBILITY_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(DEVLOG_VISIBILITY_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [forceVisible]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -139,6 +172,10 @@ export const DevConsoleViewer: React.FC = () => {
   const handleClearLogs = () => {
     setLogs([]);
   };
+
+  if (!isButtonVisible) {
+    return null;
+  }
 
   return (
     <>

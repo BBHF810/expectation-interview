@@ -75,6 +75,15 @@ describe("動物診断マスターとユーティリティ", () => {
 
       const owlMaster = normalizeSingleAnimal("見守りフクロウ");
       expect(owlMaster.id).toBe("owl");
+
+      const rabbitMaster = normalizeSingleAnimal("びんかんウサギタイプ");
+      expect(rabbitMaster.id).toBe("rabbit");
+      expect(rabbitMaster.animalName).toBe("びんかんウサギタイプ");
+
+      // 過去表記（びかんウサギ）からの後方互換正規化
+      const legacyRabbitMaster = normalizeSingleAnimal("びかんウサギ");
+      expect(legacyRabbitMaster.id).toBe("rabbit");
+      expect(legacyRabbitMaster.animalName).toBe("びんかんウサギタイプ");
     });
 
     it("未定義の名前でもデフォルトのワンちゃんタイプに安全にフォールバックする", () => {

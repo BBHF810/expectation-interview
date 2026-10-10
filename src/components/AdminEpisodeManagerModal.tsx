@@ -22,6 +22,8 @@ import {
 import { TheoryExplanationModal } from "./TheoryExplanationModal";
 
 import { SINGLE_ANIMAL_MASTERS, PAIR_ANIMAL_MASTERS } from "@/lib/animal-diagnoses";
+import { getDevLogButtonVisible, setDevLogButtonVisible } from "@/lib/devlog-settings";
+import { useVoiceInputMode } from "@/contexts/VoiceInputContext";
 
 interface AdminEpisodeManagerModalProps {
   isOpen: boolean;
@@ -32,7 +34,9 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
   isOpen,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState<"episodes" | "voice" | "animals">("episodes");
+  const { mode: voiceInputMode, setMode: setVoiceInputMode } = useVoiceInputMode();
+  const [activeTab, setActiveTab] = useState<"episodes" | "voice" | "animals" | "system">("episodes");
+  const [isDevLogVisible, setIsDevLogVisible] = useState(false);
   const [animalSubTab, setAnimalSubTab] = useState<"single" | "pair">("single");
   const [animalSearchQuery, setAnimalSearchQuery] = useState("");
   const [isTheoryModalOpen, setIsTheoryModalOpen] = useState(false);
@@ -94,6 +98,7 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
       setPinInput("");
       setPinError(false);
       setSelectedVoice(getSavedTtsVoice());
+      setIsDevLogVisible(getDevLogButtonVisible());
       if (isAuthenticated) {
         refreshData();
       }
@@ -101,6 +106,11 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
       stopAudio();
     }
   }, [isOpen, isAuthenticated]);
+
+  const handleToggleDevLog = (checked: boolean) => {
+    setIsDevLogVisible(checked);
+    setDevLogButtonVisible(checked);
+  };
 
   const handlePlayVoice = async (voiceId: TtsVoiceId) => {
     stopAudio();
@@ -415,6 +425,29 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
           >
             <span>🐾</span>
             動物診断マスター（根拠・具体例）
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("system")}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.6rem 1.25rem",
+              borderRadius: "var(--radius-md) var(--radius-md) 0 0",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              background: activeTab === "system" ? "#EFF6FF" : "transparent",
+              color: activeTab === "system" ? "var(--color-primary)" : "var(--color-text-muted)",
+              borderBottom: activeTab === "system" ? "3px solid var(--color-primary)" : "3px solid transparent",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Settings2 size={18} />
+            システム・展示設定
           </button>
 
           <button
@@ -979,6 +1012,164 @@ export const AdminEpisodeManagerModal: React.FC<AdminEpisodeManagerModalProps> =
                 ))}
               </div>
             )}
+          </div>
+        ) : activeTab === "system" ? (
+          /* --- システム・展示設定タブ --- */
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            {/* 説明案内バナー */}
+            <div
+              style={{
+                background: "#F8FAFC",
+                border: "1px solid #CBD5E1",
+                borderRadius: "var(--radius-md)",
+                padding: "1rem 1.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.35rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 700, color: "#1E293B" }}>
+                <Settings2 size={18} />
+                <span>展示会場・端末システム設定</span>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.85rem", color: "#475569", lineHeight: 1.5 }}>
+                本番展示での画面表示や、入力方式（STT）の設定を端末ごとに管理できます。
+                設定内容はブラウザ（端末ローカル）に自動保存されます。
+              </p>
+            </div>
+
+            {/* ① DevLog 表示切り替え */}
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg)",
+                padding: "1.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "1rem", color: "var(--color-text-main)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span>💻</span>
+                    <span>開発ログ（DevLog）ボタンの表示</span>
+                  </div>
+                  <div style={{ fontSize: "0.825rem", color: "var(--color-text-muted)", marginTop: "0.2rem" }}>
+                    画面右下に表示される開発・デバッグ用ログボタンの表示 / 非表示
+                  </div>
+                </div>
+
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.6rem",
+                    cursor: "pointer",
+                    padding: "0.4rem 0.8rem",
+                    borderRadius: "var(--radius-full)",
+                    background: isDevLogVisible ? "#EFF6FF" : "#F1F5F9",
+                    border: isDevLogVisible ? "1px solid #93C5FD" : "1px solid var(--color-border)",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isDevLogVisible}
+                    onChange={(e) => handleToggleDevLog(e.target.checked)}
+                    style={{ width: "18px", height: "18px", cursor: "pointer" }}
+                  />
+                  <span style={{ fontSize: "0.9rem", fontWeight: 700, color: isDevLogVisible ? "var(--color-primary)" : "var(--color-text-muted)" }}>
+                    {isDevLogVisible ? "表示中（ON）" : "非表示（OFF）"}
+                  </span>
+                </label>
+              </div>
+
+              <div
+                style={{
+                  fontSize: "0.825rem",
+                  color: "#64748B",
+                  background: "#F8FAFC",
+                  padding: "0.65rem 0.85rem",
+                  borderRadius: "var(--radius-sm)",
+                  lineHeight: 1.5,
+                }}
+              >
+                💡 <strong>運用ガイド:</strong> 一般来場者が体験する展示会本番では、誤操作を防ぎ画面をすっきり保つため<strong>【非表示（OFF）】</strong>（推奨）にして運用いただけます。音声認識の通信状況やエラーログを端末上で確認したい場合のみ【表示中（ON）】に切り替えてください。
+              </div>
+            </div>
+
+            {/* ② 音声入力（STT）方式の選択 */}
+            <div
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg)",
+                padding: "1.25rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "1rem", color: "var(--color-text-main)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <span>🎙️</span>
+                  <span>音声入力（STT）方式の切り替え</span>
+                </div>
+                <div style={{ fontSize: "0.825rem", color: "var(--color-text-muted)", marginTop: "0.2rem" }}>
+                  来場者の回答音声をテキストに変換するエンジンを選択
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0.75rem" }}>
+                <div
+                  onClick={() => setVoiceInputMode("media_recorder")}
+                  style={{
+                    padding: "1rem",
+                    borderRadius: "var(--radius-md)",
+                    border: voiceInputMode === "media_recorder" ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                    background: voiceInputMode === "media_recorder" ? "#EFF6FF" : "#FFFFFF",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                    <span style={{ fontWeight: 800, fontSize: "0.95rem", color: voiceInputMode === "media_recorder" ? "var(--color-primary)" : "var(--color-text-main)" }}>
+                      Whisper API モード（推奨・現在標準）
+                    </span>
+                    {voiceInputMode === "media_recorder" && <span style={{ fontSize: "0.8rem", color: "var(--color-primary)", fontWeight: 700 }}>✓ 適用中</span>}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+                    録音音声を OpenAI Whisper で高精度文字起こし。iOS Safari でも 2問目以降フリーズせず完全に安定動作します。
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setVoiceInputMode("web_speech_api")}
+                  style={{
+                    padding: "1rem",
+                    borderRadius: "var(--radius-md)",
+                    border: voiceInputMode === "web_speech_api" ? "2px solid var(--color-primary)" : "1px solid var(--color-border)",
+                    background: voiceInputMode === "web_speech_api" ? "#EFF6FF" : "#FFFFFF",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                    <span style={{ fontWeight: 800, fontSize: "0.95rem", color: voiceInputMode === "web_speech_api" ? "var(--color-primary)" : "var(--color-text-main)" }}>
+                      Web Speech API モード
+                    </span>
+                    {voiceInputMode === "web_speech_api" && <span style={{ fontSize: "0.8rem", color: "var(--color-primary)", fontWeight: 700 }}>✓ 適用中</span>}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+                    ブラウザ標準のリアルタイム音声認識。PCブラウザ（Chrome等）で高速に文字起こしされます。
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           /* --- エピソードデータ管理タブ --- */

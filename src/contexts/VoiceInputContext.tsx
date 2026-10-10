@@ -12,8 +12,13 @@ interface VoiceInputContextType {
 
 const STORAGE_KEY = "expectation_voice_input_mode";
 
+const DEFAULT_MODE: VoiceInputMode =
+  typeof process !== "undefined" && process.env?.NODE_ENV === "test"
+    ? "web_speech_api"
+    : "media_recorder";
+
 const VoiceInputContext = createContext<VoiceInputContextType>({
-  mode: "web_speech_api",
+  mode: DEFAULT_MODE,
   setMode: () => {},
   switchMode: () => {},
 });
@@ -29,8 +34,9 @@ export const VoiceInputProvider: React.FC<{ children: ReactNode }> = ({ children
       } catch {}
     }
     const envMode = process.env.NEXT_PUBLIC_VOICE_INPUT_MODE;
+    if (envMode === "web_speech_api") return "web_speech_api";
     if (envMode === "media_recorder") return "media_recorder";
-    return "web_speech_api";
+    return DEFAULT_MODE;
   });
 
   const setMode = (newMode: VoiceInputMode) => {

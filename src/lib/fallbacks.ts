@@ -95,7 +95,7 @@ export function getFallbackAnimalDiagnosis(
     } else if (combined.includes("手伝") || combined.includes("一緒") || combined.includes("協力")) {
       master = SINGLE_ANIMAL_MASTERS[5]; // よりそいペンギン
     } else if (combined.includes("気配") || combined.includes("優し") || combined.includes("気付")) {
-      master = SINGLE_ANIMAL_MASTERS[13]; // びかんウサギ
+      master = SINGLE_ANIMAL_MASTERS[13]; // びんかんウサギ
     } else {
       master = SINGLE_ANIMAL_MASTERS[4]; // ぬくもりクマ
     }

@@ -277,7 +277,7 @@ export const SINGLE_ANIMAL_MASTERS: SingleAnimalMaster[] = [
   {
     id: "rabbit",
     animalEmoji: "🐇",
-    animalName: "びかんウサギタイプ",
+    animalName: "びんかんウサギタイプ",
     shortName: "ウサギ",
     catchphrase: "豊かな感受性と素早い思いやりのアンテナ",
     academicTrait: "高感受性・迅速応答型（Sensitive & Responsive）",
@@ -511,7 +511,7 @@ export function normalizeSingleAnimal(
     return SINGLE_ANIMAL_MASTERS.find((m) => m.id === "lion")!;
   if (rawName.includes("象") || rawName.includes("ゾウ"))
     return SINGLE_ANIMAL_MASTERS.find((m) => m.id === "elephant")!;
-  if (rawName.includes("兎") || rawName.includes("ウサギ"))
+  if (rawName.includes("兎") || rawName.includes("ウサギ") || rawName.includes("びんかん") || rawName.includes("びかん"))
     return SINGLE_ANIMAL_MASTERS.find((m) => m.id === "rabbit")!;
 
   return SINGLE_ANIMAL_MASTERS[fallbackIndex] || SINGLE_ANIMAL_MASTERS[0];

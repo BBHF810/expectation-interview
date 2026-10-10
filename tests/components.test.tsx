@@ -205,6 +205,36 @@ describe("UIコンポーネントテスト", () => {
     expect(screen.getAllByText(/具体例/i).length).toBeGreaterThan(0);
   });
 
+  it("運営者モード: システム・展示設定タブで DevLog ボタンの表示切り替えと音声入力方式の変更ができる", () => {
+    const handleClose = vi.fn();
+
+    render(<AdminEpisodeManagerModal isOpen={true} onClose={handleClose} />);
+
+    // 暗証番号入力
+    const pinInput = screen.getByPlaceholderText("暗証番号を入力");
+    fireEvent.change(pinInput, { target: { value: "2026" } });
+    const unlockBtn = screen.getByRole("button", { name: "ロック解除" });
+    fireEvent.click(unlockBtn);
+
+    // システム・展示設定タブをタップ
+    const systemTabBtn = screen.getByRole("button", { name: /システム・展示設定/i });
+    expect(systemTabBtn).toBeInTheDocument();
+    fireEvent.click(systemTabBtn);
+
+    // DevLog ボタンの表示切り替えチェックボックスが存在する
+    const devlogCheckbox = screen.getByRole("checkbox");
+    expect(devlogCheckbox).toBeInTheDocument();
+    expect(devlogCheckbox).not.toBeChecked();
+
+    // トグルをONにする
+    fireEvent.click(devlogCheckbox);
+    expect(devlogCheckbox).toBeChecked();
+
+    // 音声入力方式の切り替えオプションが表示されている
+    expect(screen.getByText(/Whisper API モード/i)).toBeInTheDocument();
+    expect(screen.getByText(/Web Speech API モード/i)).toBeInTheDocument();
+  });
+
   it("一人用期待選択画面 (ExpectationScreen): 選択肢が表示され、選択後に「次へ」でonSelectが呼ばれる", () => {
     const handleSelect = vi.fn();
     const handleBack = vi.fn();
