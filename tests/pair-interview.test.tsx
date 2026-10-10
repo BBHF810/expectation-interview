@@ -48,6 +48,31 @@ describe("ふたりで体験するモードのテスト", () => {
     );
   });
 
+  it("PairSetupScreen: 名前入力欄は初期状態で空欄であり、プレースホルダーとして「例: たかし」「例: まさこ」が表示される", () => {
+    const handleNext = vi.fn();
+    const handleBack = vi.fn();
+
+    render(<PairSetupScreen onNext={handleNext} onBack={handleBack} />);
+
+    const inputA = screen.getByPlaceholderText("例: たかし") as HTMLInputElement;
+    const inputB = screen.getByPlaceholderText("例: まさこ") as HTMLInputElement;
+
+    // 入力欄に最初から文字が入っておらず、空欄であることを検証
+    expect(inputA.value).toBe("");
+    expect(inputB.value).toBe("");
+
+    // 文字を消す手間なく直接入力できることを検証
+    fireEvent.change(inputA, { target: { value: "けんた" } });
+    fireEvent.change(inputB, { target: { value: "ゆみ" } });
+    expect(inputA.value).toBe("けんた");
+    expect(inputB.value).toBe("ゆみ");
+
+    const submitBtn = screen.getByRole("button", { name: /次へ/i });
+    fireEvent.click(submitBtn);
+
+    expect(handleNext).toHaveBeenCalledWith("けんた", "ゆみ", "友だち");
+  });
+
   it("PairReflectionScreen: 「QRが読めない場合はリンクをコピー」が存在しないこと", () => {
     const handleReset = vi.fn();
     render(

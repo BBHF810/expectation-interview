@@ -12,8 +12,8 @@ interface PairSetupScreenProps {
 }
 
 export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
-  initialNameA = "たかし",
-  initialNameB = "まさこ",
+  initialNameA = "",
+  initialNameB = "",
   initialRelationship = "友だち",
   onNext,
   onBack,
@@ -93,8 +93,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
               type="text"
               value={nameA}
               onChange={(e) => setNameA(e.target.value.slice(0, 20))}
-              placeholder="例: たろう、あーちゃん"
-              required
+              placeholder="例: たかし"
               style={{
                 width: "100%",
                 padding: "0.75rem 0.9rem",
@@ -105,6 +104,9 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
                 backgroundColor: "#FFFFFF",
               }}
             />
+            <span style={{ fontSize: "0.8rem", color: "#6B7280", marginTop: "0.35rem", display: "block" }}>
+              ※ 未入力の場合は「たかし」になります
+            </span>
           </div>
 
           <div
@@ -132,8 +134,7 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
               type="text"
               value={nameB}
               onChange={(e) => setNameB(e.target.value.slice(0, 20))}
-              placeholder="例: はなこ、いっちゃん"
-              required
+              placeholder="例: まさこ"
               style={{
                 width: "100%",
                 padding: "0.75rem 0.9rem",
@@ -144,6 +145,9 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
                 backgroundColor: "#FFFFFF",
               }}
             />
+            <span style={{ fontSize: "0.8rem", color: "#6B7280", marginTop: "0.35rem", display: "block" }}>
+              ※ 未入力の場合は「まさこ」になります
+            </span>
           </div>
         </div>
 
@@ -225,7 +229,6 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
 
           <button
             type="submit"
-            disabled={!nameA.trim() || !nameB.trim()}
             className="btn btn-primary"
             style={{ minWidth: "160px" }}
           >

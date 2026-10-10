@@ -72,8 +72,8 @@ export default function Home() {
   const [closingComment, setClosingComment] = useState<string>("");
 
   // ふたりモード用ステート
-  const [pairNameA, setPairNameA] = useState("たかし");
-  const [pairNameB, setPairNameB] = useState("まさこ");
+  const [pairNameA, setPairNameA] = useState("");
+  const [pairNameB, setPairNameB] = useState("");
   const [pairAgeA, setPairAgeA] = useState<number | null>(null);
   const [pairAgeB, setPairAgeB] = useState<number | null>(null);
   const [pairRelationship, setPairRelationship] = useState("友だち");
@@ -122,8 +122,8 @@ export default function Home() {
       reflection: "",
       animalDiagnosis: ANIMAL_DIAGNOSES[0],
     });
-    setPairNameA("たかし");
-    setPairNameB("まさこ");
+    setPairNameA("");
+    setPairNameB("");
     setPairAgeA(null);
     setPairAgeB(null);
     setPairRelationship("友だち");
