@@ -66,7 +66,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     expect(micButton).toBeInTheDocument();
     expect(micButton).toBeEnabled();
   });
@@ -109,7 +109,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     expect(mockInstance).not.toBeNull();
@@ -161,7 +161,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     // エラーイベントをシミュレート
@@ -211,9 +211,9 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     expect(micButton).toBeInTheDocument();
-    expect(screen.getByText(/マイクを押して声で話す/i)).toBeInTheDocument();
+    expect(screen.getByText(/画面をタップしてお話しスタート/i)).toBeInTheDocument();
 
     fireEvent.click(micButton);
 
@@ -252,7 +252,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     expect(instances.length).toBe(1);
@@ -318,7 +318,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     // 上限（2回リトライ後の3回目）まで発生させる
@@ -369,7 +369,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     expect(handleListeningChange).toHaveBeenCalledWith(true);
@@ -425,7 +425,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     // 回答送信（disabled: true）によりマイク停止・abort が発火
@@ -480,7 +480,7 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
 
     // 1回目: interim で「こんにちは」
@@ -551,12 +551,12 @@ describe("VoiceInput コンポーネント", () => {
       />
     );
 
-    const micButton = screen.getByRole("button", { name: /音声で回答する/i });
+    const micButton = screen.getByRole("button", { name: /画面をタップしてお話しスタート/i });
     fireEvent.click(micButton);
     expect(mockInstance.start).toHaveBeenCalled();
 
     // 録音中ボタンをタップして手動停止
-    const stopButton = screen.getByRole("button", { name: /音声入力を停止する/i });
+    const stopButton = screen.getByRole("button", { name: /お話しを終了する/i });
     fireEvent.click(stopButton);
 
     // abort() ではなく stop() が呼ばれる（最後の確定結果の猶予期間）

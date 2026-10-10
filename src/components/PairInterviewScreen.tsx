@@ -379,15 +379,59 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           {currentInputMethod === "voice" ? (
             /* 音声入力専用 */
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {/* 声でお返事するステップ案内カード */}
+              <div
+                style={{
+                  background: "#F8FAFC",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "var(--radius-md)",
+                  padding: "0.85rem 1rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.3rem" }}>
+                  <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#1E293B" }}>
+                    🎙️ 声でお返事する手順（4ステップ）
+                  </span>
+                  <span style={{ fontSize: "0.8rem", color: "#DC2626", fontWeight: 700, background: "#FEF2F2", padding: "0.15rem 0.5rem", borderRadius: "var(--radius-full)", border: "1px solid #FECACA" }}>
+                    ※ 手元のマイクのボタンは押さず、画面をタップ！
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.4rem" }}>
+                  <div style={{ background: "#FFFFFF", padding: "0.4rem 0.6rem", borderRadius: "var(--radius-sm)", border: "1px solid #E2E8F0", fontSize: "0.8rem", color: "#334155" }}>
+                    <strong style={{ color: "var(--color-primary)" }}>① 画面をタップ</strong><br />
+                    「お話しスタート」を押す
+                  </div>
+                  <div style={{ background: "#FFFFFF", padding: "0.4rem 0.6rem", borderRadius: "var(--radius-sm)", border: "1px solid #E2E8F0", fontSize: "0.8rem", color: "#334155" }}>
+                    <strong style={{ color: "var(--color-primary)" }}>② 声でお話し</strong><br />
+                    マイクに向かって話す
+                  </div>
+                  <div style={{ background: "#FFFFFF", padding: "0.4rem 0.6rem", borderRadius: "var(--radius-sm)", border: "1px solid #E2E8F0", fontSize: "0.8rem", color: "#334155" }}>
+                    <strong style={{ color: "var(--color-primary)" }}>③ 画面をタップ</strong><br />
+                    「お話し終了」を押す
+                  </div>
+                  <div style={{ background: "#FFFFFF", padding: "0.4rem 0.6rem", borderRadius: "var(--radius-sm)", border: "1px solid #E2E8F0", fontSize: "0.8rem", color: "#334155" }}>
+                    <strong style={{ color: "var(--color-primary)" }}>④ 回答して次へ</strong><br />
+                    文字を確認して送信！
+                  </div>
+                </div>
+              </div>
+
               <div
                 style={{
                   background: isSpeaking
                     ? "#FEF3C7"
+                    : isListening
+                    ? "#FEF2F2"
                     : isSpeakerA
                     ? "#EFF6FF"
                     : "#FEF3C7",
                   border: isSpeaking
                     ? "2px solid #FCD34D"
+                    : isListening
+                    ? "2px solid #F87171"
                     : isSpeakerA
                     ? "2px solid #93C5FD"
                     : "2px solid #FCD34D",
@@ -403,7 +447,7 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   style={{
                     fontSize: "1rem",
                     fontWeight: 700,
-                    color: isSpeaking ? "#92400E" : isSpeakerA ? "#1E40AF" : "#92400E",
+                    color: isSpeaking ? "#92400E" : isListening ? "#991B1B" : isSpeakerA ? "#1E40AF" : "#92400E",
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
@@ -412,12 +456,17 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   {isSpeaking ? (
                     <>
                       <span style={{ fontSize: "1.2rem" }}>🔊</span>
-                      <span>AIがお話し中です。ボタンを押すと音声を止めてすぐにお話しできます</span>
+                      <span>AIがお話し中です。画面のボタンを押すと音声を止めてすぐにお話しできます</span>
+                    </>
+                  ) : isListening ? (
+                    <>
+                      <span style={{ fontSize: "1.2rem" }}>🔴</span>
+                      <span>{currentSpeakerName}録音中… マイクに向かってお話しください（話し終えたら画面のボタンをタップ）</span>
                     </>
                   ) : (
                     <>
                       <span style={{ fontSize: "1.2rem" }}>🎙️</span>
-                      <span>{currentSpeakerName}、下のボタンを押して声でお話しください</span>
+                      <span>{currentSpeakerName}、下の「画面のボタン」をタップして声でお話しください</span>
                     </>
                   )}
                 </div>
@@ -441,15 +490,21 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                 <div
                   style={{
                     background: "#FFFFFF",
-                    border: "2px solid var(--color-primary-border)",
+                    border: "2px solid #FB923C",
                     borderRadius: "var(--radius-md)",
                     padding: "1rem 1.25rem",
+                    boxShadow: "0 2px 8px rgba(234, 88, 12, 0.1)",
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                    <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-primary)" }}>
-                      聞き取った内容：
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "var(--color-primary)" }}>
+                        ✅ 聞き取った内容：
+                      </span>
+                      <span style={{ fontSize: "0.775rem", color: "#16A34A", fontWeight: 700, background: "#DCFCE7", padding: "0.15rem 0.45rem", borderRadius: "var(--radius-full)" }}>
+                        聞き取り完了
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => {
@@ -493,8 +548,8 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   )}
                 </div>
               ) : (
-                <div style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
-                  （マイクボタンを押してお話しすると、ここに言葉が表示されます）
+                <div style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: "0.875rem" }}>
+                  （画面の「お話しスタート」ボタンをタップしてお話しすると、ここに言葉が表示されます）
                 </div>
               )}
             </div>
@@ -539,7 +594,12 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
           )}
 
           {/* メインアクション：回答ボタン */}
-          <div>
+          <div style={{ marginTop: "0.5rem" }}>
+            {answer.trim() && currentInputMethod === "voice" && (
+              <div style={{ textAlign: "center", marginBottom: "0.4rem", color: "var(--color-primary)", fontWeight: 700, fontSize: "0.95rem" }}>
+                👇 内容を確認して、下のボタンを押してください！
+              </div>
+            )}
             <button
               type="submit"
               disabled={!answer.trim() || isLoading}

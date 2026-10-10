@@ -732,20 +732,26 @@ export const VoiceInputWebSpeechAPI: React.FC<VoiceInputProps> = ({
             cursor: disabled ? "not-allowed" : "pointer",
           }}
           aria-pressed={isListening}
-          aria-label={isListening ? "音声入力を停止する" : "音声で回答する（マイクを開始）"}
+          aria-label={isListening ? "お話しを終了する（画面をタップ）" : "画面をタップしてお話しスタート"}
         >
           {isListening ? (
             <>
               <MicOff size={22} className="animate-pulse" />
-              <span>{isSimple ? "お話し中（おわったらタップ）" : "お話し中（タップで停止）"}</span>
+              <span>{isSimple ? "お話し中（おわったらタップ）" : "お話し中（画面タップで終了）"}</span>
             </>
           ) : (
             <>
               <Mic size={22} />
-              <span>{isSimple ? "マイクを押してお話しする" : "マイクを押して声で話す"}</span>
+              <span>{isSimple ? "画面をタップしてお話しスタート" : "画面をタップしてお話しスタート"}</span>
             </>
           )}
         </button>
+
+        {!isListening && (
+          <span style={{ fontSize: "0.8rem", color: "#64748B" }}>
+            ※ 手元のマイクのボタンは押さず、画面のボタンをタップしてください
+          </span>
+        )}
 
         {isListening && (
           <div

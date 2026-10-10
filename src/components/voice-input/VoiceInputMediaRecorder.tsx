@@ -278,12 +278,12 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
           }}
           aria-label={
             isRecording
-              ? "音声入力を終了する"
+              ? "お話しを終了する（画面をタップ）"
               : isTranscribing
               ? "文字起こし中"
               : isAiSpeaking
-              ? "AIの声を止めてお話しする"
-              : "マイクを押してお話しする"
+              ? "AIの音声を止めて話す（画面をタップ）"
+              : "画面をタップしてお話しスタート"
           }
         >
           {isTranscribing ? (
@@ -295,7 +295,7 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
             <>
               <MicOff size={20} />
               <span>
-                {isSimple ? "お話しをおわる（タップ）" : "お話しを終了する（タップ）"}
+                {isSimple ? "お話し終了（画面をタップ）" : "お話し終了（画面をタップ）"}
               </span>
             </>
           ) : (
@@ -304,16 +304,24 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
               <span>
                 {isAiSpeaking
                   ? isSimple
-                    ? "AIの声を止めてお話しする"
-                    : "AIの音声を止めて話す"
+                    ? "AIの声を止めてお話しする（画面をタップ）"
+                    : "AIの音声を止めて話す（画面をタップ）"
                   : isSimple
-                  ? "マイクを押してお話しする"
-                  : "音声で入力する（マイクON）"}
+                  ? "画面をタップしてお話しスタート"
+                  : "画面をタップしてお話しスタート"}
               </span>
             </>
           )}
         </button>
       </div>
+
+      {/* 手元マイクのボタン誤操作防止と沈黙防止の注意喚起（待機時） */}
+      {!isRecording && !isTranscribing && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem", fontSize: "0.8rem", color: "#64748B", textAlign: "center" }}>
+          <span>※ 手元のマイクのボタンは押さず、<strong>画面のボタンをタップ</strong>してください</span>
+          <span style={{ color: "#D97706" }}>💡 話す内容を決めてからタップすると、きれいに聞き取れます</span>
+        </div>
+      )}
 
       {isRecording && (
         <div
@@ -323,25 +331,27 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
             gap: "0.5rem",
             fontSize: "0.875rem",
             color: "#DC2626",
-            padding: "0.25rem 0.5rem",
+            padding: "0.4rem 0.6rem",
             borderRadius: "var(--radius-sm)",
             backgroundColor: "#FEF2F2",
+            border: "1px solid #FECACA",
           }}
         >
           <span
             style={{
-              width: "8px",
-              height: "8px",
+              width: "10px",
+              height: "10px",
               borderRadius: "50%",
               backgroundColor: "#DC2626",
               display: "inline-block",
               animation: "pulse 1.5s infinite",
+              flexShrink: 0,
             }}
           />
-          <span>
+          <span style={{ fontWeight: 600 }}>
             {isSimple
-              ? "ろくおん中… 話しおわったらボタンを押してね"
-              : "録音中（Whisperモード）… 話し終えたらもう一度ボタンを押してください"}
+              ? "ろくおん中… 声でお話ししてね（おわったらもう一度画面をタップ）"
+              : "録音中… マイクに向かってお話しください ➡ 話し終えたら画面の【お話し終了】をタップ！"}
           </span>
         </div>
       )}
