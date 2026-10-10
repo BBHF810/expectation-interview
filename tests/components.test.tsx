@@ -10,6 +10,8 @@ import { InterviewScreen } from "@/components/InterviewScreen";
 import { AgeScreen } from "@/components/AgeScreen";
 import { ExpectationScreen } from "@/components/ExpectationScreen";
 import { AdminEpisodeManagerModal } from "@/components/AdminEpisodeManagerModal";
+import { ReflectionScreen } from "@/components/ReflectionScreen";
+import { PairReflectionScreen } from "@/components/PairReflectionScreen";
 import "@testing-library/jest-dom";
 
 describe("UIコンポーネントテスト", () => {
@@ -269,5 +271,73 @@ describe("UIコンポーネントテスト", () => {
     expect(nextBtn).toBeEnabled();
     fireEvent.click(nextBtn);
     expect(handleSelect).toHaveBeenCalledWith("mismatched");
+  });
+
+  it("一人用振り返り画面 (ReflectionScreen): 特大表示ボタンをクリックするとモーダルが表示され、閉じるボタンで閉じられる", async () => {
+    const handleReset = vi.fn();
+    render(
+      <ReflectionScreen
+        expected="期待通り"
+        actual="実際"
+        reflection="振り返りテキスト"
+        onReset={handleReset}
+        isSimple={false}
+      />
+    );
+
+    // 最初はモーダルが表示されていない
+    expect(screen.queryByText("特大QRコード")).not.toBeInTheDocument();
+
+    // 「タップして特大表示する」ボタンをクリック（QR生成完了待ち含む）
+    const zoomBtn = await screen.findByRole("button", { name: /タップして特大表示する/i });
+    expect(zoomBtn).toBeInTheDocument();
+    fireEvent.click(zoomBtn);
+
+    // 特大QRモーダルが表示される
+    expect(screen.getByText("特大QRコード")).toBeInTheDocument();
+    expect(screen.getByText(/スマートフォンのカメラを少し離してかざしてください/i)).toBeInTheDocument();
+
+    // 閉じるボタンをクリック
+    const closeBtns = screen.getAllByRole("button", { name: "閉じる" });
+    fireEvent.click(closeBtns[0]);
+
+    // モーダルが非表示になる
+    expect(screen.queryByText("特大QRコード")).not.toBeInTheDocument();
+  });
+
+  it("ふたり用振り返り画面 (PairReflectionScreen): 特大表示ボタンをクリックするとモーダルが表示され、閉じるボタンで閉じられる", async () => {
+    const handleReset = vi.fn();
+    render(
+      <PairReflectionScreen
+        nameA="たかし"
+        nameB="まさこ"
+        perspectiveA="A視点"
+        perspectiveB="B視点"
+        reflection="ふたりの振り返り"
+        pairAnimalDiagnosis={{
+          animalA: { emoji: "🐰", name: "ウサギ" },
+          animalB: { emoji: "🐢", name: "カメ" },
+          pairTitle: "テストペア",
+          pairCatchphrase: "キャッチフレーズ",
+          pairDescription: "説明",
+          futureRelationship: "関係性",
+          academicDynamic: "学術的視点",
+        }}
+        onReset={handleReset}
+      />
+    );
+
+    expect(screen.queryByText("特大QRコード")).not.toBeInTheDocument();
+
+    const zoomBtn = await screen.findByRole("button", { name: /タップして特大表示する/i });
+    expect(zoomBtn).toBeInTheDocument();
+    fireEvent.click(zoomBtn);
+
+    expect(screen.getByText("特大QRコード")).toBeInTheDocument();
+
+    const closeBtns = screen.getAllByRole("button", { name: "閉じる" });
+    fireEvent.click(closeBtns[0]);
+
+    expect(screen.queryByText("特大QRコード")).not.toBeInTheDocument();
   });
 });
