@@ -72,8 +72,8 @@ export default function Home() {
   const [closingComment, setClosingComment] = useState<string>("");
 
   // ふたりモード用ステート
-  const [pairNameA, setPairNameA] = useState("Aさん");
-  const [pairNameB, setPairNameB] = useState("Bさん");
+  const [pairNameA, setPairNameA] = useState("たかし");
+  const [pairNameB, setPairNameB] = useState("まさこ");
   const [pairAgeA, setPairAgeA] = useState<number | null>(null);
   const [pairAgeB, setPairAgeB] = useState<number | null>(null);
   const [pairRelationship, setPairRelationship] = useState("友だち");
@@ -82,7 +82,7 @@ export default function Home() {
   const [pairCurrentQuestion, setPairCurrentQuestion] = useState<string>("");
   const [pairAudioStreamingUrl, setPairAudioStreamingUrl] = useState<string | undefined>(undefined);
   const [pairCurrentSpeaker, setPairCurrentSpeaker] = useState<"A" | "B">("A");
-  const [pairCurrentSpeakerName, setPairCurrentSpeakerName] = useState<string>("Aさん");
+  const [pairCurrentSpeakerName, setPairCurrentSpeakerName] = useState<string>("たかし");
   const [pairProgress, setPairProgress] = useState<number>(1);
   const [pairClosingComment, setPairClosingComment] = useState<string>("");
   const [pairReflectionData, setPairReflectionData] = useState<{
@@ -122,8 +122,8 @@ export default function Home() {
       reflection: "",
       animalDiagnosis: ANIMAL_DIAGNOSES[0],
     });
-    setPairNameA("Aさん");
-    setPairNameB("Bさん");
+    setPairNameA("たかし");
+    setPairNameB("まさこ");
     setPairAgeA(null);
     setPairAgeB(null);
     setPairRelationship("友だち");
@@ -132,7 +132,7 @@ export default function Home() {
     setPairCurrentQuestion("");
     setPairAudioStreamingUrl(undefined);
     setPairCurrentSpeaker("A");
-    setPairCurrentSpeakerName("Aさん");
+    setPairCurrentSpeakerName("たかし");
     setPairProgress(1);
     setPairClosingComment("");
     setPairReflectionData({

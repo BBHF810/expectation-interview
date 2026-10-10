@@ -12,8 +12,8 @@ interface PairSetupScreenProps {
 }
 
 export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
-  initialNameA = "Aさん",
-  initialNameB = "Bさん",
+  initialNameA = "たかし",
+  initialNameB = "まさこ",
   initialRelationship = "友だち",
   onNext,
   onBack,
@@ -34,8 +34,8 @@ export const PairSetupScreen: React.FC<PairSetupScreenProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanA = nameA.trim() || "Aさん";
-    const cleanB = nameB.trim() || "Bさん";
+    const cleanA = nameA.trim() || "たかし";
+    const cleanB = nameB.trim() || "まさこ";
     const finalRelationship = relationship === "その他"
       ? (customRelationship.trim() || "その他")
       : relationship;
