@@ -3,6 +3,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { PairSetupScreen } from "@/components/PairSetupScreen";
+import { PairInterviewScreen } from "@/components/PairInterviewScreen";
 import { PairReflectionScreen } from "@/components/PairReflectionScreen";
 import { POST as pairInterviewPost } from "@/app/api/pair-interview/route";
 import { POST as pairReflectionPost } from "@/app/api/pair-reflection/route";
@@ -201,5 +202,39 @@ describe("ふたりで体験するモードのテスト", () => {
     const backToSetup = screen.getByRole("button", { name: /もどる/i });
     fireEvent.click(backToSetup);
     expect(screen.getByText(/ふたりのことを教えてください/i)).toBeInTheDocument();
+  });
+
+  it("PairInterviewScreen: キーボード入力モードで「内容をクリア」ボタンをクリックすると回答が消去される", () => {
+    const handleSubmitAnswer = vi.fn();
+    const handleFinishEarly = vi.fn();
+    const handleReset = vi.fn();
+
+    render(
+      <PairInterviewScreen
+        currentQuestion="お互いの出来事について教えてください"
+        currentSpeaker="A"
+        currentSpeakerName="たかし"
+        progress={1}
+        isLoading={false}
+        fallbackUsed={false}
+        inputMethod="keyboard"
+        onSubmitAnswer={handleSubmitAnswer}
+        onFinishEarly={handleFinishEarly}
+        onReset={handleReset}
+      />
+    );
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "たかしの回答です" } });
+    expect(textarea).toHaveValue("たかしの回答です");
+
+    // 「内容をクリア」ボタンが表示される
+    const clearBtn = screen.getByRole("button", { name: /内容をクリア/i });
+    expect(clearBtn).toBeInTheDocument();
+
+    // クリックで消去
+    fireEvent.click(clearBtn);
+    expect(textarea).toHaveValue("");
+    expect(screen.queryByRole("button", { name: /内容をクリア/i })).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3, Mic, Keyboard } from "lucide-react";
+import { ArrowRight, RotateCcw, XCircle, Loader2, Volume2, VolumeX, User, Edit3, Trash2, Mic, Keyboard } from "lucide-react";
 import { InterviewerAvatar, AvatarStatus } from "./InterviewerAvatar";
 import { VoiceInput } from "./VoiceInput";
 import { InputMethod } from "@/types";
@@ -505,42 +505,96 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                         聞き取り完了
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        stopAllAudio();
-                        setIsListening(false);
-                        setShowManualEdit(!showManualEdit);
-                      }}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--color-text-muted)",
-                        fontSize: "0.85rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.25rem",
-                      }}
-                    >
-                      <Edit3 size={14} />
-                      {showManualEdit ? "手直しを閉じる" : "文字を手直しする"}
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          stopAllAudio();
+                          setIsListening(false);
+                          setShowManualEdit(!showManualEdit);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--color-text-muted)",
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.25rem",
+                        }}
+                      >
+                        <Edit3 size={14} />
+                        {showManualEdit ? "手直しを閉じる" : "文字を手直しする"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          stopAllAudio();
+                          setIsListening(false);
+                          setAnswer("");
+                          setShowManualEdit(false);
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#DC2626",
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.25rem",
+                          padding: "0.2rem 0.35rem",
+                          borderRadius: "var(--radius-sm)",
+                        }}
+                        title="内容を消去して最初からやり直す"
+                      >
+                        <Trash2 size={14} />
+                        内容をクリア
+                      </button>
+                    </div>
                   </div>
                   {showManualEdit ? (
-                    <textarea
-                      rows={3}
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
-                      style={{
-                        width: "100%",
-                        padding: "0.75rem",
-                        borderRadius: "var(--radius-sm)",
-                        border: "1px solid var(--color-border)",
-                        fontSize: "1rem",
-                        lineHeight: 1.5,
-                      }}
-                    />
+                    <div>
+                      <textarea
+                        rows={3}
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value.slice(0, 500))}
+                        placeholder={`${currentSpeakerName}のお返事を修正してください`}
+                        style={{
+                          width: "100%",
+                          padding: "0.75rem",
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--color-border)",
+                          fontSize: "1rem",
+                          lineHeight: 1.5,
+                        }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.3rem" }}>
+                        <button
+                          type="button"
+                          onClick={() => setAnswer("")}
+                          disabled={!answer}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: answer ? "#DC2626" : "var(--color-text-muted)",
+                            fontSize: "0.8rem",
+                            cursor: answer ? "pointer" : "default",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.25rem",
+                            padding: 0,
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          テキストを空にする
+                        </button>
+                        <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
+                          {answer.length} / 500 文字
+                        </span>
+                      </div>
+                    </div>
                   ) : (
                     <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600, color: "var(--color-text-main)", lineHeight: 1.5 }}>
                       「{answer}」
@@ -587,8 +641,30 @@ export const PairInterviewScreen: React.FC<PairInterviewScreenProps> = ({
                   lineHeight: 1.5,
                 }}
               />
-              <div style={{ textAlign: "right", fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: "0.25rem" }}>
-                {answer.length} / 500 文字
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.25rem" }}>
+                {answer ? (
+                  <button
+                    type="button"
+                    onClick={() => setAnswer("")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#DC2626",
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      padding: 0,
+                    }}
+                  >
+                    <Trash2 size={13} />
+                    内容をクリア
+                  </button>
+                ) : <span />}
+                <div style={{ fontSize: "0.85rem", color: "var(--color-text-muted)" }}>
+                  {answer.length} / 500 文字
+                </div>
               </div>
             </div>
           )}

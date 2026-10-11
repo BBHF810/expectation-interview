@@ -123,6 +123,39 @@ describe("UIコンポーネントテスト", () => {
     expect(screen.getByText(/声でお話しください/i)).toBeInTheDocument();
   });
 
+  it("一人用インタビュー画面: 文字入力モードで内容クリアボタンをクリックすると入力内容が消去される", () => {
+    const handleSubmitAnswer = vi.fn();
+    const handleFinishEarly = vi.fn();
+    const handleReset = vi.fn();
+
+    render(
+      <InterviewScreen
+        currentQuestion="どんな出来事でしたか？"
+        progress={1}
+        isLoading={false}
+        fallbackUsed={false}
+        inputMethod="keyboard"
+        onSubmitAnswer={handleSubmitAnswer}
+        onFinishEarly={handleFinishEarly}
+        onReset={handleReset}
+        isSimple={false}
+      />
+    );
+
+    const textarea = screen.getByRole("textbox");
+    fireEvent.change(textarea, { target: { value: "誤った回答テスト" } });
+    expect(textarea).toHaveValue("誤った回答テスト");
+
+    // 「内容をクリア」ボタンが表示される
+    const clearBtn = screen.getByRole("button", { name: /内容をクリア/i });
+    expect(clearBtn).toBeInTheDocument();
+
+    // クリックで消去
+    fireEvent.click(clearBtn);
+    expect(textarea).toHaveValue("");
+    expect(screen.queryByRole("button", { name: /内容をクリア/i })).not.toBeInTheDocument();
+  });
+
   it("年齢選択画面: 初期状態では未回答で次へが無効、年代ボタンまたは答えない選択で有効化される（20代→25歳）", () => {
     const handleSelect = vi.fn();
     const handleBack = vi.fn();
