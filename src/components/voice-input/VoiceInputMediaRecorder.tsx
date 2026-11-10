@@ -90,6 +90,13 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
     }
   }, [disabled, isRecording]);
 
+  // 親コンポーネントで「内容をクリア」等が押されてテキストが空になった場合、ベーステキストもリセットする
+  useEffect(() => {
+    if (currentText === "") {
+      baseTextRef.current = "";
+    }
+  }, [currentText]);
+
   const sendAudioToWhisper = async (audioBlob: Blob) => {
     if (!isMountedRef.current) return;
     setIsTranscribing(true);
@@ -121,7 +128,7 @@ export const VoiceInputMediaRecorder: React.FC<VoiceInputProps> = ({
       const transcribedText = sanitizeWhisperTranscript(data.text);
 
       if (transcribedText && isMountedRef.current) {
-        const base = baseTextRef.current;
+        const base = currentTextRef.current.trim();
         const combined = base
           ? `${base}${base.endsWith(" ") || base.endsWith("、") || base.endsWith("。") ? "" : " "}${transcribedText}`
           : transcribedText;

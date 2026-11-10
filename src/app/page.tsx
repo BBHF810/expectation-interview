@@ -159,6 +159,7 @@ export default function Home() {
       expectationType: selectedExp,
     });
     setCurrentQuestion(initialQ.question);
+    setSingleAudioStreamingUrl(undefined);
     // バックグラウンドで即座にストリーミングURLを先行ロード
     prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
       if (url) {
@@ -429,6 +430,7 @@ export default function Home() {
       expectationType: selectedExp,
     });
     setPairCurrentQuestion(initialQ.question);
+    setPairAudioStreamingUrl(undefined);
     setPairCurrentSpeaker(initialQ.nextSpeaker);
     setPairCurrentSpeakerName(initialQ.nextSpeakerName);
     setPairProgress(1);
@@ -467,6 +469,7 @@ export default function Home() {
       setPairCurrentSpeakerName(pairNameB);
       const nextQ = `${pairNameB}さん、${pairNameA}さんのお話を聞いて、そのとき${pairNameB}さんはどんな状況だったり、どう思っていましたか？`;
       setPairCurrentQuestion(nextQ);
+      setPairAudioStreamingUrl(undefined);
       prefetchStreamingUrl(nextQ, getSavedTtsVoice()).then((url) => {
         if (url) setPairAudioStreamingUrl(url);
       });
@@ -478,6 +481,7 @@ export default function Home() {
       setPairCurrentSpeakerName(pairNameB);
       const nextQ = `${pairNameB}さん、${pairNameA}さんのそのお気持ちを聞いてみて、どう感じますか？ 今${pairNameA}さんに伝えたいことはありますか？`;
       setPairCurrentQuestion(nextQ);
+      setPairAudioStreamingUrl(undefined);
       prefetchStreamingUrl(nextQ, getSavedTtsVoice()).then((url) => {
         if (url) setPairAudioStreamingUrl(url);
       });
@@ -805,6 +809,7 @@ export default function Home() {
             setPairCurrentQuestion(initialQ.question);
             setPairCurrentSpeaker(initialQ.nextSpeaker);
             setPairCurrentSpeakerName(initialQ.nextSpeakerName);
+            setPairAudioStreamingUrl(undefined);
             // バックグラウンドで即座にストリーミングURLを先行ロード（1件のみ）
             prefetchStreamingUrl(initialQ.question, getSavedTtsVoice()).then((url) => {
               if (url) {

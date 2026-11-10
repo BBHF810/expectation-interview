@@ -377,7 +377,7 @@ ${
       nextQuestion: fallback.question,
       nextSpeaker: fallback.nextSpeaker,
       nextSpeakerName: fallback.nextSpeakerName,
-      progress: turnIdx + 1,
+      progress: Math.floor(turnIdx / 2) + 1,
       isComplete: false,
       safetyAction: "continue",
       fallbackUsed: true,

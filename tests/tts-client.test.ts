@@ -79,7 +79,7 @@ describe("ブラウザ側 TTS ヘルパー (fetchTtsBlob)", () => {
   });
 
   it("OpenAI ボイスは VOICEVOX を呼ばずに /api/tts を使う", async () => {
-    const fetchMock = vi.fn(async () => new Response(new Blob(["mp3"]), { status: 200 }));
+    const fetchMock = vi.fn(async (_url: string) => new Response(new Blob(["mp3"]), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await fetchTtsBlob("こんにちは", "shimmer");

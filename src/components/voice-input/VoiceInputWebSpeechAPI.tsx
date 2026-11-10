@@ -304,6 +304,14 @@ export const VoiceInputWebSpeechAPI: React.FC<VoiceInputProps> = ({
     }
   }, [disabled, isListening, stopListening]);
 
+  // 親コンポーネントで「内容をクリア」等が押されてテキストが空になった場合、ベーステキストもリセットする
+  useEffect(() => {
+    if (currentText === "") {
+      baseTextRef.current = "";
+      sessionFinalRef.current = "";
+    }
+  }, [currentText]);
+
   /**
    * 新規の音声認識セッションを生成して開始する
    */
